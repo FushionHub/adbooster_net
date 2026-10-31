@@ -1,0 +1,12 @@
+/* Counter Two Css start */
+.counter-two-wrapper {
+  @media (max-width: 767px) {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 32px;
+  }
+  @media (max-width: 575px) {
+    gap: 24px;
+  }
+}
+/* Counter Two Css end */

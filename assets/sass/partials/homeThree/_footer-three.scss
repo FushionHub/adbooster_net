@@ -1,0 +1,33 @@
+/* Footer Three section css start  */
+.footer-three {
+  position: relative;
+  z-index: 1;
+  &::before {
+    position: absolute;
+    content: "";
+    width: 38.5%;
+    height: 100%;
+    background-color: #22222d;
+    z-index: -1;
+    @media (max-width: 1500px) {
+      width: 36%;
+    }
+    @media (max-width: 1200px) {
+      width: 33%;
+    }
+    @media (max-width: 991px) {
+      display: none;
+    }
+  }
+  &__left {
+    @media (min-width: 992px) {
+      width: 35%;
+    }
+  }
+  &__right-content {
+    @media (max-width: 991px) {
+      padding-inline-start: 0 !important;
+    }
+  }
+}
+/* Footer Three section css end  */

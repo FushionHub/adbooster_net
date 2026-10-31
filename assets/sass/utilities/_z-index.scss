@@ -1,0 +1,24 @@
+/* Z index css start */
+.tw-z {
+  &-99 {
+    z-index: 99;
+  }
+  &-991 {
+    z-index: 991;
+  }
+  &-999 {
+    z-index: 999;
+  }
+}
+.tw--z {
+  &-2 {
+    z-index: -2;
+  }
+}
+
+.tw-hover-z {
+    &-4:hover {
+        z-index: 4 !important;
+    }
+}
+/* Z index css End */

@@ -1,0 +1,18 @@
+/* Breadcrumb css start */
+.breadcrumb {
+    padding: 256px 0 160px;
+    @media (max-width: 991px) {
+        padding: 175px 0 100px;
+    }
+    &::before {
+        position: absolute;
+        content: "";
+        width: 100%;
+        height: 100%;
+        inset-inline-start: 0;
+        inset-block-start: 0;
+        z-index: -1;
+        background-color: #020F2DC7;
+    }
+}
+/* Breadcrumb css end */

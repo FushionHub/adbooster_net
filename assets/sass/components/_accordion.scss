@@ -1,0 +1,84 @@
+/* =========================== Accordion Css start ============================= */
+.common-accordion {
+    .accordion-item {
+        &:not(:last-child) {
+            margin-block-end: 20px;
+        }
+    }
+
+    &:first-of-type .accordion-button.collapsed {
+        border-radius: 5px;
+    }
+
+    &:last-of-type .accordion-button.collapsed {
+        border-radius: 5px;
+    }
+
+    .accordion-button {
+        &::after {
+            background-image: none;
+        }
+
+        &:focus {
+            box-shadow: none;
+        }
+    }
+
+    .accordion-button {
+        position: relative;
+        padding-inline-end: 1rem !important;
+        text-align: start;
+
+        &::before {
+            position: absolute;
+            content: "\E136";
+            inset-inline-end: 0;
+            inset-block-start: 50%;
+            transform: translateY(-50%);
+            font-family:
+                'Phosphor';
+            font-weight: 40;
+            font-size: 1rem;
+            color: var(--neutral-600);
+            transition: .2s ease-in-out;
+        }
+
+        &[aria-expanded="true"] {
+            &::before {
+                transform: translateY(-50%) rotate(180deg);
+            }
+        }
+    }
+}
+
+.style-two {
+    .accordion-button {
+        padding-inline-end: 60px !important;
+
+        &[aria-expanded="true"] {
+            background: var(--main-600) !important;
+            color: #fff !important;
+
+            &::before {
+                transform: translateY(-50%) rotate(180deg);
+                content: "\E32A";
+            }
+        }
+
+        &::before {
+            inset-inline-end: 14px;
+            background-color: #F3F7F6;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            color: hsl(var(--heading-color)) !important;
+            font-weight: 900;
+            content: "\E3D4";
+        }
+    }
+}
+
+/* ================================= Accordion Css End =========================== */

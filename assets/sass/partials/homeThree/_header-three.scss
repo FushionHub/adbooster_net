@@ -1,0 +1,19 @@
+/* Header Three Css start */
+.logo-three {
+  position: relative;
+  &::before {
+    position: absolute;
+    width: 100%;
+    inset-inline-start: 0;
+    inset-block-start: calc(100% - 1px);
+    content: "";
+    background-color: inherit;
+    z-index: 1;
+    height: 30px;
+    border-radius: 0 0 10px 10px;
+  }
+  img {
+    transform: translateY(15px);
+  }
+}
+/* Header Three end start */

@@ -1,0 +1,450 @@
+MASTER EXECUTION PROMPT: ASYNCHRONOUS DUAL THIRD-PARTY GATEWAY ARCHITECTURE
+
+TARGET SYSTEMS: OPENCODE / GOOGLE ANTIGRAVITY / CURSOR
+
+RUNTIME ENVIRONMENT: PHP 8.2+ (VANILLA, STRICT TYPES) / MYSQL 8.0+ / REDIS QUEUE & WORKERS
+
+You are acting as the Lead Systems Architect & Principal Software Engineer for Adsbooster.net.
+
+CRITICAL REFACTORING MANDATES:
+
+REMOVE ALL TRADITIONAL & DIRECT OAUTH CONNECTIONS:
+
+Completely purge and remove all legacy OAuth 2.0 flows, direct app secret exchanges, token callbacks, and token refresh loops for Meta Graph API, TikTok Content/Marketing API, Google Ads API, X API, LinkedIn API, and Snapchat API.
+
+Do NOT build or retain direct platform authorization callbacks or direct SDK wrappers (exchangeMetaCode, exchangeTikTokCode, etc.).
+
+MIGRATE 100% OF EXTERNAL PLATFORM OPERATIONS TO THIRD-PARTY GATEWAYS:
+
+Bundle.social API Gateway: Dedicated strictly to Organic Content Management (Post Scheduling, Multi-Account Connections, UGC Video Publishing, Automated Postings, Comment Moderation, and Google Calendar Sync).
+
+Zernio API Gateway: Dedicated strictly to Paid Advertising Management (Campaign Launching, Performance Tracking, ROAS Monitoring, Auto-Budget Scaling, Pausing/Resuming Ads across Meta, TikTok, Google Ads, Snapchat, and Combo Packs).
+
+ASYNC-EVERYTHING QUEUE & WORKER ARCHITECTURE:
+
+Zero Synchronous External API Calls in Request/Response Loops: Every user-initiated post creation, campaign launch, status toggle, or webhook processing request MUST be dispatched asynchronously via background queues.
+
+Use an asynchronous DB/Redis queue pattern with a CLI background worker processor (cron/queue_worker.php) to handle API requests to Bundle.social and Zernio out-of-band with exponential backoff and retry capabilities.
+
+1. UPDATED ASYNCHRONOUS SYSTEM ARCHITECTURE
+
+                                  +---------------------------------------+
+                                  |            ADSBOOSTER.NET             |
+                                  |     (PHP 8.2+ Async Queue Producer)   |
+                                  +-------------------+-------------------+
+                                                      |
+                                     (Enqueues Job - Instant HTTP 200)
+                                                      v
+                                  +---------------------------------------+
+                                  |      SYSTEM JOBS QUEUE (MySQL/Redis)  |
+                                  |      `async_job_queue` Table          |
+                                  +-------------------+-------------------+
+                                                      |
+                                         (CLI Background Workers)
+                                         `cron/queue_worker.php`
+                                                      |
+                  +-----------------------------------+-----------------------------------+
+                  |                                                                       |
+                  v                                                                       v
+  +-------------------------------+                                       +-------------------------------+
+  |   BUNDLE.SOCIAL GATEWAY       |                                       |        ZERNIO GATEWAY         |
+  |     (Organic Engine)          |                                       |         (Ads Engine)          |
+  +-------------------------------+                                       +-------------------------------+
+  | - Asynchronous Post Dispatch  |                                       | - Asynchronous Ad Launching   |
+  | - Multi-Account Connections   |                                       | - Background Status Toggles   |
+  | - UGC & Reel Video Queues     |                                       | - Multi-Network Combo Packs   |
+  | - Webhook Delivery Hooks      |                                       | - Async Auto-Budget Scaling   |
+  +-------------------------------+                                       +-------------------------------+
+
+
+2. DATABASE SCHEMA MIGRATION (database/async_gateway_migration.sql)
+
+Execute this SQL migration to create the async job queue table, third-party gateway configurations, and refactor connected account structures:
+
+USE `adsbooster_db`;
+
+-- 1. Remove Legacy OAuth Token Columns & Tables
+ALTER TABLE `users` DROP COLUMN IF EXISTS `two_factor_secret`;
+DROP TABLE IF EXISTS `connected_accounts`;
+
+-- 2. Restructured Unified Connected Accounts (Managed via Third-Party Handshake)
+CREATE TABLE `connected_accounts` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED NOT NULL,
+    `gateway_provider` ENUM('bundle_social', 'zernio') NOT NULL,
+    `account_type` ENUM('organic_profile', 'ad_account') NOT NULL,
+    `platform_name` VARCHAR(50) NOT NULL, -- 'meta', 'tiktok', 'google_ads', 'snapchat', 'linkedin', 'x'
+    `external_account_id` VARCHAR(191) NOT NULL,
+    `display_name` VARCHAR(150) NULL,
+    `avatar_url` VARCHAR(255) NULL,
+    `status` ENUM('connected', 'expired', 'error') NOT NULL DEFAULT 'connected',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    UNIQUE KEY `user_gateway_ext_acc` (`user_id`, `gateway_provider`, `external_account_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 3. Third-Party Gateway Credentials Store
+CREATE TABLE IF NOT EXISTS `third_party_gateways` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `provider_key` ENUM('bundle_social', 'zernio') UNIQUE NOT NULL,
+    `api_key` VARCHAR(255) NOT NULL,
+    `base_url` VARCHAR(255) NOT NULL,
+    `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `third_party_gateways` (`provider_key`, `api_key`, `base_url`, `is_active`) VALUES
+('bundle_social', 'YOUR_BUNDLE_SOCIAL_API_KEY', 'https://api.bundle.social/v1', 1),
+('zernio', 'YOUR_ZERNIO_API_KEY', 'https://api.zernio.com/v1', 1)
+ON DUPLICATE KEY UPDATE `updated_at` = NOW();
+
+-- 4. Asynchronous High-Throughput Job Queue Engine
+CREATE TABLE IF NOT EXISTS `async_job_queue` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED NOT NULL,
+    `job_type` VARCHAR(100) NOT NULL, -- e.g. 'bundle_publish_post', 'zernio_launch_ad', 'zernio_toggle_status'
+    `payload` LONGTEXT NOT NULL, -- JSON Payload
+    `status` ENUM('pending', 'processing', 'completed', 'failed') NOT NULL DEFAULT 'pending',
+    `attempts` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    `max_attempts` TINYINT UNSIGNED NOT NULL DEFAULT 5,
+    `error_log` TEXT NULL,
+    `scheduled_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `processed_at` DATETIME NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    INDEX `idx_queue_status_schedule` (`status`, `scheduled_at`),
+    INDEX `idx_user_jobs` (`user_id`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 5. Link Ad Campaigns and Scheduled Posts to Third-Party IDs
+ALTER TABLE `ad_campaigns` 
+    DROP COLUMN IF EXISTS `auto_buyer_rules`,
+    ADD COLUMN `zernio_campaign_id` VARCHAR(191) NULL AFTER `status`,
+    ADD COLUMN `zernio_ad_account_id` VARCHAR(191) NULL AFTER `zernio_campaign_id`;
+
+ALTER TABLE `scheduled_posts`
+    ADD COLUMN `bundle_post_id` VARCHAR(191) NULL AFTER `status`;
+
+
+3. ASYNCHRONOUS QUEUE PRODUCER & WORKER SUBSYSTEM
+
+A. Queue Producer Engine (modules/AsyncQueue.php)
+
+<?php
+declare(strict_types=1);
+
+class AsyncQueue {
+
+    /**
+     * Enqueue a job for non-blocking asynchronous background execution
+     */
+    public static function push(int $userId, string $jobType, array$payload, ?string $scheduledAt = null): bool {$db = Database::getInstance();
+        $stmt =$db->prepare("INSERT INTO async_job_queue (user_id, job_type, payload, status, scheduled_at) VALUES (?, ?, ?, 'pending', ?)");
+        return $stmt->execute([
+            $userId,$jobType,
+            json_encode($payload, JSON_UNESCAPED_SLASHES \vert{} JSON_UNESCAPED_UNICODE),$scheduledAt ?? date('Y-m-d H:i:s')
+        ]);
+    }
+}
+
+
+B. Unified Third-Party Gateway (modules/ThirdPartyGateway.php)
+
+<?php
+declare(strict_types=1);
+
+require_once __DIR__ . '/../config/site_setting_and_config.php';
+
+class ThirdPartyGateway {
+
+    private static function getGatewayConfig(string $provider): array {$db = Database::getInstance();
+        $stmt =$db->prepare("SELECT api_key, base_url FROM third_party_gateways WHERE provider_key = ? AND is_active = 1");
+        $stmt->execute([$provider]);
+        $config =$stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$config) {
+            throw new Exception("Gateway provider '{$provider}' is disabled or unconfigured.");
+        }
+        return $config;
+    }
+
+    public static function executeCurl(string $provider, string $endpoint, string$method = 'POST', array $body = []): array {$config = self::getGatewayConfig($provider);$url = rtrim($config['base_url'], '/') . '/' . ltrim($endpoint, '/');
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CUSTOMREQUEST => strtoupper($method),
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer ' . $config['api_key'],
+                'Content-Type: application/json',
+                'Accept: application/json'
+            ]
+        ]);
+
+        if (!empty($body) && in_array(strtoupper($method), ['POST', 'PUT', 'PATCH'], true)) {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
+        }
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error) {
+            throw new Exception("cURL Error [{$provider}]: " . $error);
+        }
+
+        $decoded = json_decode($response, true);
+        return [
+            'success' => ($httpCode >= 200 && $httpCode < 300), 'status_code' =>$httpCode,
+            'data' => $decoded ?? $response
+        ];
+    }
+
+    // --- Connection Handshakes (Replacing Native OAuth) ---
+    public static function getBundleConnectUrl(int $userId, string$platform): string {
+        $config = self::getGatewayConfig('bundle_social');$redirectUrl = BASE_URL . "/dashboard?action=bundle_connected";
+        return $config['base_url'] . "/connect/{$platform}?redirect_uri=" . urlencode($redirectUrl) . "&state={$userId}";
+    }
+
+    public static function getZernioAdConnectUrl(int $userId, string$network): string {
+        $config = self::getGatewayConfig('zernio');$redirectUrl = BASE_URL . "/dashboard?action=zernio_connected";
+        return $config['base_url'] . "/connect/{$network}?redirect_uri=" . urlencode($redirectUrl) . "&state={$userId}";
+    }
+}
+
+
+C. CLI Asynchronous Queue Worker Daemon (cron/queue_worker.php)
+
+<?php
+declare(strict_types=1);
+
+if (php_sapi_name() !== 'cli') {
+    http_response_code(403);
+    die("CLI Execution Required");
+}
+
+require_once __DIR__ . '/../config/site_setting_and_config.php';
+require_once __DIR__ . '/../modules/ThirdPartyGateway.php';
+
+$db = Database::getInstance();
+echo "[Worker] Starting Async Queue Daemon...\n";
+
+while (true) {
+    // Fetch pending jobs using SELECT FOR UPDATE lock
+    $db->beginTransaction();
+    $stmt =$db->prepare("SELECT * FROM async_job_queue WHERE status = 'pending' AND scheduled_at <= NOW() ORDER BY id ASC LIMIT 10 FOR UPDATE");
+    $stmt->execute();
+    $jobs =$stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    if (empty($jobs)) {$db->commit();
+        sleep(2); // Rest worker cycle
+        continue;
+    }
+
+    // Mark as processing
+    $jobIds = array_column($jobs, 'id');$inClause = implode(',', array_map('intval', $jobIds));$db->exec("UPDATE async_job_queue SET status = 'processing' WHERE id IN ({$inClause})");
+    $db->commit();
+
+    foreach ($jobs as$job) {
+        $jobId = (int)$job['id'];
+        $payload = json_decode($job['payload'], true);
+        echo "[Worker] Processing Job #{$jobId} - Type: {$job['job_type']}\n";
+
+        try {
+            switch ($job['job_type']) {
+
+                // --- BUNDLE.SOCIAL ORGANIC POST DISPATCH ---
+                case 'bundle_publish_post':
+                    $res = ThirdPartyGateway::executeCurl('bundle_social', '/posts', 'POST', [
+                        'account_ids' => $payload['account_ids'],
+                        'text' => $payload['caption'],
+                        'media' => $payload['media_urls'] ?? [],
+                        'scheduled_at' => $payload['scheduled_at'] ?? null
+                    ]);
+
+                    if (!$res['success']) {
+                        throw new Exception("Bundle.social Publish Error: " . json_encode($res['data']));
+                    }
+
+                    $bundlePostId =$res['data']['id'] ?? null;
+                    $db->prepare("UPDATE scheduled_posts SET status = 'published', bundle_post_id = ? WHERE id = ?")
+                       ->execute([$bundlePostId,$payload['internal_post_id']]);
+                    break;
+
+                // --- ZERNIO PAID AD CAMPAIGN LAUNCH ---
+                case 'zernio_launch_ad':
+                    $res = ThirdPartyGateway::executeCurl('zernio', '/campaigns', 'POST', [
+                        'ad_account_id' => $payload['ad_account_id'],
+                        'platforms' => $payload['platforms'],
+                        'campaign' => $payload['campaign_spec']
+                    ]);
+
+                    if (!$res['success']) {
+                        throw new Exception("Zernio Campaign Launch Error: " . json_encode($res['data']));
+                    }
+
+                    $zernioCampaignId =$res['data']['campaign_id'] ?? null;
+                    $db->prepare("UPDATE ad_campaigns SET status = 'active', zernio_campaign_id = ? WHERE id = ?")
+                       ->execute([$zernioCampaignId,$payload['internal_campaign_id']]);
+                    break;
+
+                // --- ZERNIO AD STATUS TOGGLE (PAUSE/RESUME) ---
+                case 'zernio_toggle_status':
+                    $res = ThirdPartyGateway::executeCurl('zernio', "/campaigns/{$payload['zernio_campaign_id']}/status", 'PATCH', [
+                        'status' => $payload['target_status']
+                    ]);
+
+                    if (!$res['success']) {
+                        throw new Exception("Zernio Status Toggle Error: " . json_encode($res['data']));
+                    }
+
+                    $db->prepare("UPDATE ad_campaigns SET status = ? WHERE id = ?")
+                       ->execute([$payload['target_status'],$payload['internal_campaign_id']]);
+                    break;
+
+                default:
+                    throw new Exception("Unknown job type: " . $job['job_type']);
+            }
+
+            // Mark Job Completed
+            $db->prepare("UPDATE async_job_queue SET status = 'completed', processed_at = NOW() WHERE id = ?")->execute([$jobId]);
+            echo "[Worker] Job #{$jobId} COMPLETED.\n";
+
+        } catch (Exception $e) {
+            $attempts = (int)$job['attempts'] + 1;
+            $maxAttempts = (int)$job['max_attempts'];$newStatus = ($attempts >=$maxAttempts) ? 'failed' : 'pending';
+
+            $db->prepare("UPDATE async_job_queue SET status = ?, attempts = ?, error_log = ? WHERE id = ?")
+               ->execute([$newStatus,$attempts, $e->getMessage(),$jobId]);
+
+            echo "[Worker] Job #{$jobId} FAILED (Attempt {$attempts}/{$maxAttempts}): {$e->getMessage()}\n";
+        }
+    }
+}
+
+
+4. APPLICATION ENDPOINT REFACTORING
+
+A. Non-Blocking Campaign Launch Endpoint (create-ad.php)
+
+<?php
+declare(strict_types=1);
+require_once __DIR__ . '/config/site_setting_and_config.php';
+require_once __DIR__ . '/includes/auth_guard.php';
+require_once __DIR__ . '/modules/AsyncQueue.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_launch_ad'])) {
+    csrf_verify();
+    
+    $userId = (int)$_SESSION['user_id'];
+    $title = trim($_POST['title']);
+    $type =$_POST['campaign_type'];
+    $budget = (float)$_POST['budget_amount'];
+    $headline = trim($_POST['headline']);
+    $text = trim($_POST['primary_text']);
+    $destination = trim($_POST['destination_url']);
+    $mediaUrl = trim($_POST['creative_media_url']);
+    $adAccountId = trim($_POST['zernio_ad_account_id']);
+
+    $db = Database::getInstance();
+    
+    // 1. Insert Campaign into DB with 'pending' state
+    $stmt =$db->prepare("INSERT INTO ad_campaigns (user_id, title, campaign_type, objective, budget_type, budget_amount, targeting_spec, headline, primary_text, destination_url, creative_media_url, zernio_ad_account_id, status) VALUES (?, ?, ?, 'CONVERSIONS', 'daily', ?, '{}', ?, ?, ?, ?, ?, 'pending')");
+    $stmt->execute([$userId, $title,$type, $budget,$headline, $text,$destination, $mediaUrl,$adAccountId]);
+    $campaignId = (int)$db->lastInsertId();
+
+    // 2. Enqueue Job for Async Execution via Zernio Gateway
+    $platforms = ($type === 'combo_pack') ? ['meta', 'tiktok', 'google', 'snapchat'] : [$type];
+    
+    AsyncQueue::push($userId, 'zernio_launch_ad', [
+        'internal_campaign_id' => $campaignId,
+        'ad_account_id' => $adAccountId,
+        'platforms' => $platforms,
+        'campaign_spec' => [
+            'name' => $title,
+            'budget' => $budget,
+            'creative' => [
+                'headline' => $headline,
+                'body' => $text,
+                'destination_url' => $destination,
+                'media_url' => str_starts_with($mediaUrl, 'http') ? $mediaUrl : BASE_URL . '/' . ltrim($mediaUrl, '/')
+            ]
+        ]
+    ]);
+
+    // 3. Return Instant Response to UI
+    $_SESSION['flash_msg'] = "Campaign queued successfully! Background workers are provisioning the campaign on Zernio.";
+    header('Location: ' . BASE_URL . '/dashboard');
+    exit;
+}
+
+
+B. Non-Blocking Social Publisher Endpoint (post-creator.php)
+
+<?php
+declare(strict_types=1);
+require_once __DIR__ . '/config/site_setting_and_config.php';
+require_once __DIR__ . '/includes/auth_guard.php';
+require_once __DIR__ . '/modules/AsyncQueue.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_schedule_post'])) {
+    csrf_verify();
+
+    $userId = (int)$_SESSION['user_id'];
+    $platform =$_POST['platform'];
+    $caption = trim($_POST['caption']);
+    $scheduledTime =$_POST['scheduled_time'];
+    $mediaUrl =$_POST['media_url'] ?? '';
+    $accountIds =$_POST['bundle_account_ids'] ?? []; // Array of Bundle.social connected profile IDs
+
+    $db = Database::getInstance();
+
+    // 1. Store scheduled post locally
+    $stmt =$db->prepare("INSERT INTO scheduled_posts (user_id, platform, post_type, caption, media_url, media_type, scheduled_time, status) VALUES (?, ?, 'manual', ?, ?, 'image', ?, 'scheduled')");
+    $stmt->execute([$userId, $platform,$caption, $mediaUrl,$scheduledTime]);
+    $postId = (int)$db->lastInsertId();
+
+    // 2. Enqueue Async Job for Bundle.social Dispatch
+    AsyncQueue::push($userId, 'bundle_publish_post', [
+        'internal_post_id' => $postId,
+        'account_ids' => $accountIds,
+        'caption' => $caption,
+        'media_urls' => !empty($mediaUrl) ? [BASE_URL . '/' . ltrim($mediaUrl, '/')] : [],
+        'scheduled_at' => date('c', strtotime($scheduledTime))
+    ], $scheduledTime);
+
+    $_SESSION['flash_msg'] = "Post queued! Bundle.social will broadcast it at the scheduled time.";
+    header('Location: ' . BASE_URL . '/post-creator');
+    exit;
+}
+
+
+5. STEPS FOR OPENCODE / GOOGLE ANTIGRAVITY / CURSOR
+
+Execute the following actions sequentially across the codebase:
+
+Delete All Direct OAuth Scripts: Remove files like oauth-callback.php or native provider token exchange files.
+
+Execute Database Migration: Apply database/async_gateway_migration.sql to clean out old token structures and create async_job_queue.
+
+Deploy Core Modules: Deploy modules/AsyncQueue.php, modules/ThirdPartyGateway.php, and cron/queue_worker.php.
+
+Refactor User Interfaces: Update connection buttons on dashboard.php and social-connect.php to use ThirdPartyGateway::getBundleConnectUrl() and ThirdPartyGateway::getZernioAdConnectUrl().
+
+Update Campaign & Post Controllers: Update create-ad.php and post-creator.php to use AsyncQueue::push() for non-blocking HTTP responses.
+
+Verify Frontend Execution: Ensure Bootstrap 5 layout structures, Satoshi typography, and GSAP dark theme styling (#080c14, #0d1524, #c8ff00) remain visually intact.
+
+
+---
+
+### Summary of Refactoring Changes
+- **Direct OAuth Purged:** All direct token exchange logic for Meta, TikTok, Google, X, and LinkedIn has been completely removed.
+- **Third-Party Standardization:** All organic social interactions are routed to **Bundle.social**, and all paid ad executions are routed to **Zernio**.
+- **100% Asynchronous Pipeline:** HTTP requests now return instantly to the browser while the background worker (`cron/queue_worker.php`) handles API communications, error processing, and status updates out-of-band.
+
+/PLAN /BUILD /TEST /REVIEW /RESEARCH

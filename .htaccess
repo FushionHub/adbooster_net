@@ -1,0 +1,158 @@
+# =============================================================
+# Adsbooster.net - Production Apache Clean URL + Security Config
+# Deployed at document root on production (https://adsbooster.net/)
+# and under /seopp/ for local development.
+# =============================================================
+
+RewriteEngine On
+
+# -------------------------------------------------------------
+# 0a. Force HTTPS on the production domain (safe for localhost:
+#     the condition only matches the live host; X-Forwarded-Proto
+#     is respected so proxied TLS setups do not loop)
+# -------------------------------------------------------------
+RewriteCond %{HTTP_HOST} ^adsbooster\.net$ [NC]
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP:X-Forwarded-Proto} !https
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+# -------------------------------------------------------------
+# 0. DENY web access to sensitive internal directories
+#    (config, database dumps, test scripts, caches, cron, prompts)
+# -------------------------------------------------------------
+RewriteRule ^(config|database|cache|cron|prompts|scratch|node_modules)(/|$) - [F,L,NC]
+
+# Block direct access to local credential overrides and env files
+RewriteRule ^(keys\.local\.php|db\.local\.php|\.env|\.env\..*|\.gitignore|composer\.(json|lock))$ - [F,L,NC]
+
+# Block hidden/dotfiles (except well-known ACME challenges)
+RewriteRule ^\.well-known(/|$) - [L]
+RewriteRule (^|/)\.(?!well-known) - [F,L]
+
+# Block SQL backups and config backups left behind by editors
+RewriteRule \.(sql|sqlite|db|bak|old|swp|dist|ini|log)$ - [F,L,NC]
+
+# -------------------------------------------------------------
+# 1. Clean Parameterized Routing
+# -------------------------------------------------------------
+RewriteRule ^bounty-details/([0-9]+)/?$ bounty-details.php?id=$1 [QSA,L]
+RewriteRule ^portfolio/([a-zA-Z0-9_\-\.@]+)/?$ portfolio.php?u=$1 [QSA,L]
+RewriteRule ^blog-details/([a-zA-Z0-9_\-]+)/?$ blog-details.php?slug=$1 [QSA,L]
+RewriteRule ^listing-details/([0-9]+)/?$ listing-details.php?id=$1 [QSA,L]
+RewriteRule ^job-details/([0-9]+)/?$ job-details.php?id=$1 [QSA,L]
+RewriteRule ^client-approval/([a-zA-Z0-9_\-]+)/?$ client-approval.php?token=$1 [QSA,L]
+
+# Clean AJAX Module Endpoints
+RewriteRule ^chat-poll/?$ modules/chat_poll.php [QSA,L]
+RewriteRule ^notifications-poll/?$ modules/notifications_poll.php [QSA,L]
+RewriteRule ^mark-notifications-read/?$ modules/mark_notifications_read.php [QSA,L]
+RewriteRule ^calendar-reschedule/?$ modules/calendar_reschedule.php [QSA,L]
+
+# -------------------------------------------------------------
+# 2. Redirect explicit .php requests to extensionless clean URLs
+#    (avoids 301 turning POST into GET on the canonical URL)
+#
+#    THE_REQUEST always begins with the app-rooted absolute path
+#    (e.g. "/seopp/dashboard.php"), so the captured group MUST keep
+#    its leading slash — a relative substitution is resolved against
+#    the filesystem directory and produces mangled URLs.
+#    The exclusion checks use substring matching so they work both
+#    when the app is at the vhost root and when it is in /seopp/.
+# -------------------------------------------------------------
+RewriteCond %{THE_REQUEST} \s(/[^?\s]+?)\.php(\?\S*)?\s [NC]
+RewriteCond %{REQUEST_URI} !/modules/ [NC]
+RewriteCond %{REQUEST_URI} !/api/ [NC]
+RewriteCond %{REQUEST_URI} !/cron/ [NC]
+RewriteCond %{REQUEST_URI} !/config/ [NC]
+RewriteRule ^ %1%2 [R=301,L]
+
+# -------------------------------------------------------------
+# 3. Root deployment (production document root):
+#    /login → /login.php when that file exists at DOCUMENT_ROOT
+# -------------------------------------------------------------
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{DOCUMENT_ROOT}/$1.php -f
+RewriteRule ^(.+?)/?$ $1.php [QSA,L]
+
+# -------------------------------------------------------------
+# 4. Fallback root routing for subdirectories (local /seopp/ dev)
+# -------------------------------------------------------------
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{DOCUMENT_ROOT}/seopp/$1.php -f
+RewriteRule ^(.+?)/?$ $1.php [QSA,L]
+
+# -------------------------------------------------------------
+# 4b. Friendly 404 for missing extensionless pages (works both at
+#     the vhost root on production and under /seopp/ locally).
+#     Paths that look like assets (contain a file extension) are
+#     left to the server's default 404 so CSS/JS keep correct
+#     status/content-type semantics.
+# -------------------------------------------------------------
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !\.[a-zA-Z0-9]{2,6}$
+RewriteRule ^ 404.php [L]
+
+# =============================================================
+# Security Headers
+# =============================================================
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set X-Permitted-Cross-Domain-Policies "none"
+    Header always set Permissions-Policy "geolocation=(), microphone=(self), camera=(self), payment=()"
+    # Remove server fingerprints
+    Header unset X-Powered-By
+    Header unset Server
+    # HSTS is only meaningful behind TLS - enable after SSL is configured:
+    # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+</IfModule>
+
+<IfModule mod_php.c>
+    php_flag display_errors Off
+    php_flag log_errors On
+    php_flag expose_php Off
+</IfModule>
+
+# =============================================================
+# Caching & Compression
+# =============================================================
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css text/javascript application/javascript application/json image/svg+xml
+</IfModule>
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/png  "access plus 1 month"
+    ExpiresByType image/webp "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+    ExpiresByType text/css   "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType video/mp4  "access plus 6 months"
+    ExpiresByType video/webm "access plus 6 months"
+</IfModule>
+
+# =============================================================
+# Prevent MIME sniffing on uploads
+# =============================================================
+<FilesMatch "\.(?i:jpe?g|png|gif|webp|svg|mp4|webm|mov|pdf|vcf|txt|css|js|json)$">
+    Header set X-Content-Type-Options "nosniff"
+</FilesMatch>
+
+# =============================================================
+# Custom Error Pages
+#    Production runs at the document root, so the paths are
+#    root-relative (/404.php). Local /seopp/ development still
+#    gets pretty error pages for extensionless URLs via the
+#    404.php rewrite catch above.
+# =============================================================
+ErrorDocument 400 /400.php
+ErrorDocument 401 /401.php
+ErrorDocument 403 /403.php
+ErrorDocument 404 /404.php
+ErrorDocument 500 /500.php
+ErrorDocument 503 /503.php

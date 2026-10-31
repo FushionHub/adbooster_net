@@ -1,0 +1,13 @@
+/* Blog two css start */
+.blog-two-item {
+  @media (max-width: 1199px) {
+    flex-direction: column;
+    align-items: unset !important;
+  }
+  &__thumb {
+    @media (max-width: 1199px) {
+      max-width: 100%;
+    }
+  }
+}
+/* Blog two css end */

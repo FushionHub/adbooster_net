@@ -1,0 +1,42 @@
+/* image double animation css start */
+.image-double-animation {
+  position: relative;
+  overflow: hidden;
+  &__element {
+    -webkit-transition: all 500ms ease;
+    transition: all 500ms ease;
+    &:first-child {
+      position: absolute;
+      left: 0px;
+      top: 0px;
+      right: 0px;
+      bottom: 0px;
+      z-index: 1;
+      -webkit-transform: translateX(50%) scaleX(2);
+      transform: translateX(50%) scaleX(2);
+      opacity: 0;
+      -webkit-filter: blur(10px);
+      filter: blur(10px);
+    }
+  }
+}
+
+.image-double-animation:hover {
+  .image-double-animation__element {
+    &:first-child {
+      -webkit-transform: translateX(0) scaleX(1);
+      transform: translateX(0) scaleX(1);
+      opacity: 1;
+      -webkit-filter: blur(0);
+      filter: blur(0);
+    }
+    &:nth-child(2) {
+      -webkit-transform: translateX(-50%) scaleX(2);
+      transform: translateX(-50%) scaleX(2);
+      opacity: 0;
+      -webkit-filter: blur(10px);
+      filter: blur(10px);
+    }
+  }
+}
+/* image double animation css end */

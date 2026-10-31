@@ -1,0 +1,12 @@
+/* testimonials two css start */
+.aspect-square {
+  aspect-ratio: 1;
+}
+
+.testimonials-two__navigations {
+  @media (max-width: 425px) {
+    position: relative !important;
+    margin-inline-end: 0 !important;
+  }
+}
+/* testimonials two css end */

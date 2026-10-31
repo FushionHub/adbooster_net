@@ -1,0 +1,32 @@
+/* ========================= Banner one css start ============================= */
+.banner-one {
+  &__inner {
+    padding: 294px 0 194px 0;
+    @media (max-width: 1300px) {
+      padding: 240px 0 120px 0;
+    }
+    @media (max-width: 991px) {
+      padding: 160px 0 120px 0;
+    }
+  }
+  &__thumbs {
+    max-width: 52%;
+    @media (max-width: 1300px) {
+      max-width: 48%;
+    }
+  }
+}
+
+.rotate-text-one {
+  inset-inline-start: 42%;
+  @media (max-width: 1199px) {
+    inset-inline-start: 35%;
+  }
+  @media (max-width: 991px) {
+    inset-inline-start: 68%;
+  }
+  @media (max-width: 445px) {
+    inset-inline-start: 75%;
+  }
+}
+/* ========================= Banner one css End ============================= */

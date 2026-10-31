@@ -1,0 +1,49 @@
+/* cta two css start */
+.bg-half-black {
+  &::before {
+    position: absolute;
+    content: "";
+    width: 100%;
+    height: 50%;
+    inset-block-end: 0;
+    inset-inline-start: 0;
+    background-color: hsl(var(--heading-color));
+    z-index: -1;
+  }
+}
+.bg-half-blue-light {
+  &::before {
+    position: absolute;
+    content: "";
+    width: 100%;
+    height: 50%;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    @extend .bg-blue-light;
+    z-index: -1;
+  }
+  &.bg-overlay-white {
+    &::before {
+      background-color: hsl(var(--white));
+    }
+  }
+}
+
+.rounded-top-34-px {
+  border-radius: 34px 34px 0 0;
+}
+
+.animation-rotate-y-50 {
+  transform: translateY(50%);
+  animation: rotateRightY 30s linear infinite;
+}
+@keyframes rotateRightY {
+  0% {
+    transform: translateY(50%) rotate(0deg);
+  }
+
+  100% {
+    transform: translateY(50%) rotate(360deg);
+  }
+}
+/* cta two css end */

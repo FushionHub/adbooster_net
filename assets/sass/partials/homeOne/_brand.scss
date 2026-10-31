@@ -1,0 +1,39 @@
+/* brand section css start */
+.hover-filter-grayscale-0 {
+  filter: grayscale(100%);
+  opacity: 0.6;
+  &:hover {
+    filter: grayscale(0);
+    opacity: 1;
+  }
+}
+
+.left-right-gradient::before,
+.left-right-gradient::after {
+  position: absolute;
+  content: "";
+  width: 48px;
+  height: 100%;
+  inset-inline-start: 0;
+  inset-block-start: 0;
+  background: linear-gradient(90deg, #ffffff, transparent);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.left-right-gradient::after {
+  background: linear-gradient(90deg, transparent, #ffffff);
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+}
+
+.gradient-width-200::before,
+.gradient-width-200::after {
+  width: 200px;
+}
+
+.gradient-width-50::before,
+.gradient-width-50::after {
+  width: 50px;
+}
+/* brand section css end */

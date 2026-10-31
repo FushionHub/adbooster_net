@@ -1,0 +1,8 @@
+/* Header spacer for fixed header */
+.header-space {
+  height: 96px;
+  @media (max-width: 991px) {
+    height: 74px;
+  }
+}
+/* Smooth Wrapper css end */

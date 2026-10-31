@@ -1,0 +1,27 @@
+{
+  "name": "adsbooster-js-sdk",
+  "version": "1.1.0",
+  "description": "Official JavaScript and TypeScript SDK for Adsbooster.net REST API v1 (Zernio Ads Engine & Bundle.social Gateway)",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": [
+    "adsbooster",
+    "advertising",
+    "social-media",
+    "marketing",
+    "meta-ads",
+    "tiktok-ads",
+    "bundle-social",
+    "zernio",
+    "ugc"
+  ],
+  "author": "Adsbooster.net Engineering",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+

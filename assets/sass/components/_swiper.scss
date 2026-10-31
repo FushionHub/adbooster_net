@@ -1,0 +1,20 @@
+/* Swiper css start */
+.style-one {
+  .swiper-pagination-bullet {
+    width: 12px;
+    height: 12px;
+    background-color: #fff;
+    opacity: 0.5;
+    transition: 0.3s ease-in-out;
+    &.swiper-pagination-bullet-active {
+      opacity: 1;
+      width: 32px;
+      border-radius: 50rem;
+    }
+  }
+}
+
+.swiper-cube .swiper-cube-shadow:before {
+  background: #0000000f;
+}
+/* Swiper css end */

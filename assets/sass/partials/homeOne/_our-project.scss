@@ -1,0 +1,10 @@
+/* Project section css start */
+.project-slider {
+  .swiper-slide {
+    transition: 0.5s ease-in-out;
+    &.swiper-slide-active {
+      transform: translateY(-40px);
+    }
+  }
+}
+/* Project section css end */

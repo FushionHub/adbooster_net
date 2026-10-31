@@ -1,0 +1,19 @@
+/* About new two css start */
+
+.text-gradient {
+    background: linear-gradient(125.41deg, #FEE020 12.97%, #F4515F 57.29%, #76009B 103.48%);
+    background-size: 100%;
+    word-spacing: 5px;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    -webkit-background-clip: text;
+  }
+
+  .counter-content {
+    @media (min-width: 768px) {
+        padding-inline-end: clamp(1.5rem, -3.5644rem + 8.1683vw, 5.625rem);
+        margin-inline-end: clamp(1.5rem, -3.5644rem + 8.1683vw, 5.625rem);
+        border-inline-end: 1px solid var(--neutral-600) !important;
+    }
+  }
+/* About new two css end */

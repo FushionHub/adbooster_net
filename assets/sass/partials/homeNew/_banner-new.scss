@@ -1,0 +1,17 @@
+/* ======================== banner new section start ======================= */
+.banner-new {
+    &__inner {
+        padding-block-start: 224px;
+        padding-block-end: 96px;
+        @media (max-width: 991px) {
+            padding-block-start: 160px;
+        }
+    }
+}
+
+.blur-style-two {
+    background-color: #FFFFFF0F !important;
+    backdrop-filter: blur(20px);
+}
+
+/* ======================== banner new section End ======================= */

@@ -1,0 +1,25 @@
+/* Social icons css start */
+.show-socials-icons.active .show-socials-icons__item {
+  transform: scale(1);
+}
+
+.show-social-icon-button {
+  &.active {
+    background-color: hsl(var(--heading-color)) !important;
+    .icon {
+      transform: rotate(45deg);
+    }
+  }
+}
+
+@media (min-width: 1200px) {
+  .team-item-wrapper div[class*="col"] {
+    &:nth-child(2) .team-item {
+      margin-top: 116px;
+    }
+    &:nth-child(3) .team-item {
+      margin-top: 58px;
+    }
+  }
+}
+/* Social icons css end */

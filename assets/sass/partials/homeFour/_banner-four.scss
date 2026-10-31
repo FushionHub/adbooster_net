@@ -1,0 +1,56 @@
+/* Banner four css start */
+.banner-four {
+    @media (min-width: 768px) {
+        margin: 20px;
+        margin-block-end: 0;
+        border-radius: 12px;
+    }
+    
+    &__content {
+        padding: 300px 0 88px;
+        @media (max-width: 1600px) and (min-width: 768px) {
+            padding: 200px 0 180px;
+        }
+        @media (max-width: 767px) {
+            padding: 180px 0 88px
+        }
+    }
+}
+
+
+.chaka-shape-four {
+    margin-inline-start: 33%;
+    margin-block-start: 12%;
+    max-width: 16%;
+    opacity: .6;
+}
+
+.arrow-curve-shape-four {
+    margin-inline-end: 6%;
+    margin-block-start: 18%;
+}
+
+
+.triangle-left-right {
+    position: relative;
+}
+
+.triangle-left-right::before, .triangle-left-right::after {
+    position: absolute;
+    content: "";
+    width: 32px;
+    height: 32px;
+    background-color: #cbcbcb00;
+    inset-inline-start: -31px;
+    inset-block-end: -2px;
+    border-radius: 50%;
+    box-shadow: 8px 10px #fcf8f4;
+}
+
+.triangle-left-right::after {
+    inset-inline-end: -32px;
+    inset-inline-start: auto;
+    box-shadow: -8px 10px #fcf8f4;
+}
+
+/* Banner four css end */

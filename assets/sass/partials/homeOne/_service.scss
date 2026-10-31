@@ -1,0 +1,24 @@
+/* Service section css start */
+.step-bg-shape {
+  &::before,
+  &::after {
+    position: absolute;
+    content: "";
+    width: 92%;
+    height: 100%;
+    z-index: -2;
+    inset-inline-start: 50%;
+    inset-block-start: -12px;
+    border-radius: inherit;
+    transform: translateX(-50%);
+    box-shadow: 0 0.5rem 1.5rem #00000030;
+    background-color: #6d96f8;
+  }
+  &::after {
+    inset-block-start: -24px;
+    width: 86%;
+    z-index: -3;
+  }
+}
+
+/* Service section css end */

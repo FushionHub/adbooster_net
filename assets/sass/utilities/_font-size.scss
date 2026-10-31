@@ -1,0 +1,50 @@
+/* Font Size Class Start */
+.text {
+  &-inherit {
+    font-size: inherit;
+  }
+  &-22-px {
+    font-size: clamp(1rem, -0.5476rem + 5.5679vw, 1.375rem);
+  }
+  &-84-px {
+    font-size: clamp(2.125rem, -0.5476rem + 5.5679vw, 5.25rem);
+  }
+  &-64-px {
+    font-size: 4rem;
+  }
+    &-58-px {
+    font-size: clamp(1.5rem, -0.9423rem + 4.5673vw, 3.625rem);
+  }
+  &-36-px {
+    font-size: 2.5rem;
+  }
+  &-42-px {
+    font-size: clamp(1.5rem, 0.4615rem + 2.1635vw, 2.625rem);
+  }
+  &-48-px {
+    font-size: clamp(1.5rem, 3.2246rem + -0.2246vw, 3rem);
+  }
+  &-200-px {
+    font-size: clamp(4.75rem, 2.3026rem + 10.8772vw, 12.5rem) !important;
+    @media (min-width: 1200px) and (max-width: 1350px) {
+      font-size: 9.25rem !important;
+    }
+  }
+  &-120-px {
+    font-size: clamp(3rem, 1.5789rem + 6.3158vw, 7.5rem) !important;
+  }
+}
+
+@each $property, $value in $font-sizes {
+  .tw-text-#{$property} {
+    font-size: $value;
+  }
+}
+/* Font Size Class End */
+
+@each $property, $value in $spaces {
+  .tw-text-#{$property} {
+    font-size: $value;
+  }
+}
+/* Font Size Class End */

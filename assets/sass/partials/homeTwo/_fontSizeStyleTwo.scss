@@ -1,0 +1,11 @@
+.fontSizeStyleTwo:root {
+  --heading-one: clamp(
+    2.125rem,
+    -0.9752rem + 6.4588vw,
+    3.625rem
+  ); // Min:34px - Max:58px
+}
+.fontSizeStyleTwo h1,
+.fontSizeStyleTwo .h1 {
+  font-size: var(--heading-one);
+}

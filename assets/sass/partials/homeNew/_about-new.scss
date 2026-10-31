@@ -1,0 +1,13 @@
+/* About New css start */
+.md-text-to-left-none {
+    @media (max-width: 991px) {
+        margin-inline-start: 0;
+        transform: translateX(0) !important;
+    }
+}
+.md-tw-pt-15 {
+    @media (min-width: 992px) {
+        padding-block-start: 60px;
+    }
+}
+/* About New css end */

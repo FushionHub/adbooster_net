@@ -1,0 +1,29 @@
+/* Marquee css start */
+.marquee {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.js-marquee-wrapper {
+  display: flex;
+  gap: 64px;
+}
+
+.js-marquee {
+  display: flex;
+  gap: 64px;
+  min-width: max-content;
+}
+
+.cta-four {
+  .js-marquee-wrapper {
+    gap: 24px;
+  }
+
+  .js-marquee {
+    gap: 24px;
+  }
+}
+
+/* Marquee css end */

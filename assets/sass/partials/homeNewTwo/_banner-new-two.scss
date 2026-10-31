@@ -1,0 +1,15 @@
+/* Banner New two css start */
+.banner-new-two {
+    padding-block-start: 240px;
+    padding-block-end: 90px;
+
+    @media (max-width: 1300px) {
+        padding-block-start: 180px;
+    }
+
+    @media (max-width: 991px) {
+        padding-block-start: 120px;
+    }
+}
+
+/* Banner New two css end */

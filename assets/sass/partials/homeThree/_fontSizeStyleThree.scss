@@ -1,0 +1,11 @@
+.fontSizeStyleOne:root {
+  --heading-one: clamp(
+    3rem,
+    -0.1827rem + 4.8077vw,
+    4.625rem
+  ); // Min:48px - Max:74px
+}
+.fontSizeStyleOne h1,
+.fontSizeStyleOne .h1 {
+  font-size: var(--heading-one);
+}

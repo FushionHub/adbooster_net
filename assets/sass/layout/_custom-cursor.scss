@@ -1,0 +1,58 @@
+/* Custom Cursor Css Start */
+.cursor,
+.dot {
+  width: 32px;
+  height: 32px;
+  border: 1px solid hsl(var(--white));
+  border-radius: 50%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9999999;
+  transform: translate(-50%, -50%);
+  visibility: hidden;
+  font-size: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  mix-blend-mode: difference;
+}
+.dot {
+  width: 4px;
+  height: 4px;
+  background-color: hsl(var(--white));
+  mix-blend-mode: difference;
+}
+
+.view-cursor {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  color: hsl(var(--heading-color));
+  background: rgba(0, 0, 0, 0.7);
+  padding: 6px 12px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  z-index: 999999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 10rem;
+  height: 10rem;
+  border-radius: 50%;
+  background-color: hsl(var(--white) / 0.85);
+  border: 2px solid hsl(var(--white));
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.6;
+  text-transform: capitalize;
+  text-align: center;
+  box-shadow: 0px 0px 40px #0000001c;
+}
+/* Custom Cursor Css End */

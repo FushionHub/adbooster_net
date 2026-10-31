@@ -1,0 +1,59 @@
+/* ===================== Banner Two css start ============================== */
+.banner-two {
+  @extend .bg-blue-light;
+  padding: 234px 0 366px;
+  @media (max-width: 1200px) {
+    padding: 160px 0 300px;
+  }
+  @media (max-width: 575px) {
+    padding: 120px 0 260px;
+  }
+}
+
+.banner-image {
+  &-1 {
+    inset-inline-start: clamp(0.5rem, -10.5rem + 16vw, 6.5rem);
+  }
+  &-2 {
+    inset-inline-end: clamp(0.5rem, -10.5rem + 16vw, 6.5rem);
+  }
+}
+.banner-image-1,
+.banner-image-2 {
+  max-width: 27%;
+}
+
+.social-icon {
+  &-2 {
+    inset-inline-start: 15%;
+    inset-block-start: 12%;
+  }
+  &-4 {
+    inset-inline-start: 48%;
+    inset-block-start: 6%;
+  }
+  &-1 {
+    inset-inline-end: 25%;
+    inset-block-start: 43%;
+  }
+  &-3 {
+    inset-inline-start: 32%;
+    inset-block-end: 23%;
+  }
+}
+
+.banner-two-shape {
+  &-1 {
+    inset-inline-start: 8%;
+    inset-block-start: 12%;
+  }
+  &-5 {
+    inset-inline-end: 30%;
+    inset-block-end: 26%;
+  }
+  &-3 {
+    inset-inline-end: 24%;
+    inset-block-start: 16%;
+  }
+}
+/* ===================== Banner Two css end ============================== */

@@ -1,0 +1,16 @@
+/* Banner three css start */
+.banner-three {
+  &__inner {
+    background-color: #141b37;
+  }
+  &__content {
+    padding: 332px 0 222px;
+    @media (max-width: 1199px) {
+      padding: 140px 0 100px;
+    }
+    @media (max-width: 768px) {
+      padding: 100px 0 60px;
+    }
+  }
+}
+/* Banner three css end */

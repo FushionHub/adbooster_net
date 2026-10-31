@@ -1,0 +1,74 @@
+/* ============================ Search Popup css start ===================================== */
+.search-popup {
+  height: 0;
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  width: 100%;
+  z-index: 999999;
+  visibility: hidden;
+  opacity: 0;
+  -webkit-transition: 0.3s ease-in-out;
+  &__form {
+    max-width: 1100px;
+    margin: 0 auto;
+    width: 0;
+    -webkit-transition: 0.3s ease-in-out;
+    transition: 0.3s ease-in-out;
+  }
+  &__input {
+    height: 64px;
+    line-height: 64px;
+    font-size: 28px;
+    background-color: transparent;
+    text-align: left;
+    border: none;
+    border-bottom: 1px solid var(--neutral-200);
+    padding-left: 0;
+    border-radius: 0;
+    width: 100%;
+    padding-inline-end: 44px;
+    color: hsl(var(--heading-color));
+    &:focus {
+      outline: 0;
+      border-color: var(--main-600);
+    }
+  }
+  &__close {
+    -webkit-box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+    border-bottom: 3px solid hsl(var(--heading-color));
+    transform: translateY(80px);
+    -webkit-transition: 0.3s ease-in-out;
+    transition: 0.3s ease-in-out;
+    visibility: hidden;
+    opacity: 0;
+    i {
+      transition: 0.2s linear;
+    }
+    &:hover {
+      i {
+        transform: rotate(90deg);
+      }
+    }
+  }
+
+  &.active {
+    visibility: visible;
+    opacity: 2;
+    height: 400px;
+    .search-popup {
+      &__form {
+        transition-delay: 0.3s;
+        width: 100%;
+      }
+      &__close {
+        transition-delay: 0.5s;
+        transform: translateY(0px);
+        visibility: visible;
+        opacity: 1;
+      }
+    }
+  }
+}
+/* ============================ Search Popup css end ===================================== */

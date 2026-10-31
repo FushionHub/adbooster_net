@@ -1,0 +1,97 @@
+/* hover bg class start */
+@each $color, $shades in $colors {
+  @each $shade, $value in $shades {
+    .bg-#{$color}-#{$shade} {
+      background-color: var(--#{$color}-#{$shade}) !important;
+    }
+  }
+}
+
+// hover background
+@each $color, $shades in $colors {
+  @each $shade, $value in $shades {
+    .hover-bg-#{$color}-#{$shade} {
+      &:hover {
+        background-color: var(--#{$color}-#{$shade}) !important;
+      }
+    }
+  }
+}
+
+.hover-bg-white {
+  &:hover {
+    background-color: hsl(var(--white)) !important;
+  }
+}
+
+.bg-white {
+  &-08 {
+    background-color: hsl(var(--white) / 0.08);
+  }
+  &-13 {
+    background-color: hsl(var(--white) / 0.13);
+  }
+  &-7 {
+    background-color: hsl(var(--white) / 0.7);
+  }
+  &-06 {
+    background-color: hsl(var(--white) / 0.06);
+  }
+  &-54 {
+    background-color: #ffffff54;
+  }
+}
+
+.bg {
+  &-heading {
+    background-color: hsl(var(--heading-color));
+  }
+  &-red-50 {
+    background-color: #fff5e0;
+  }
+  &-yellow-950 {
+    background-color: #292d20;
+  }
+  &-black-new {
+    background-color: #111111;
+  }
+}
+
+.bg-mint-sky {
+  background-color: #dbfff9;
+}
+
+.bg-soft-pink {
+  background-color: #ffdee4;
+}
+
+.bg-lavender-blue {
+  background-color: #e3e8ff;
+}
+
+.bg-creamy-lemon {
+  background-color: #fff3d8;
+}
+
+.bg-creamy-lemon {
+  background-color: #fff3d8;
+}
+
+.bg-linen-white {
+  background-color: #fff3d8;
+}
+.bg-cream-white {
+  background-color: #fefaf6;
+}
+.bg-mint-ice {
+  background-color: #F2FFF9;
+}
+
+.bg-blue-light {
+  background-color: #eef3fe;
+}
+
+.hover-bg-red-100:hover {
+  background-color: #fbeccb;
+}
+/* hover bg class end */

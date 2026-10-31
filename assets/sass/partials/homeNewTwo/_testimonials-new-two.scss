@@ -1,0 +1,15 @@
+/* ========================= Testimonials new two css start ============================= */
+.testimonials-new-two-thumbs-slider {
+    .swiper-slide {
+        transform: scale(.6);
+        border-radius: 50%;
+        overflow: hidden;
+        transition: .3s;
+    }
+
+    .swiper-slide-thumb-active {
+        transform: scale(1);
+    }
+}
+
+/* ========================= Testimonials new two css end ============================= */

@@ -1,0 +1,20 @@
+.color-green {
+    &:root {
+        --main-h: 72;
+        --main-s: 97%;
+        --main-l: 45%;
+        --main: var(--main-h) var(--main-s) var(--main-l);
+    }
+
+    .btn-main {
+        color: hsl(var(--heading-color)) !important;
+    }
+
+    .btn-main .btn-icon {
+        background: hsl(var(--heading-color)) !important;
+    }
+
+    .hover-style-one .button__flair::before {
+        background-color: #fff;
+    }
+}
