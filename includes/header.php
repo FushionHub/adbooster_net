@@ -181,16 +181,6 @@ function _navSubActive(string $page): string {
     [data-theme="light"] .text-white-75, [data-theme="light"] .text-white-50 {
       color: #475569 !important;
     }
-    [data-theme="light"] .theme-toggle-btn {
-      background: #f1f5f9;
-      border-color: #cbd5e1;
-      color: #0f172a;
-    }
-    [data-theme="light"] .theme-toggle-btn:hover {
-      background: rgba(16, 185, 129, 0.12);
-      border-color: #10b981;
-      color: #10b981;
-    }
     [data-theme="light"] section.section-padding, [data-theme="light"] section.faq {
       background: #f8fafc !important;
     }

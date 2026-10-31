@@ -386,19 +386,19 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
 
                 <!-- Q7 -->
-                <div class="faq-card-item" data-category="billing" data-keywords="theme switcher light dark mode persistent zero flicker toggle">
+                <div class="faq-card-item" data-category="billing" data-keywords="theme dark mode interface reading comfort eye strain contrast">
                     <div class="faq-card-header">
                         <button class="faq-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqCol7" aria-expanded="false">
                             <span>
                                 <span class="faq-tag">Interface</span>
-                                7. How does the Light &amp; Dark Theme Switcher work?
+                                7. Which theme does Adsbooster use for its interface?
                             </span>
                             <span class="faq-icon-indicator"><i class="ph-bold ph-caret-down"></i></span>
                         </button>
                     </div>
                     <div id="faqCol7" class="accordion-collapse collapse" data-bs-parent="#faqAccordionContainer">
                         <div class="faq-body-content">
-                            Adsbooster features a persistent, zero-flicker dual-theme engine. Simply toggle the Sun/Moon icon located in the public navigation bar or dashboard top header. Your preference is instantly stored across your browser's <code class="text-main-600">localStorage</code> and synchronized cookies, ensuring seamless navigation without page flashes.
+                            Adsbooster uses a single carefully engineered dark interface across every page and dashboard — deep ink backgrounds, crisp white typography, and high-contrast accent highlights (#c8ff00) tuned for extended working sessions. This keeps contrast predictable and text legible for all form inputs, dashboards, and marketing pages without per-user configuration.
                         </div>
                     </div>
                 </div>

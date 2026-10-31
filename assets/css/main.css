@@ -7730,4 +7730,59 @@ input:focus-visible {
     }
 }
 
+/* ===================================================================== */
+/* Form visibility pass — the markup ships `bg-dark-900` / `bg-dark-800`  */
+/* utility classes on form fields (login, signup, etc.) but these classes */
+/* were never defined, so Bootstrap's white .form-control background      */
+/* leaked through while `text-white` kept white text → invisible input.   */
+/* Also forces dark text on inputs that declare a white surface (e.g. the */
+/* contact form) so typed text is always readable.                        */
+/* ===================================================================== */
+.bg-dark-900 {
+    background-color: var(--neutral-1000) !important; /* #070713 — deep site ink */
+}
+
+.bg-dark-800 {
+    background-color: #0d1524; /* panel navy used across cards & topbars */
+}
+
+/* Typed text on dark form surfaces must stay white — focus included */
+.form-control.bg-dark-900,
+.form-control.bg-dark-800,
+.form-select.bg-dark-900,
+.form-select.bg-dark-800,
+textarea.form-control.bg-dark-900,
+textarea.form-control.bg-dark-800 {
+    color: hsl(var(--white)) !important;
+    -webkit-text-fill-color: hsl(var(--white));
+    caret-color: hsl(var(--white));
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+.form-control.bg-dark-900:focus,
+.form-control.bg-dark-800:focus,
+.form-select.bg-dark-900:focus,
+.form-select.bg-dark-800:focus,
+textarea.form-control.bg-dark-900:focus,
+textarea.form-control.bg-dark-800:focus {
+    background-color: #0d1524;
+    color: hsl(var(--white)) !important;
+    -webkit-text-fill-color: hsl(var(--white));
+    box-shadow: none;
+}
+
+/* Dark text on explicit white-surface fields (contact form etc.) */
+input.bg-white,
+textarea.bg-white {
+    color: hsl(var(--black)) !important;
+    -webkit-text-fill-color: hsl(var(--black));
+    caret-color: hsl(var(--black));
+}
+
+input.bg-white::placeholder,
+textarea.bg-white::placeholder {
+    color: var(--neutral-500);
+    opacity: 1;
+}
+
 /*# sourceMappingURL=main.css.map */
