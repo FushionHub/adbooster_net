@@ -469,7 +469,7 @@ class AsyncQueue
         }
 
         $campaign = db()->fetchOne(
-            "SELECT id, status, zernio_campaign_id FROM ad_campaigns WHERE id = ?",
+            "SELECT id, status, zernio_campaign_id, targeting_spec FROM ad_campaigns WHERE id = ?",
             [$campaignId]
         );
         if (!$campaign) {
@@ -489,7 +489,16 @@ class AsyncQueue
             return;
         }
 
-        $res = ThirdPartyGateway::setAdCampaignStatus((string)$campaign['zernio_campaign_id'], $targetStatus);
+        // The Zernio status write needs the posting platform (required body
+        // field on PUT /v1/ads/campaigns/{id}/status); derive it from the
+        // campaign's stored launch spec.
+        $toggleSpec = json_decode((string)($campaign['targeting_spec'] ?? '{}'), true) ?: [];
+        $togglePlatform = (string)($payload['platform'] ?? '');
+        if ($togglePlatform === '' && !empty($toggleSpec['platforms']) && is_array($toggleSpec['platforms'])) {
+            $togglePlatform = (string)($toggleSpec['platforms'][0] ?? '');
+        }
+
+        $res = ThirdPartyGateway::setAdCampaignStatus((string)$campaign['zernio_campaign_id'], $targetStatus, $togglePlatform);
 
         if (!empty($res['data']['simulated'])) {
             throw new \RuntimeException('SIMULATED: Zernio sandbox status toggle — local status left unchanged (source of truth preserved).');

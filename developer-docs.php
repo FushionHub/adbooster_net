@@ -101,7 +101,7 @@ require_once __DIR__ . '/includes/app_header.php';
                 <a href="#ep-ugc">4. AI UGC Image Studio</a>
                 <a href="#ep-directory">5. Verified Directory &amp; Leads</a>
                 <a href="#ep-reviews">6. Platform Reviews &amp; Ratings</a>
-                <a href="#ep-webhooks">7. Webhooks Management</a>
+                                <a href="#ep-webhooks">7. Webhooks Management</a><a href="#ep-public-analytics">8. Public Analytics Feed</a>
 
                 <div class="text-white-50 font-size-11 fw-bold text-uppercase px-2 mt-3 mb-2">Client SDKs</div>
                 <a href="#js-sdk">JavaScript SDK (Node & Browser)</a>
@@ -420,16 +420,16 @@ if (!hash_equals($expectedSignature, $signature)) {
                                 </td>
                             </tr>
 
-                            <!-- Zernio Ads Engine: all paid networks incl. Combo Pack -->
+                            <!-- Zernio Ads Engine: all paid networks -->
                             <tr>
                                 <td>
                                     <div class="d-flex align-items-center gap-2">
-                                        <div style="width:28px;height:28px;border-radius:6px;background:rgba(255,252,0,0.15);display:flex;align-items:center;justify-content:center;color:#FFFC00;">
-                                            <i class="ph-bold ph-ghost font-size-16"></i>
+                                        <div style="width:28px;height:28px;border-radius:6px;background:rgba(103,232,102,0.15);display:flex;align-items:center;justify-content:center;color:#67e866;">
+                                            <i class="ph-bold ph-megaphone font-size-16"></i>
                                         </div>
                                         <div>
-                                            <div class="text-white fw-bold font-size-13">Zernio Ads Engine (Meta · TikTok · Google · Snapchat · Combo Pack)</div>
-                                            <div class="text-white-50 font-size-11">All paid advertising · single Zernio API</div>
+                                            <div class="text-white fw-bold font-size-13">Zernio Ads Engine (Meta · TikTok · Google · LinkedIn · Pinterest · Reddit)</div>
+                                            <div class="text-white-50 font-size-11">All paid advertising · single Zernio API (zernio.com/api/v1)</div>
                                         </div>
                                     </div>
                                 </td>
@@ -439,7 +439,7 @@ if (!hash_equals($expectedSignature, $signature)) {
                                         <button class="btn btn-outline-light btn-sm p-1 px-2 font-size-11" onclick="navigator.clipboard.writeText('<?= BASE_URL ?>/social-connect.php')" title="Copy URI"><i class="ph ph-copy"></i></button>
                                     </div>
                                     <div class="text-white-50 font-size-11 mt-1">Callback landing: <code><?= BASE_URL ?>/dashboard.php?action=zernio_connected</code></div>
-                                    <div class="text-white-50 font-size-11 mt-1">Campaign lifecycle: <code>launchPaidCampaign()</code> &rarr; <code>setAdCampaignStatus()</code> pause/resume &rarr; <code>getCampaignMetrics()</code> (ROAS feeds the metrics cron). Launch and pause/resume run <strong>asynchronously</strong>: API/UI producers enqueue a <code>zernio_launch_ad</code> / <code>zernio_toggle_status</code> job (<code>AsyncQueue::push()</code>) and reply instantly; <code>cron/queue_worker.php</code> executes them out-of-band with exponential-backoff retries.</div>
+                                    <div class="text-white-50 font-size-11 mt-1">Campaign lifecycle: <code>launchPaidCampaign()</code> &rarr; <code>setAdCampaignStatus()</code> pause/resume &rarr; <code>getCampaignMetrics()</code> (ROAS feeds the metrics cron). Launch and pause/resume run <strong>asynchronously</strong>: API/UI producers enqueue a <code>zernio_launch_ad</code> / <code>zernio_toggle_status</code> job (<code>AsyncQueue::push()</code>) and reply instantly; <code>cron/queue_worker.php</code> executes them out-of-band with exponential-backoff retries. Server-side conversions ship through <code>sendConversionEvent()</code> (Meta CAPI &amp; TikTok Events via <code>POST /v1/ads/conversions</code>).</div>
                                 </td>
                                 <td>
                                     <a href="<?= BASE_URL ?>/social-connect.php" target="_blank" class="text-white font-size-12 text-decoration-none hover-underline d-inline-flex align-items-center gap-1">
@@ -457,7 +457,7 @@ if (!hash_equals($expectedSignature, $signature)) {
 
                 <div class="p-3 rounded-3 mt-3" style="background:rgba(56,189,248,0.05);border:1px solid rgba(56,189,248,0.2);">
                     <span class="text-info fw-bold font-size-13"><i class="ph-bold ph-info me-1"></i> Developer Tip:</span>
-                    <span class="text-white-50 font-size-13">All account connections are initiated from <code><?= BASE_URL ?>/social-connect.php</code> (organic via Bundle.social, ad accounts via Zernio) — no developer-portal app registration is needed on any social platform. The legacy <code><?= BASE_URL ?>/oauth-callback.php?platform=X</code> URI still works as a compatibility shim: it transparently redirects to the correct gateway connect URL. Direct developer-app keys (Meta/TikTok/Snapchat/Twitter/LinkedIn) are deprecated in <code>config/apikeys.php</code>; only <code>BUNDLE_SOCIAL_API_KEY</code> and <code>ZERNIO_API_KEY</code> are consumed.</span>
+                    <span class="text-white-50 font-size-13">All account connections are initiated from <code><?= BASE_URL ?>/social-connect.php</code> (organic via Bundle.social, ad accounts via Zernio) — no developer-portal app registration is needed on any social platform. The legacy <code><?= BASE_URL ?>/oauth-callback.php?platform=X</code> URI still works as a compatibility shim: it transparently redirects to the correct gateway connect URL. Direct developer-app keys (Meta/TikTok/Snapchat/Twitter/LinkedIn) are deprecated in <code>config/apikeys.php</code>; only <code>BUNDLE_SOCIAL_API_KEY</code> and <code>ZERNIO_API_KEY</code> are consumed. Note: Snapchat is not offered by either gateway — organic channels come from Bundle.social's <code>/api/v1/social-account/connect</code> enum, ad networks from Zernio's <code>/v1/connect/{platform}/ads</code> (facebook, instagram, linkedin, tiktok, twitter, pinterest, googleads, redditads).</span>
                 </div>
             </div>
 
@@ -505,7 +505,7 @@ curl -X GET "<?= BASE_URL ?>/api/v1/credits.php" \
                     <code class="text-white fw-bold font-size-15">/api/v1/campaigns.php</code>
                     <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 rounded-pill px-2 py-0 font-size-11 ms-auto">Zernio Ads Engine</span>
                 </div>
-                <p class="text-white-50 font-size-13 mb-3">Launch paid advertising campaigns across Meta, TikTok, Google Ads, and Snapchat or trigger status updates (active / paused) synced with Zernio. Launches and toggles are queued — background workers apply them out-of-band on gateway confirmation.</p>
+                <p class="text-white-50 font-size-13 mb-3">Launch paid advertising campaigns across Meta, TikTok, Google Ads, LinkedIn, Pinterest, X and Reddit Ads or trigger status updates (active / paused) synced with Zernio. Launches and toggles are queued — background workers apply them out-of-band on gateway confirmation.</p>
 
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
@@ -700,6 +700,51 @@ curl -X GET "<?= BASE_URL ?>/api/v1/directory.php?category=Retail&limit=5" \
                 </div>
             </div>
 
+            <!-- Endpoint 7b: Public Aggregate Analytics (no auth) -->
+            <div id="ep-public-analytics" class="card-dark p-4 rounded-4 mb-4" style="background:#0d1524 !important; border:1px solid rgba(255,255,255,0.08) !important;">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="method-pill method-get">GET</span>
+                    <code class="text-white fw-bold font-size-15">/api/v1/public-analytics.php</code>
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2 py-0 font-size-11">No authentication</span>
+                </div>
+                <p class="text-white-50 font-size-13 mb-3">Authentication-free, read-only JSON feed of the <strong class="text-white">same live aggregate analytics</strong> the homepage achievements modal renders. Serves totals, performance ratios, a 14-day traffic trend, the campaign status mix and the platform mix. <strong class="text-white">Zero user-level data</strong> leaves the server through this endpoint.</p>
+
+                <div class="row g-3 mb-1">
+                    <div class="col-md-6">
+                        <div class="text-white-50 font-size-11 fw-bold text-uppercase mb-1">Limits &amp; CORS</div>
+                        <div class="code-block">GET /api/v1/public-analytics.php?view=all
+
+· GET / OPTIONS only (405 on other verbs)
+· 30 requests / minute / IP  →  HTTP 429 + Retry-After
+· X-RateLimit-Limit / X-RateLimit-Remaining headers
+· Access-Control-Allow-Origin: *   (read-only, no credentials)
+· Cache-Control: public, max-age=30</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-white-50 font-size-11 fw-bold text-uppercase mb-1">Response (200 OK)</div>
+                        <div class="code-block">{
+  "success": true,
+  "generated": "2026-11-01T16:05:13+00:00",
+  "homepage": {
+    "campaigns": "1.2K", "users": "2.4K",
+    "platforms": 8, "success_rate": "94%",
+    "monitoring": "24/7"
+  },
+  "analytics": {
+    "totals": { "campaigns": 1200, "impressions": 8400000,
+                "clicks": 210000, "conversions": 12400 },
+    "performance": { "ctr_pct": 2.5, "cvr_pct": 5.9 },
+    "trend_14d": [ { "date": "2026-11-01", "impressions": 61200 } ],
+    "campaign_status_mix": { "active": 320, "paused": 88 },
+    "platform_mix": [ { "platform_name": "facebook", "accounts": 24 } ],
+    "note": "Aggregate analytics only. No user-level data is exposed."
+  }
+}</div>
+                    </div>
+                </div>
+                <div class="text-white-50 font-size-11">The <code>view</code> query parameter (<code>all</code> | <code>campaigns</code> | <code>users</code> | <code>platforms</code> | <code>success</code>) selects which sections the homepage modal focuses on; the payload itself is always the full safe aggregate set.</div>
+            </div>
+
             <!-- Endpoint 7: AI Video Studio -->
             <div id="ep-video-studio" class="card-dark p-4 rounded-4 mb-4" style="background:#0d1524 !important; border:1px solid rgba(255,255,255,0.08) !important;">
                 <div class="d-flex align-items-center gap-2 mb-2">
@@ -829,7 +874,7 @@ media_type=image
                         <tbody>
                             <tr><td><code>generate_ai</code></td><td><code>ai_prompt</code>, <code>ai_platform</code></td><td>Groq writes a platform-tuned caption (1 credit).</td></tr>
                             <tr><td><code>generate_illustration</code></td><td><code>illustration_prompt</code></td><td>Gemini Nano Banana 2 renders the post image (5 credits) and stores it same-origin.</td></tr>
-                            <tr><td><code>publish_now</code></td><td><code>caption</code>, <code>platforms[]</code> (organic channels only), optional <code>existing_media_url</code> + <code>media_type</code> or a <code>media_upload</code> file</td><td><strong>Asynchronous</strong> multi-network dispatch through the Bundle.social Gateway: the request creates scheduled rows + <code>bundle_publish_post</code> queue jobs (<code>AsyncQueue::push()</code>) and returns instantly; <code>cron/queue_worker.php</code> performs the actual dispatch (<code>ThirdPartyGateway::createOrganicPost</code>) with retries. Paid channels (Snapchat, Google Ads) are rejected here — they belong to the Zernio Ads API.</td></tr>
+                            <tr><td><code>publish_now</code></td><td><code>caption</code>, <code>platforms[]</code> (organic channels only), optional <code>existing_media_url</code> + <code>media_type</code> or a <code>media_upload</code> file</td><td><strong>Asynchronous</strong> multi-network dispatch through the Bundle.social Gateway: the request creates scheduled rows + <code>bundle_publish_post</code> queue jobs (<code>AsyncQueue::push()</code>) and returns instantly; <code>cron/queue_worker.php</code> performs the actual dispatch (<code>ThirdPartyGateway::createOrganicPost</code>) with retries. Paid channels (all ad networks) are rejected here — they belong to the Zernio Ads API.</td></tr>
                             <tr><td><code>schedule</code></td><td><code>scheduled_at</code> + same media fields</td><td>Queues into <code>scheduled_posts</code> for the automation worker.</td></tr>
                         </tbody>
                     </table>

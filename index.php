@@ -489,6 +489,11 @@ $featuredListings = db()->fetchAll(
             <h3 class="text-white text-uppercase fw-semibold">Our mission is to empower advertisers with AI-driven tools to launch, optimize, and scale campaigns across every major platform.</h3>
         </div>
         <div class="row gy-4 align-items-center">
+            <?php
+            // Live aggregate counters (PublicStats engine, 60s cache).
+            require_once __DIR__ . '/modules/public_stats.php';
+            $publicStats = PublicStats::homepage();
+            ?>
             <div class="col-lg-4" data-aos="zoom-in" data-aos-duration="1000" data-aos-delay="200">
                 <div class="text-center">
                     <img src="<?= ASSETS_URL ?>/images/thumbs/achievement-new-two-img.png" alt="Award">
@@ -498,9 +503,9 @@ $featuredListings = db()->fetchAll(
                 <div class="d-flex flex-column tw-gap-405">
                     <div class="" data-aos="fade-up" data-aos-duration="1000" data-aos-delay="100">
                         <div
-                            class="d-flex align-items-center justify-content-between bg-white-06 border border-neutral-800 tw-px-40-px tw-py-6 tw-rounded-xl hover-border-neutral-300 tw-duration-300">
+                            class="d-flex align-items-center justify-content-between bg-white-06 border border-neutral-800 tw-px-40-px tw-py-6 tw-rounded-xl hover-border-neutral-300 tw-duration-300 analytics-trigger" data-analytics="campaigns" style="cursor:pointer">
                             <div class="d-flex align-items-start tw-gap-26-px">
-                                <span class="h4 text-main-600 flex-shrink-0">50K+</span>
+                                <span class="h4 text-main-600 flex-shrink-0"><?= e($publicStats['campaigns']) ?></span>
                                 <span class="h4 text-white">Campaigns Launched Successfully</span>
                             </div>
                             <a href="javascript:void(0)"
@@ -511,9 +516,9 @@ $featuredListings = db()->fetchAll(
                     </div>
                     <div class="" data-aos="fade-up" data-aos-duration="1000" data-aos-delay="200">
                         <div
-                            class="d-flex align-items-center justify-content-between bg-white-06 border border-neutral-800 tw-px-40-px tw-py-6 tw-rounded-xl hover-border-neutral-300 tw-duration-300">
+                            class="d-flex align-items-center justify-content-between bg-white-06 border border-neutral-800 tw-px-40-px tw-py-6 tw-rounded-xl hover-border-neutral-300 tw-duration-300 analytics-trigger" data-analytics="users" style="cursor:pointer">
                             <div class="d-flex align-items-start tw-gap-26-px">
-                                <span class="h4 text-main-600 flex-shrink-0">120K+</span>
+                                <span class="h4 text-main-600 flex-shrink-0"><?= e($publicStats['users']) ?></span>
                                 <span class="h4 text-white">Active Users Worldwide</span>
                             </div>
                             <a href="javascript:void(0)"
@@ -524,9 +529,9 @@ $featuredListings = db()->fetchAll(
                     </div>
                     <div class="" data-aos="fade-up" data-aos-duration="1000" data-aos-delay="300">
                         <div
-                            class="d-flex align-items-center justify-content-between bg-white-06 border border-neutral-800 tw-px-40-px tw-py-6 tw-rounded-xl hover-border-neutral-300 tw-duration-300">
+                            class="d-flex align-items-center justify-content-between bg-white-06 border border-neutral-800 tw-px-40-px tw-py-6 tw-rounded-xl hover-border-neutral-300 tw-duration-300 analytics-trigger" data-analytics="platforms" style="cursor:pointer">
                             <div class="d-flex align-items-start tw-gap-26-px">
-                                <span class="h4 text-main-600 flex-shrink-0">5</span>
+                                <span class="h4 text-main-600 flex-shrink-0"><?= e($publicStats['platforms']) ?></span>
                                 <span class="h4 text-white">Ad Platforms Fully Integrated</span>
                             </div>
                             <a href="javascript:void(0)"
@@ -537,9 +542,9 @@ $featuredListings = db()->fetchAll(
                     </div>
                     <div class="" data-aos="fade-up" data-aos-duration="1000" data-aos-delay="400">
                         <div
-                            class="d-flex align-items-center justify-content-between bg-white-06 border border-neutral-800 tw-px-40-px tw-py-6 tw-rounded-xl hover-border-neutral-300 tw-duration-300">
+                            class="d-flex align-items-center justify-content-between bg-white-06 border border-neutral-800 tw-px-40-px tw-py-6 tw-rounded-xl hover-border-neutral-300 tw-duration-300 analytics-trigger" data-analytics="success" style="cursor:pointer">
                             <div class="d-flex align-items-start tw-gap-26-px">
-                                <span class="h4 text-main-600 flex-shrink-0">94%</span>
+                                <span class="h4 text-main-600 flex-shrink-0"><?= e($publicStats['success_rate']) ?></span>
                                 <span class="h4 text-white">Average Campaign Success Rate</span>
                             </div>
                             <a href="javascript:void(0)"
@@ -550,9 +555,9 @@ $featuredListings = db()->fetchAll(
                     </div>
                     <div class="" data-aos="fade-up" data-aos-duration="1000" data-aos-delay="500">
                         <div
-                            class="d-flex align-items-center justify-content-between bg-white-06 border border-neutral-800 tw-px-40-px tw-py-6 tw-rounded-xl hover-border-neutral-300 tw-duration-300">
+                            class="d-flex align-items-center justify-content-between bg-white-06 border border-neutral-800 tw-px-40-px tw-py-6 tw-rounded-xl hover-border-neutral-300 tw-duration-300 analytics-trigger" data-analytics="all" style="cursor:pointer">
                             <div class="d-flex align-items-start tw-gap-26-px">
-                                <span class="h4 text-main-600 flex-shrink-0">24/7</span>
+                                <span class="h4 text-main-600 flex-shrink-0"><?= e($publicStats['monitoring']) ?></span>
                                 <span class="h4 text-white">AI-Powered Campaign Monitoring</span>
                             </div>
                             <a href="javascript:void(0)"
@@ -809,7 +814,7 @@ $featuredListings = db()->fetchAll(
                         </span>
                     </div>
                     <div class="">
-                        <h3 class="text-white group-hover-text-heading tw-duration-300 h2">5</h3>
+                        <h3 class="text-white group-hover-text-heading tw-duration-300 h2"><?= e($publicStats['platforms']) ?></h3>
                         <p class="text-uppercase text-white group-hover-text-heading tw-duration-300 tw-mt-2">Platforms
                             Supported</p>
                     </div>
@@ -819,12 +824,12 @@ $featuredListings = db()->fetchAll(
                 <div
                     class="bg-white-08 tw-p-40-px tw-rounded-xl h-100 animation-item backdrop-filter-26-px border border-neutral-600 d-flex flex-column tw-gap-10 justify-content-between hover-bg-main-600 hover-border-main-600 tw-duration-300 group group-item">
                     <div class="">
-                        <h3 class="text-white group-hover-text-heading tw-duration-300 h2">50K+</h3>
+                        <h3 class="text-white group-hover-text-heading tw-duration-300 h2"><?= e($publicStats['campaigns']) ?></h3>
                         <p class="text-uppercase text-white group-hover-text-heading tw-duration-300 tw-mt-2">Campaigns
                             Launched</p>
                     </div>
                     <div class="">
-                        <p class="text-white group-hover-text-heading tw-duration-300">Over 50,000 ad campaigns have been successfully launched and managed through the Adsbooster platform.</p>
+                        <p class="text-white group-hover-text-heading tw-duration-300">Live count of real ad campaigns launched and managed through the Adsbooster platform. Click any achievement above for the aggregate analytics breakdown.</p>
                     </div>
                 </div>
             </div>
@@ -838,7 +843,7 @@ $featuredListings = db()->fetchAll(
                         </span>
                     </div>
                     <div class="">
-                        <h3 class="text-white group-hover-text-heading tw-duration-300 h2">120K+</h3>
+                        <h3 class="text-white group-hover-text-heading tw-duration-300 h2"><?= e($publicStats['users']) ?></h3>
                         <p class="text-uppercase text-white group-hover-text-heading tw-duration-300 tw-mt-2">Active
                             Users</p>
                     </div>
@@ -1279,4 +1284,160 @@ $latestPosts = db()->fetchAll("SELECT id, title, slug, excerpt, featured_image, 
     </div>
 </section>
 <!-- ============================= Blog new section end ================================ -->
+
+<!-- ==================== Public Analytics Modal (aggregate only, no user data) ======= -->
+<style>
+    .ab-analytics-bar { height: 10px; border-radius: 99px; background: rgba(255,255,255,.08); overflow: hidden; }
+    .ab-analytics-bar > span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--main-600, #23b33a), #67e866); min-width: 2px; }
+    .ab-analytics-kpi { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09); border-radius: 12px; padding: 12px 14px; }
+    .ab-analytics-kpi .ab-num { font-size: 1.35rem; font-weight: 800; color: var(--main-600, #23b33a); }
+    .modal.fade .modal-dialog { transition: transform .25s ease-out; }
+</style>
+<div class="modal fade" id="abAnalyticsModal" tabindex="-1" aria-labelledby="abAnalyticsTitle" aria-hidden="true" style="background:rgba(4,8,6,.82)">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="background:#0a120d;border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:16px">
+            <div class="modal-header border-bottom border-secondary" style="border-color:rgba(255,255,255,.1)!important">
+                <h5 class="modal-title d-flex align-items-center gap-2" id="abAnalyticsTitle" style="color:#fff">
+                    <i class="ph ph-chart-pie-slice"></i> Platform Analytics
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="abAnalyticsBody" style="padding:20px 22px">
+                <div class="text-center py-4" id="abAnalyticsLoading">
+                    <div class="spinner-border" style="color:var(--main-600,#23b33a)" role="status"></div>
+                    <p class="mt-3 mb-0" style="color:#9fb3a6;font-size:13px">Loading live aggregate statistics…</p>
+                </div>
+            </div>
+            <div class="modal-footer border-top pt-2" style="border-color:rgba(255,255,255,.1)!important;justify-content:space-between">
+                <span style="color:#7b8f84;font-size:11.5px">Aggregate platform data only — no user details are shown.</span>
+                <small id="abAnalyticsStamp" style="color:#7b8f84"></small>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    'use strict';
+    var triggers = document.querySelectorAll('.analytics-trigger');
+    if (!triggers.length) return;
+
+    function esc(s){var d=document.createElement('div');d.textContent=String(s);return d.innerHTML;}
+    function fmt(n){n=Number(n)||0;if(n>=1e6)return (n/1e6).toFixed(1)+'M';if(n>=1e3)return (n/1e3).toFixed(1)+'K';return String(n);}
+
+    function kpi(label, value, sub){
+        return '<div class="ab-analytics-kpi"><div class="ab-num">'+esc(value)+'</div><div style="font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:#9fb3a6">'+esc(label)+'</div>'+(sub?'<div style="color:#7b8f84;font-size:11px;margin-top:2px">'+esc(sub)+'</div>':'')+'</div>';
+    }
+    function row(label, value, pct){
+        pct = Math.max(2, Math.min(100, pct || 0));
+        return '<div class="mb-3"><div class="d-flex justify-content-between mb-1" style="font-size:12.5px"><span style="color:#cfe0d5">'+esc(label)+'</span><span style="color:#fff;font-weight:600">'+esc(value)+'</span></div><div class="ab-analytics-bar"><span style="width:'+pct+'%"></span></div></div>';
+    }
+
+    var ANCHORS = {
+        campaigns: 'Totals & campaign mix',
+        users:     'Reach, performance & growth',
+        platforms: 'Platform mix',
+        success:   'Performance quality',
+        all:       'Full platform analytics'
+    };
+
+    function render(data) {
+        var a = data.analytics || {};
+        var t = a.totals || {}, p = a.performance || {}, mix = a.campaign_status_mix || {}, plat = a.platform_mix || [];
+        var trend = a.trend_14d || [];
+        var html = '';
+
+        html += '<div class="text-center mb-4"><small style="color:#7b8f84">'+esc(ANCHORS[data.view || 'all'] || ANCHORS.all)+'</small></div>';
+
+        html += '<div class="row g-2 mb-4">';
+        html += '<div class="col-6 col-md-3">'+kpi('Campaigns', fmt(t.campaigns), (t.campaigns_active||0)+' active')+'</div>';
+        html += '<div class="col-6 col-md-3">'+kpi('Active users', fmt(t.active_users), 'accounts on the platform')+'</div>';
+        html += '<div class="col-6 col-md-3">'+kpi('Platforms', String(t.platforms ?? '—'), (t.connected_accounts||0)+' connected')+'</div>';
+        html += '<div class="col-6 col-md-3">'+kpi('Posts scheduled', fmt(t.posts_scheduled), 'organic queue')+'</div>';
+        html += '</div>';
+
+        if (data.view === 'platforms') {
+            var max = 1;
+            plat.forEach(function(x){max=Math.max(max,x.accounts||0);});
+            if (!plat.length) { html += '<p class="text-center" style="color:#9fb3a6">No connected platforms yet.</p>'; }
+            plat.forEach(function(x){ html += row(x.platform_name||'—', fmt(x.accounts), (100*(x.accounts||0)/max)); });
+        }
+
+        if (data.view === 'users' || data.view === 'success' || data.view === 'all') {
+            html += '<h6 style="color:#fff;margin:6px 0 10px"><i class="ph ph-pulse"></i> Reach & performance</h6>';
+            html += '<div class="row g-2 mb-4">';
+            html += '<div class="col-6 col-md-3">'+kpi('Impressions', fmt(t.impressions))+'</div>';
+            html += '<div class="col-6 col-md-3">'+kpi('Clicks', fmt(t.clicks), p.ctr_pct+'% CTR')+'</div>';
+            html += '<div class="col-6 col-md-3">'+kpi('Conversions', fmt(t.conversions), p.cvr_pct+'% CVR')+'</div>';
+            html += '<div class="col-6 col-md-3">'+kpi('Spend', '$'+fmt(Math.round(t.spend||0)), p.avg_cpc ? ('$'+p.avg_cpc+' avg CPC') : '')+'</div>';
+            html += '</div>';
+        }
+
+        if (data.view === 'campaigns' || data.view === 'all') {
+            var smax = 1; Object.keys(mix).forEach(function(k){smax=Math.max(smax,mix[k]);});
+            html += '<h6 style="color:#fff;margin:6px 0 10px"><i class="ph ph-chart-bar"></i> Campaign status mix</h6>';
+            var keys = Object.keys(mix);
+            if (!keys.length) { html += '<p style="color:#9fb3a6" class="mb-2">No campaigns recorded yet.</p>'; }
+            keys.forEach(function(k){ html += row(k, fmt(mix[k]), (100*mix[k]/smax)); });
+        }
+
+        if (data.view === 'all') {
+            html += '<h6 style="color:#fff;margin:12px 0 10px"><i class="ph ph-trend-up"></i> 14-day traffic trend</h6>';
+            var allDays = ['Mo','Tu','We','Th','Fr','Sa','Su'], cmax=1;
+            trend.forEach(function(d){cmax=Math.max(cmax,d.impressions||0);});
+            html += '<div class="d-flex align-items-end" style="gap:3px;height:64px">';
+            (trend.length ? trend : []).forEach(function(d){
+                var b = Math.max(6, Math.round(100*(d.impressions||0)/cmax));
+                html += '<div class="flex-grow-1" title="'+esc(d.date)+' — '+fmt(d.impressions)+' impressions" style="background:linear-gradient(180deg,#67e866,#23b33a);border-radius:3px;height:'+b+'%"></div>';
+            });
+            html += '</div>';
+            if (!trend.length) html += '<p class="mb-0" style="color:#9fb3a6;font-size:12.5px">No daily metrics recorded in the last 14 days.</p>';
+        }
+
+        html += '<div class="mt-4 ab-analytics-kpi d-flex justify-content-between align-items-center" style="background:rgba(103,232,102,.06)">';
+        html += '<span style="font-size:12.5px;color:#cfe0d5"><i class="ph ph-shield-check" style="color:#67e866"></i> Async dual-gateway queue</span>';
+        html += '<span style="font-size:12.5px;color:#fff;font-weight:700">Queue depth: '+fmt((a.queue||{}).depth||0)+'</span>';
+        html += '</div>';
+
+        var body = document.getElementById('abAnalyticsBody');
+        body.innerHTML = html;
+        document.getElementById('abAnalyticsStamp').textContent = 'Updated ' + data.generated;
+    }
+
+    var loading_tpl = document.getElementById('abAnalyticsLoading').outerHTML;
+
+    function open(view) {
+        var modalEl = document.getElementById('abAnalyticsModal');
+        if (!window.bootstrap || !window.bootstrap.Modal) return;
+        var modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+        var bodyEl = document.getElementById('abAnalyticsBody');
+        bodyEl.innerHTML = loading_tpl;
+        fetch('<?= e(rtrim(BASE_URL, "/")) ?>/api/v1/public-analytics.php?view=' + encodeURIComponent(view), {
+            headers: {'Accept': 'application/json'}, cache: 'no-store'
+        })
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function (j) {
+            if (!j || !j.success) throw new Error((j && j.message) || 'Analytics unavailable');
+            j.view = view;
+            render(j);
+        })
+        .catch(function (err) {
+            var raw = <?= json_encode($publicStats['raw'] ?? []) ?>;
+            bodyEl.innerHTML = '<div class="text-center py-4"><i class="ph ph-warning-circle" style="font-size:28px;color:#e6b74a"></i>'
+                + '<p class="mt-2 mb-2" style="color:#cfe0d5">Live analytics are unavailable right now (' + esc(err.message || 'network error') + ').</p>'
+                + '<div class="row g-2" style="max-width:480px;margin:0 auto">'
+                + kpi('Campaigns', fmt(raw.campaigns_launched)) + kpi('Active users', fmt(raw.active_users))
+                + kpi('Platforms', String(raw.platforms_supported)) + kpi('Success rate', raw.success_rate_pct + '%')
+                + '</div></div>';
+        });
+    }
+
+    triggers.forEach(function (el) {
+        el.addEventListener('click', function (ev) {
+            ev.preventDefault();
+            open(el.getAttribute('data-analytics') || 'all');
+        });
+    });
+})();
+</script>
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

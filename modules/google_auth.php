@@ -12,8 +12,12 @@ require_once __DIR__ . '/../config/apikeys.php';
 
 class GoogleAuth
 {
+    /**
+     * Identity-only scopes. Adsbooster signs users in and reads name/email/avatar;
+     * every calendar / mail / drive / platform capability is routed through the
+     * Bundle.social + Zernio gateways, so no extra Google scopes are requested.
+     */
     private const SCOPES = [
-        'https://www.googleapis.com/auth/calendar',
         'https://www.googleapis.com/auth/userinfo.email',
         'https://www.googleapis.com/auth/userinfo.profile',
     ];
@@ -133,7 +137,16 @@ class GoogleAuth
 
         $data = is_string($response) ? json_decode($response, true) : null;
         if (!is_array($data) || empty($data['email'])) {
-            throw new RuntimeException('Google did not return a verified email address.');
+            throw new RuntimeException('Google did not return an email address.');
+        }
+
+        // SECURITY: only accounts whose email Google has verified may be used
+        // for automatic login/registration. Unverified addresses (e.g. an
+        // attacker pre-proving an arbitrary address on their own Google
+        // account) must not be able to take over another user's email.
+        $verified = !empty($data['verified_email']) || !empty($data['email_verified']);
+        if (!$verified) {
+            throw new RuntimeException('Sign-in refused: the Google account email is not verified.');
         }
 
         return [
@@ -141,6 +154,7 @@ class GoogleAuth
             'email'   => (string)$data['email'],
             'name'    => (string)($data['name'] ?? 'Google User'),
             'picture' => (string)($data['picture'] ?? ''),
+            'verified_email' => true,
         ];
     }
 }
@@ -195,13 +209,27 @@ switch ($action) {
         $user = db()->fetch("SELECT * FROM users WHERE google_id = ? OR email = ?", [$userInfo['id'], $userEmail]);
 
         if ($user) {
-            // Update google_id if not linked yet
+            // SECURITY: an account cannot sign in (or link Google to itself)
+            // while suspended/banned. This runs before any session issuance.
+            if (($user['status'] ?? 'active') !== 'active') {
+                error_log('google_auth: login refused for non-active user id=' . (int)$user['id']);
+                set_flash('error', 'This account has been suspended. Please contact support.');
+                redirect(BASE_URL . '/login.php');
+            }
+
+            $linkUpdate = [];
             if (empty($user['google_id'])) {
-                db()->update('users', ['google_id' => $userInfo['id']], 'id = ?', [(int)$user['id']]);
-                $user['google_id'] = $userInfo['id'];
+                $linkUpdate['google_id'] = $userInfo['id'];
+            }
+            if (!empty($userInfo['picture']) && ($user['avatar'] ?? '') !== $userInfo['picture']) {
+                $linkUpdate['avatar'] = $userInfo['picture'];
+            }
+            if ($linkUpdate) {
+                db()->update('users', $linkUpdate, 'id = ?', [(int)$user['id']]);
+                $user = array_merge($user, $linkUpdate);
             }
             auth_login($user);
-            set_flash('success', 'Welcome back, ' . htmlspecialchars($user['full_name']) . '! Logged in via Google.');
+            set_flash('success', 'Welcome back, ' . htmlspecialchars((string)$user['full_name']) . '! Logged in via Google.');
             redirect(BASE_URL . '/dashboard.php');
         } else {
             // Auto-register new Google user
@@ -221,6 +249,7 @@ switch ($action) {
                 'email'                => $userEmail,
                 'password'             => password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT),
                 'google_id'            => $userInfo['id'],
+                'avatar'               => !empty($userInfo['picture']) ? $userInfo['picture'] : null,
                 'role'                 => 'user',
                 'account_type'         => 'individual',
                 'referral_code'        => $referralCode,
@@ -245,18 +274,19 @@ switch ($action) {
             $newUser = db()->fetch("SELECT * FROM users WHERE id = ?", [$newUserId]);
             auth_login($newUser);
 
-            // Connect Google Calendar via the Bundle.social gateway on
-            // signup (gateway-shaped row; no direct platform tokens stored).
+            // Register the Google Calendar surface via the Zernio gateway on
+            // signup (calendar lives on Zernio — Bundle.social's API has no
+            // calendar surface; gateway-shaped row, no direct tokens stored).
             try {
                 db()->query(
                     "INSERT INTO connected_accounts
                         (user_id, gateway_provider, account_type, platform_name, external_account_id, display_name, status)
-                     VALUES (?, 'bundle_social', 'organic_profile', 'google_calendar', ?, ?, 'connected')
+                     VALUES (?, 'zernio', 'organic_profile', 'google_calendar', ?, ?, 'connected')
                      ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), status = 'connected'",
                     [
                         (int)$newUserId,
-                        'bndl_google_calendar_' . (int)$newUserId,
-                        trim((string)($userInfo['name'] ?? 'Google User')) . ' (Google Calendar via Bundle.social)',
+                        'zrn_google_calendar_' . (int)$newUserId,
+                        trim((string)($userInfo['name'] ?? 'Google User')) . ' (Google Calendar via Zernio)',
                     ]
                 );
             } catch (\Throwable $e) {}

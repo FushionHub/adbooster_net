@@ -9,6 +9,8 @@
  *   const { Adsbooster } = require('adsbooster-js-sdk');       // Node
  *   const client = new Adsbooster({ apiKey: 'adsb_live_...' });
  *   const balance = await client.credits.balance();
+ *   // Public aggregate analytics (no auth needed server-side):
+ *   const analytics = await client.publicAnalytics.feed('all');
  *
  * © 2026 Adsbooster.net — MIT License
  */
@@ -125,6 +127,7 @@
     this.reviews    = new ReviewsResource(this);
     this.capi       = new CapiResource(this);
     this.webhooks   = new WebhooksResource(this);
+    this.publicAnalytics = new PublicAnalyticsResource(this);
 
     // Last observed quota: { limit, remaining, reset }
     this.lastRateLimit = null;
@@ -382,6 +385,35 @@
   /** Ping-test URL helper for your webhook receiver (fires from the Developer Console). */
   WebhooksResource.prototype.testPingUrl = function (targetUrl) {
     return this._c.baseUrl + '/api-settings.php?ping=' + encodeURIComponent(targetUrl);
+  };
+
+  /* ───────────────── Public aggregate analytics (no auth) ─────── */
+
+  /**
+   * Feed of the SAME live aggregate analytics the homepage achievements
+   * modal renders — totals, performance ratios, 14-day trend, campaign
+   * status mix and platform mix. Zero user-level data; no API key is
+   * actually required server-side (the client key is simply ignored).
+   * Rate limit: 30 requests/minute/IP → 429 with Retry-After.
+   */
+  function PublicAnalyticsResource(client) { this._c = client; }
+
+  /**
+   * Fetch the aggregate analytics feed.
+   * @param {string} [view]  one of 'all' | 'campaigns' | 'users' | 'platforms' | 'success' —
+   *                         selects which sections the homepage modal focuses on.
+   * @returns {Promise<object>} { success, generated, homepage, analytics, _meta }
+   */
+  PublicAnalyticsResource.prototype.feed = function (view) {
+    var suffix = view ? '?view=' + encodeURIComponent(String(view)) : '';
+    return this._c.request('GET', '/public-analytics.php' + suffix, undefined, { publicEndpoint: true });
+  };
+
+  /** Convenience: the analytics section only (totals, performance, trend, mixes). */
+  PublicAnalyticsResource.prototype.totals = function () {
+    return this.feed('all').then(function (j) {
+      return j && j.analytics ? j.analytics : j;
+    });
   };
 
   /* ───────────────────── Webhook verification ─────────────────── */

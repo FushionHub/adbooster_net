@@ -18,9 +18,9 @@
 
 // ── Unified Third-Party Gateways (Bundle.social & Zernio) ──
 defined('BUNDLE_SOCIAL_API_KEY')  or define('BUNDLE_SOCIAL_API_KEY', '719de7d1-1630-4af3-9096-2104628480f2');
-defined('BUNDLE_SOCIAL_BASE_URL') or define('BUNDLE_SOCIAL_BASE_URL', 'https://api.bundle.social/v1');
+defined('BUNDLE_SOCIAL_BASE_URL') or define('BUNDLE_SOCIAL_BASE_URL', 'https://api.bundle.social');
 defined('ZERNIO_API_KEY')         or define('ZERNIO_API_KEY', 'sk_7efbae19e9fb589fa98827420d2d6ba833ad3712a192c15df05735645fae6403');
-defined('ZERNIO_BASE_URL')        or define('ZERNIO_BASE_URL', 'https://api.zernio.com/v1');
+defined('ZERNIO_BASE_URL')        or define('ZERNIO_BASE_URL', 'https://zernio.com/api/v1');
 
 // ── Local development key overrides ──
 // `config/keys.local.php` is never web-served (see .htaccess) and is
@@ -63,12 +63,12 @@ defined('GOOGLE_CLIENT_SECRET') or define('GOOGLE_CLIENT_SECRET', '');
 //   3. `site_settings` rows, editable from Admin → Settings
 defined('GROQ_API_KEY')       or define('GROQ_API_KEY', '');
 defined('GEMINI_API_KEY')     or define('GEMINI_API_KEY', '');
-defined('NVIDIA_API_KEY')     or define('NVIDIA_API_KEY', '');
+defined('NVIDIA_API_KEY')     or define('NVIDIA_API_KEY', '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');
 defined('NVIDIA_BASE_URL')    or define('NVIDIA_BASE_URL', 'https://integrate.api.nvidia.com/v1');
 
 // ── AI Video renderers (optional — the built-in Storyboard Studio needs none) ──
 defined('REPLICATE_API_TOKEN') or define('REPLICATE_API_TOKEN', 'r8_Flrivuomj0cbzIKotRZbk0giQltmoQD2iJenM');
-defined('FAL_KEY')             or define('FAL_KEY', '');
+defined('FAL_KEY')             or define('FAL_KEY', 'fal_sk_81d1d904797044e09e2c770c49d5ebf9:19ed46ac13f8972d383de492e14fb31d');
 defined('RUNWAY_API_KEY')      or define('RUNWAY_API_KEY', '');
 // Luma removed — replaced by the FREE keyless Pollinations render route (no constant needed).
 
@@ -143,13 +143,13 @@ if (!function_exists('integration_status')) {
             'meta'            => ['configured' => $bundleLive, 'label' => 'Meta / Facebook (via Bundle.social)'],
             'instagram'       => ['configured' => $bundleLive, 'label' => 'Instagram (via Bundle.social)'],
             'tiktok'          => ['configured' => $bundleLive, 'label' => 'TikTok (via Bundle.social)'],
-            'google_calendar' => ['configured' => $bundleLive, 'label' => 'Google Calendar (via Bundle.social)'],
+            'google_calendar' => ['configured' => $zernioLive, 'label' => 'Google Calendar (via Zernio)'],
             'google_business' => ['configured' => $bundleLive, 'label' => 'Google Business (via Bundle.social)'],
             'twitter'         => ['configured' => $bundleLive, 'label' => 'Twitter / X (via Bundle.social)'],
             'linkedin'        => ['configured' => $bundleLive, 'label' => 'LinkedIn (via Bundle.social)'],
             // Paid advertising — provisioned via Zernio
             'google_ads'      => ['configured' => $zernioLive, 'label' => 'Google Ads (via Zernio)'],
-            'snapchat'        => ['configured' => $zernioLive, 'label' => 'Snapchat (via Zernio)'],
+            'pinterest_ads'   => ['configured' => $zernioLive, 'label' => 'Pinterest Ads (via Zernio)'],
             'groq'            => ['configured' => $live('GROQ_API_KEY', 'groq_api_key'),          'label' => 'Groq (AI text)'],
             'gemini'          => ['configured' => $live('GEMINI_API_KEY', 'gemini_api_key'),      'label' => 'Gemini (AI image)'],
             'nvidia'          => ['configured' => $live('NVIDIA_API_KEY', 'nvidia_api_key'),      'label' => 'NVIDIA NIM (AI fallback)'],

@@ -279,10 +279,11 @@ class SocialPostEngine
         $accountId = self::resolveBundleAccountId($userId, $platform);
 
         $gatewayResult = ThirdPartyGateway::createOrganicPost([
-            'account_ids'  => [$accountId],
-            'caption'      => $caption,
-            'media_urls'   => $fullMediaUrl ? [$fullMediaUrl] : [],
-            'scheduled_at' => null,
+            'account_ids'         => [$accountId],
+            'social_account_types'=> [$platform],
+            'caption'             => $caption,
+            'media_urls'          => $fullMediaUrl ? [$fullMediaUrl] : [],
+            'scheduled_at'        => null,
         ]);
 
         $simulated = !empty($gatewayResult['data']['simulated']);

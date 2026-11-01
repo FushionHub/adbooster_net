@@ -5,6 +5,32 @@ require_once __DIR__ . '/modules/ThirdPartyGateway.php';
 $userId   = current_user_id();
 $userData = current_user();
 
+// Start Bundle.social connect (server dispatch → OAuth URL redirect). The
+// gateway call is done HERE, not at render time, so the dashboard never
+// makes live upstream calls while painting the page.
+if (isset($_GET['action']) && $_GET['action'] === 'connect_bundle') {
+    $platform = strtolower(trim((string)($_GET['platform'] ?? '')));
+    $authUrl  = ThirdPartyGateway::getBundleConnectUrl($userId, $platform);
+    if ($authUrl === '') {
+        set_flash('error', 'Bundle.social could not start the connection (gateway key or connectivity issue). Check the gateway settings and try again.');
+        redirect(url('dashboard'));
+    }
+    header('Location: ' . $authUrl);
+    exit;
+}
+
+// Start Zernio ad-account connect (server dispatch → OAuth URL redirect).
+if (isset($_GET['action']) && $_GET['action'] === 'connect_zernio') {
+    $network = strtolower(trim((string)($_GET['platform'] ?? '')));
+    $authUrl = ThirdPartyGateway::getZernioAdConnectUrl($userId, $network);
+    if ($authUrl === '') {
+        set_flash('error', 'Zernio could not start the ads connection (gateway key or connectivity issue). Check the gateway settings and try again.');
+        redirect(url('dashboard'));
+    }
+    header('Location: ' . $authUrl);
+    exit;
+}
+
 // Handle Bundle.social OAuth callback (organic journey — signed, single-use state)
 if (isset($_GET['action']) && $_GET['action'] === 'bundle_connected') {
     $validatedPlatform = ThirdPartyGateway::validateGatewayState($_GET['state'] ?? null, 'bundle_social', $userId);
@@ -410,9 +436,8 @@ if (time() > $promptDismissed) {
                 ];
                 foreach ($organicPlatformList as $opKey => $op):
                     $isConnected = in_array($opKey, $connectedOrganicPlatforms, true);
-                    $connectUrl = ThirdPartyGateway::getBundleConnectUrl($userId, $opKey);
                 ?>
-                    <a href="<?= e($connectUrl) ?>" class="platform-card <?= $isConnected ? 'selected' : '' ?>" style="flex:0 0 auto;padding:6px 12px;gap:8px;border-radius:99px;font-size:12px" title="<?= $isConnected ? 'Connected' : 'Click to connect via Bundle.social' ?>">
+                    <a href="<?= e(url('dashboard')) ?>?action=connect_bundle&platform=<?= e($opKey) ?>" class="platform-card <?= $isConnected ? 'selected' : '' ?>" style="flex:0 0 auto;padding:6px 12px;gap:8px;border-radius:99px;font-size:12px" title="<?= $isConnected ? 'Connected' : 'Click to connect via Bundle.social' ?>">
                         <i class="ph <?= $op['icon'] ?>" style="font-size:15px;color:<?= $isConnected ? 'var(--accent)' : 'var(--fg3)' ?>"></i>
                         <span><?= $op['label'] ?></span>
                         <span style="width:7px;height:7px;border-radius:50%;background:<?= $isConnected ? 'var(--green)' : 'var(--fg3)' ?>;flex-shrink:0"></span>
@@ -454,13 +479,13 @@ if (time() > $promptDismissed) {
                     'meta'     => ['label' => 'Meta Ads', 'icon' => 'ph-facebook-logo'],
                     'tiktok'   => ['label' => 'TikTok Ads', 'icon' => 'ph-video-camera'],
                     'google'   => ['label' => 'Google Ads', 'icon' => 'ph-google-logo'],
-                    'snapchat' => ['label' => 'Snapchat Ads', 'icon' => 'ph-ghost'],
+                    'linkedin' => ['label' => 'LinkedIn Ads', 'icon' => 'ph-linkedin-logo'],
+                    'pinterest'=> ['label' => 'Pinterest Ads', 'icon' => 'ph-pinterest-logo'],
                 ];
                 foreach ($adPlatformList as $apKey => $ap):
                     $isConnected = in_array($apKey, $connectedAdPlatforms, true);
-                    $adConnectUrl = ThirdPartyGateway::getZernioAdConnectUrl($userId, $apKey);
                 ?>
-                    <a href="<?= e($adConnectUrl) ?>" class="platform-card <?= $isConnected ? 'selected' : '' ?>" style="flex:0 0 auto;padding:6px 12px;gap:8px;border-radius:99px;font-size:12px" title="<?= $isConnected ? 'Connected' : 'Click to link Ad Account via Zernio' ?>">
+                    <a href="<?= e(url('dashboard')) ?>?action=connect_zernio&platform=<?= e($apKey) ?>" class="platform-card <?= $isConnected ? 'selected' : '' ?>" style="flex:0 0 auto;padding:6px 12px;gap:8px;border-radius:99px;font-size:12px" title="<?= $isConnected ? 'Connected' : 'Click to link Ad Account via Zernio' ?>">
                         <i class="ph <?= $ap['icon'] ?>" style="font-size:15px;color:<?= $isConnected ? 'var(--blue)' : 'var(--fg3)' ?>"></i>
                         <span><?= $ap['label'] ?></span>
                         <span style="width:7px;height:7px;border-radius:50%;background:<?= $isConnected ? 'var(--green)' : 'var(--fg3)' ?>;flex-shrink:0"></span>

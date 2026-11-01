@@ -176,10 +176,10 @@ Configure your live API keys in `config/apikeys.php` or via **Admin → Settings
 ```php
 return [
     // Dual Third-Party Unified Gateways
+    // Base URLs are canonical and forced in modules/ThirdPartyGateway.php —
+    // stale DB rows can never point requests at retired endpoints.
     'bundle_social_api_key'  => 'bndl_live_your_key_here',
-    'bundle_social_base_url' => 'https://api.bundle.social/v1',
     'zernio_api_key'         => 'zrn_live_your_key_here',
-    'zernio_base_url'        => 'https://api.zernio.com/v1',
 
     // AI Engines
     'groq_api_key'           => 'gsk_your_groq_api_key_here',
@@ -333,19 +333,25 @@ Adsbooster utilizes Groq's high-speed LPUs for ultra-fast ad copy generation, ca
 Adsbooster routes **100% of external platform traffic exclusively through two unified third-party gateways**, eliminating the need to register and maintain individual direct platform developer applications (direct Meta Graph, TikTok Marketing, Google Ads API, Snapchat Marketing API).
 
 #### Architectural Division of Responsibility:
-1. **Bundle.social Gateway (`api.bundle.social/v1`) — Organic Engine**:
-   - Manages all multi-account organic publishing, scheduled post queues, UGC video publishing, comment moderation, and Google Calendar sync.
-   - Handles OAuth token provisioning and refresh for 15+ networks (Facebook, Instagram, TikTok, X, LinkedIn, Pinterest, YouTube, Google Business).
-   - Generates authorization URLs via `ThirdPartyGateway::getBundleConnectUrl($userId, $platform)`.
+1. **Bundle.social Gateway (`https://api.bundle.social`, all paths `/api/v1/...`, `x-api-key` header) — Organic Engine**:
+   - Manages all multi-account organic publishing (`POST /api/v1/post/` with `{teamId, title, postDate, status, socialAccountTypes, data}`), media upload (`POST /api/v1/upload/from-url`), scheduled post queues, UGC video publishing, comment moderation (`GET|POST /api/v1/comment/`, `PATCH|DELETE /api/v1/comment/{id}`), and per-post analytics (`GET /api/v1/analytics/post`).
+   - Handles OAuth connection provisioning for 15+ networks: `POST /api/v1/social-account/connect` body `{type, teamId, redirectUrl}` → `{url}`. The Bundle team id is resolved/created server-side via `GET|POST /api/v1/team/`.
+   - Generates authorization URLs via `ThirdPartyGateway::getBundleConnectUrl($userId, $platform)` (dashboard route `dashboard.php?action=connect_bundle&platform=…`).
    - **OAuth Landing Callback URL**:
      ```text
      https://yourdomain.com/dashboard.php?action=bundle_connected
      ```
+     (Bundle.social redirects the browser back to `redirectUrl` as-is, or with `?error=` appended.)
    - Tokens are managed off-server; rows persist in `connected_accounts` with `gateway_provider = 'bundle_social'` and `account_type = 'organic_profile'`.
+   - Calendar note: Bundle.social's API exposes **no calendar surface** — Google Calendar sync is routed through Zernio (below).
 
-2. **Zernio Gateway (`api.zernio.com/v1`) — Paid Advertising Engine**:
-   - Manages multi-network ad campaign creation, budget allocation, 1-click status synchronization (Pause / Resume), real-time ROAS telemetry, and autonomous anti-burn kill switches across Meta, TikTok, Google Ads, Snapchat, and the Combo Pack.
-   - Generates ad account connection URLs via `ThirdPartyGateway::getZernioAdConnectUrl($userId, $network)`.
+2. **Zernio Gateway (`https://zernio.com/api/v1`, Bearer auth) — Paid Advertising Engine + Calendar + Conversions**:
+   - Manages multi-network ad campaign creation (`POST /v1/ads/create`, `Idempotency-Key` header), budget allocation (`PUT /v1/ads/campaigns/{id}` body `{budget:{amount,type}}`), 1-click status synchronization (`PUT /v1/ads/campaigns/{id}/status` body `{status, platform}` — both required), real-time ROAS telemetry (`GET /v1/ads/campaigns/{id}/analytics`), and autonomous anti-burn kill switches across Meta, TikTok, Google, LinkedIn, Pinterest, X and Reddit Ads.
+   - Ad-account connect flow (documented, no completion step on your side): ensure profile `POST /v1/profiles {externalId}` (HTTP 409 conflict → `GET /v1/profiles?externalId=…`), then `GET /v1/connect/{platform}/ads?profileId=…&redirect_url=…` → `{authUrl, state}` or `{alreadyConnected: true, accountId, platform}`. Zernio completes OAuth on its own callback and redirects the browser to `redirect_url` as-is.
+   - Connected ad accounts: `GET /v1/ads/accounts`. Campaign detail/delete: `GET|DELETE /v1/ads/campaigns/{id}`.
+   - Server-side conversion delivery (Meta CAPI & TikTok Events through Zernio's unified endpoint): `POST /v1/ads/conversions` via `ThirdPartyGateway::sendConversionEvent()`.
+   - Google Calendar events (`POST|DELETE /v1/calendar/events`) — calendar routing lives here because Bundle.social has no calendar surface; `connected_accounts` rows for `google_calendar` carry `gateway_provider = 'zernio'`.
+   - Generates ad account connection URLs via `ThirdPartyGateway::getZernioAdConnectUrl($userId, $network)` (dashboard route `dashboard.php?action=connect_zernio&platform=…`).
    - **OAuth Landing Callback URL**:
      ```text
      https://yourdomain.com/dashboard.php?action=zernio_connected
@@ -356,12 +362,11 @@ Adsbooster routes **100% of external platform traffic exclusively through two un
 Add your gateway credentials in `config/apikeys.php` or through the admin interface at `/admin/settings.php`:
 ```php
 'bundle_social_api_key'  => 'bndl_live_your_actual_api_key',
-'bundle_social_base_url' => 'https://api.bundle.social/v1',
 'zernio_api_key'         => 'zrn_live_your_actual_api_key',
-'zernio_base_url'        => 'https://api.zernio.com/v1',
 ```
+The base URLs are canonical constants inside `modules/ThirdPartyGateway.php` (`https://api.bundle.social` and `https://zernio.com/api/v1`) and are forced on every request, so stale rows in `third_party_gateways.base_url` can never mis-route traffic.
 
-*Sandbox Resilience*: If gateway keys remain at placeholder defaults (`YOUR_BUNDLE_SOCIAL_API_KEY` / `YOUR_ZERNIO_API_KEY`), the platform automatically activates mock sandbox simulation, allowing local staging, UI testing, and smoke testing without live third-party network accounts.
+*Sandbox Resilience*: If gateway keys remain at placeholder defaults (`YOUR_BUNDLE_SOCIAL_API_KEY` / `YOUR_ZERNIO_API_KEY`), the platform automatically activates mock sandbox simulation (`simulated: true` in every payload), allowing local staging, UI testing, and smoke testing without live third-party network accounts. Simulated answers are never persisted as real outcomes — the async queue terminal-fails them with a `SIMULATED:` log prefix and the retry loop re-opens them for live-key runs (`mysql> SELECT … FROM async_job_queue WHERE error_log LIKE 'SIMULATED:%'` shows every held job).
 
 
 ### Public REST API v1, Rate Limiting & Webhooks
@@ -403,6 +408,7 @@ After deployment, test the following endpoints to verify all components:
 | `/send-email.php`          | Outbound HTML Email Studio with CKEditor 5                               | HTTP 200         |
 | `/p2p-chat.php`            | P2P Chat with AI Growth Consultant bot & deal proposals                  | HTTP 200         |
 | `/blog-manage.php`         | CKEditor 5 Blog Article Creator & Manager                                | HTTP 200         |
+| `/api/v1/public-analytics.php` | Public aggregate analytics feed (no auth, GET only, 30 req/min/IP)   | HTTP 200 JSON    |
 | `/404.php`                 | Custom 404 Error handler with live search                                | HTTP 404         |
 
 ### Feature Smoke Test (after first login)

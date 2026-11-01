@@ -542,9 +542,17 @@ function current_user(): ?array
 
 // ============================================================
 // User login (sets session data)
+// SECURITY: central account-status gate. Every login path
+// (password, Google OAuth, remember-me) funnels through here, so a
+// suspended or banned account can never mint a session anywhere.
 // ============================================================
 function auth_login(array $user): void
 {
+    if (isset($user['status']) && $user['status'] !== 'active') {
+        error_log('auth_login refused: user id=' . (int)($user['id'] ?? 0) . ' status=' . (string)($user['status'] ?? '?'));
+        throw new RuntimeException('This account is not active. Please contact support if you believe this is an error.');
+    }
+
     session_regenerate_id(true);
     $_SESSION['user_id']         = (int)$user['id'];
     $_SESSION['user_role']       = $user['role'];
@@ -559,6 +567,15 @@ function auth_login(array $user): void
 // ============================================================
 function auth_admin_login(array $admin): void
 {
+    if (isset($admin['status']) && $admin['status'] !== 'active') {
+        error_log('auth_admin_login refused: admin id=' . (int)($admin['id'] ?? 0) . ' status=' . (string)($admin['status'] ?? '?'));
+        throw new RuntimeException('This account is not active. Please contact support.');
+    }
+    if (($admin['role'] ?? '') !== 'admin') {
+        error_log('auth_admin_login refused non-admin role for id=' . (int)($admin['id'] ?? 0));
+        throw new RuntimeException('Unauthorized: administrator account required.');
+    }
+
     session_regenerate_id(true);
     $_SESSION['admin_id']    = (int)$admin['id'];
     $_SESSION['admin_email'] = $admin['email'];

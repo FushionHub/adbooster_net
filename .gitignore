@@ -14,10 +14,14 @@ uploads/marketplace/*
 uploads/dating/*
 !uploads/**/.htaccess
 
-# Database dumps (may contain live PII / hashes)
-database/*.sql
-*.sql
-!database/schema.sql
+# Local artifacts of this build (spec snapshots, scratch dumps) stay out
+# Database SQL — ALLOWED per project decision: installer SQL ships in the repo
+# (idempotent CREATE TABLE IF NOT EXISTS / INSERT IGNORE / guarded ALTERs).
+# Only scratch/temp artifacts of this build stay out.
+database/_tmp_*
+_tmp_*.sql
+database/adsbooster/
+adsbooster_upgrade/
 
 # Dependencies
 vendor/

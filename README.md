@@ -57,31 +57,33 @@
 | - Organic Post Scheduling     |                                       | - Meta Ads (FB & Instagram)   |
 | - UGC & Reel Publishing       |                                       | - TikTok Video Ads            |
 | - Multi-Account Connections   |                                       | - Google Ads & Search/PMax    |
-| - Comment Moderation & DMs    |                                       | - Snapchat Story Ads          |
-| - Google Calendar Events Sync |                                       | - All-In-One Combo Pack       |
+| - Comment Moderation & Reply  |                                       | - LinkedIn & Pinterest Ads    |
+| - Per-Post Organic Analytics  |                                       | - Reddit Ads                  |
 | - Multi-Account Content Queue |                                       | - Real-Time Pause / Resume    |
-| - Stored as organic_profile   |                                       | - Anti-Burn Budget Automation |
+| - Stored as organic_profile   |                                       | - Google Calendar Events Sync |
 +---------------+---------------+                                       +---------------+---------------+
 |                                                                       |
 v                                                                       v
-[Social Platforms: FB, IG, TT, X, LinkedIn]             [Ad Networks: Meta, TikTok, Google, Snapchat]
+[Social Platforms: FB, IG, TT, X, LinkedIn]             [Ad Networks: Meta, TikTok, Google, LinkedIn, Pinterest]
 ```
 
-- **Bundle.social Gateway (`api.bundle.social/v1`) — Organic Engine**:
-  - Powers all multi-account organic publishing across Facebook, Instagram, TikTok, X (Twitter), LinkedIn, Pinterest, YouTube, Google Calendar, and Google Business.
-  - Generates seamless OAuth connection URLs via `ThirdPartyGateway::getBundleConnectUrl($userId, $platform)`.
-  - Callback landing URI: `https://yourdomain.com/dashboard.php?action=bundle_connected`.
-  - Dispatches immediate and queued social broadcasts via `ThirdPartyGateway::createOrganicPost()`, tracking `bundle_post_id` across `scheduled_posts`.
+- **Bundle.social Gateway (`https://api.bundle.social`, `/api/v1/...`, `x-api-key` auth) — Organic Engine**:
+  - Powers all multi-account organic publishing across Facebook, Instagram, TikTok, X (Twitter), LinkedIn, Pinterest, YouTube and more (real enum: `POST /api/v1/social-account/connect`).
+  - Generates seamless OAuth connection URLs via `ThirdPartyGateway::getBundleConnectUrl($userId, $platform)` (server route: `dashboard.php?action=connect_bundle&platform=…` → `POST /api/v1/social-account/connect {type, teamId, redirectUrl}` → `{url}`).
+  - Callback landing URI: `https://yourdomain.com/dashboard.php?action=bundle_connected` (Bundle.social redirects back to `redirectUrl` as-is, or with `?error=` appended).
+  - Dispatches immediate and queued posts via `ThirdPartyGateway::createOrganicPost()` → `POST /api/v1/post/` body `{teamId, title, postDate, status: SCHEDULED, socialAccountTypes, data:{PLATFORM:{text, uploadIds}}}` (media pre-uploaded via `POST /api/v1/upload/from-url`); tracks `bundle_post_id` across `scheduled_posts`.
+  - Comment surface: list/reply/moderate via `GET|POST /api/v1/comment/`, `PATCH|DELETE /api/v1/comment/{id}`; per-post analytics via `GET /api/v1/analytics/post?postId=…`.
   - Direct social access tokens are never stored locally; connections persist in `connected_accounts` with `gateway_provider = 'bundle_social'` and `account_type = 'organic_profile'`.
 
-- **Zernio Gateway (`api.zernio.com/v1`) — Paid Advertising Engine**:
-  - Handles campaign launches across Meta Ads (Facebook & Instagram), TikTok Video Ads, Google Ads (Search & Performance Max), Snapchat Story Ads, and the All-In-One Combo Pack.
-  - Generates ad account connection URLs via `ThirdPartyGateway::getZernioAdConnectUrl($userId, $network)`.
+- **Zernio Gateway (`https://zernio.com/api/v1`, Bearer auth) — Paid Advertising Engine + Calendar**:
+  - Handles campaign launches across Meta Ads (Facebook & Instagram), TikTok Video Ads, Google Ads (Search & Performance Max), LinkedIn, Pinterest, X and Reddit Ads via the unified `POST /v1/ads/create` endpoint (legacy single-creative shape, `Idempotency-Key` header sent on every launch).
+  - Ad-account connect: `dashboard.php?action=connect_zernio&platform=…` → `ThirdPartyGateway::getZernioAdConnectUrl($userId, $network)` → profile ensure (`POST /v1/profiles {externalId}`) then `GET /v1/connect/{platform}/ads?profileId=…&redirect_url=…` → `{authUrl, state}` or `{alreadyConnected: true}`. Zernio has **no completion step**: it completes OAuth on its own callback and redirects the browser to `redirect_url` as-is.
   - Callback landing URI: `https://yourdomain.com/dashboard.php?action=zernio_connected`.
   - Dispatches campaigns via `ThirdPartyGateway::launchPaidCampaign()`, persisting `zernio_campaign_id` and `zernio_ad_account_id` in `ad_campaigns`.
-  - Real-time 1-click status synchronization: `ThirdPartyGateway::setAdCampaignStatus($zernioCampaignId, 'active'|'paused')`.
-  - Automated background metrics ingestion: `cron/pull_campaign_metrics.php` queries `ThirdPartyGateway::getCampaignMetrics($zernioCampaignId)` to populate `campaign_metrics_daily`.
-  - Autonomous anti-burn kill switches: `modules/auto_buyer_engine.php` pauses fatigued campaigns in Zernio in real time.
+  - Real-time 1-click status synchronization: `ThirdPartyGateway::setAdCampaignStatus($zernioCampaignId, 'active'|'paused', $platform)` → `PUT /v1/ads/campaigns/{id}/status` body `{status, platform}` (both required).
+  - Budget scaling: `ThirdPartyGateway::setCampaignBudget($id, $amount, 'daily'|'lifetime')` → `PUT /v1/ads/campaigns/{id}` body `{budget:{amount,type}}`.
+  - Automated background metrics ingestion: `cron/pull_campaign_metrics.php` queries `ThirdPartyGateway::getCampaignMetrics($zernioCampaignId)` → `GET /v1/ads/campaigns/{id}/analytics` to populate `campaign_metrics_daily`.
+  - Server-side conversion delivery: `ThirdPartyGateway::sendConversionEvent()` → `POST /v1/ads/conversions` (Meta CAPI & TikTok Events via Zernio; `GET /v1/ads/accounts` lists connected ad accounts).
 
 - **Unified Developer & Sandbox Resilience**:
   - When API keys remain at placeholder defaults (`YOUR_BUNDLE_SOCIAL_API_KEY`, `YOUR_ZERNIO_API_KEY`), `ThirdPartyGateway` automatically activates sandbox simulation, preventing staging crashes and enabling offline testing.
@@ -94,6 +96,7 @@ v                                                                       v
   - **Python SDK / Client**: Modern `requests`-based client for automated ad launching, status toggling, and social scheduling.
   - **PHP Client**: Native cURL client for rapid server-to-server integration.
 - **Sliding-Window Rate Limiting**: Enforces a strict quota of 60 requests per minute tracked in the `api_rate_limits` table. Exceeded quotas return HTTP 429 Too Many Requests with standard `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` headers.
+- **Public Aggregate Analytics Endpoint** (`/api/v1/public-analytics.php`): Authentication-free, GET-only JSON feed of the SAME aggregate analytics the homepage achievements modal renders — totals, performance ratios, 14-day trend and platform mix, zero user-level data. IP-keyed limit of 30 requests/minute (429 + `Retry-After`), CORS `*`, safe for public widgets and blog embeds.
 - **Real-Time HMAC-SHA256 Webhooks**: Outbound event notifications (`campaign.status_changed`, `post.published`, `payment.completed`, `webhook.test_ping`) signed with cryptographic `X-Adsbooster-Signature` headers.
 - **Interactive Webhook Tester**: Integrated "Ping Test" in the Developer Console (`api-settings.php`) verifying target endpoints in real time with millisecond latency telemetry.
 - **Comprehensive A–Z Documentation**: Full reference manual (`developer-docs.php`) complete with interactive copyable code snippets in cURL, JavaScript (Fetch / SDK), Python, and PHP.
@@ -182,8 +185,8 @@ v                                                                       v
 - **Mail Engine**: PHPMailer 6.x with custom dark luxury HTML templates
 - **AI Providers**: Google Gemini (Nano Banana 2 image models, Veo 3.x video, Gemini 2.5 Flash), Groq LPUs (`openai/gpt-oss-120b`, `qwen/qwen3.8-27b`), NVIDIA NIM (`meta/llama-3.1-70b-instruct` via integrate.api.nvidia.com), Firecrawl (live web scraping), **Pollinations (FREE keyless video stills)**
 - **Third-Party Gateways (100% Unified Routing)**:
-  - **Bundle.social API**: Organic Social Media Management (FB, IG, TikTok, X, LinkedIn, Pinterest, YouTube, Google Calendar)
-  - **Zernio API**: Paid Advertising Management (Meta Ads, TikTok Ads, Google Ads & PMax, Snapchat Ads, Combo Pack)
+  - **Bundle.social API** (`https://api.bundle.social/api/v1`, `x-api-key`): Organic Social Media Management (FB, IG, TikTok, X, LinkedIn, Pinterest, YouTube and more; comment moderation; post analytics)
+  - **Zernio API** (`https://zernio.com/api/v1`, Bearer): Paid Advertising Management (Meta Ads, TikTok Ads, Google Ads & PMax, LinkedIn Ads, Pinterest Ads, X Ads, Reddit Ads) + Google Calendar events + server-side conversion delivery (Meta CAPI / TikTok Events)
 - **Billing Gateways**: Paystack & Flutterwave
 - **Client SDKs**: Official JavaScript/TypeScript SDK (`adsbooster-js-sdk` & `/api/v1/sdk/adsbooster.js`), Python, and PHP client integrations
 

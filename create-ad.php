@@ -23,7 +23,7 @@ $dispatchPlatforms = [
     'meta'     => ['label' => 'Meta (FB & IG)',   'icon' => 'ph-facebook-logo', 'color' => '#1877F2'],
     'tiktok'   => ['label' => 'TikTok Ads',       'icon' => 'ph-tiktok-logo',   'color' => '#00f2fe'],
     'google'   => ['label' => 'Google Ads / PMax','icon' => 'ph-google-logo',   'color' => '#4285F4'],
-    'snapchat' => ['label' => 'Snapchat Ads',     'icon' => 'ph-ghost',         'color' => '#fffc00'],
+    'linkedin' => ['label' => 'LinkedIn Ads',   'icon' => 'ph-linkedin-logo', 'color' => '#0a66c2'],
 ];
 
 // ── AJAX: AI ad copywriter (Groq LPU, 1 credit) ──
@@ -186,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $validDispatch = array_keys($dispatchPlatforms);
         $reqPlatforms  = array_values(array_intersect($reqPlatforms, $validDispatch));
 
-        if (count($reqPlatforms) === 0) $errors[] = 'Select at least one publishing network (Meta, TikTok, X, LinkedIn, Snapchat).';
+        if (count($reqPlatforms) === 0) $errors[] = 'Select at least one publishing network (Meta, TikTok, Google Ads, LinkedIn, Pinterest).';
         if ($old['campaign_name'] === '') $errors[] = 'Campaign name is required.';
         if ($old['objective'] === '') $errors[] = 'Please select an objective.';
         if (!is_numeric($old['budget_amount']) || (float)$old['budget_amount'] <= 0) $errors[] = 'Please enter a valid budget amount.';
@@ -361,7 +361,7 @@ require_once __DIR__ . '/includes/app_header.php';
                                 <?php if ($isConnected): ?>
                                     <span class="badge bg-success bg-opacity-25 text-success font-size-10 px-2 py-1 rounded-pill">Zernio Linked</span>
                                 <?php else: ?>
-                                    <a href="<?= e(ThirdPartyGateway::getZernioAdConnectUrl($userId, $pId)) ?>" onclick="event.stopPropagation();" class="font-size-10 text-decoration-none" style="color:var(--blue);" title="Connect ad account via Zernio">(Connect)</a>
+                                    <a href="<?= e(url('dashboard')) ?>?action=connect_zernio&platform=<?= e($pId) ?>" onclick="event.stopPropagation();" class="font-size-10 text-decoration-none" style="color:var(--blue);" title="Connect ad account via Zernio">(Connect)</a>
                                 <?php endif; ?>
                             </label>
                             <?php endforeach; ?>
