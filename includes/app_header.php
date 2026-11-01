@@ -601,7 +601,7 @@ a:hover { color: var(--accent2); }
   top: calc(100% + 10px);
   right: 0;
   width: 380px;
-  max-height: 500px;
+  max-height: min(78vh, 500px);
   background: var(--bg2);
   border: 1px solid var(--border2);
   border-radius: var(--radius);
@@ -1279,21 +1279,57 @@ body.nav-open { overflow: hidden; touch-action: none; }
   .grid-3 { grid-template-columns: repeat(2, 1fr); }
   .grid-2 { grid-template-columns: 1fr; }
   .page { padding: 20px 16px; }
-  .notif-dropdown { width: calc(100vw - 32px); right: -10px; }
-  .currency-dropdown { width: calc(100vw - 32px); right: -10px; }
   .user-menu-info { display: none; }
   .topbar-pill-wallet .wallet-divider,
   .topbar-pill-wallet .wallet-ai,
   .topbar-pill-wallet i.ph-sparkle { display: none; }
+  /* Dropdowns become full-width sheets anchored to the viewport and
+     respect short landscape screens */
+  .notif-dropdown,
+  .currency-dropdown {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    top: calc(var(--topbar) + 8px);
+    width: auto;
+    max-height: min(78vh, 500px);
+  }
+  .notif-list { max-height: min(58vh, 360px); }
 }
 
 @media (max-width: 640px) {
   .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
   .tabs-row { max-width: 100%; overflow-x: auto; width: 100%; }
-  .topbar-pill-wallet { padding: 5px 10px; font-size: 11.5px; }
   .page-title { font-size: 22px; }
   .stat-card .stat-value { font-size: 24px; }
-  
+
+  /* Compact topbar cluster so every control fits on phones */
+  .topbar { padding: 0 12px; }
+  .topbar-left { gap: 10px; }
+  .topbar-right { gap: 7px; }
+  .topbar-breadcrumb { font-size: 12.5px; }
+  .menu-toggle, .topbar-btn, .notif-btn { width: 36px; height: 36px; font-size: 17px; }
+  .notif-btn .badge-count { top: -3px; right: -3px; }
+  #fullscreenBtn { display: none; }
+
+  /* Currency becomes an icon-only trigger; menu turns into a full-width sheet */
+  .currency-btn { height: 36px; padding: 0 8px; gap: 5px; }
+  .currency-btn .currency-btn-code { display: none; }
+  .currency-btn .currency-caret { font-size: 11px; }
+  /* Menu sheets pin to the viewport edges with 12px gutters */
+  .notif-dropdown,
+  .currency-dropdown { left: 12px; right: 12px; top: calc(var(--topbar) + 6px); }
+  .notif-header { padding: 12px 14px; }
+  .notif-item { padding: 11px 14px; }
+  .notif-item .notif-icon { width: 32px; height: 32px; font-size: 16px; }
+  .currency-header { padding: 12px 14px; }
+  .currency-item { padding: 12px 14px; }
+  .currency-item-icon { width: 38px; height: 38px; }
+  .currency-item-body strong { font-size: 14px; }
+  .currency-item-body small { font-size: 12px; }
+
+  .topbar-pill-wallet { padding: 5px 10px; font-size: 11.5px; gap: 6px; }
+
   div[style*="grid-template-columns:1fr 1fr"],
   div[style*="grid-template-columns: 1fr 1fr"],
   div[style*="grid-template-columns:2fr 1fr"],
@@ -1302,6 +1338,20 @@ body.nav-open { overflow: hidden; touch-action: none; }
   div[style*="grid-template-columns: 1fr 1fr 2fr"] {
     grid-template-columns: 1fr !important;
   }
+}
+
+@media (max-width: 480px) {
+  /* Tiny phones: drop the filterable breadcrumb title, keep the balance pill */
+  .topbar-breadcrumb { display: none; }
+  .topbar-pill-wallet { padding: 5px 9px; font-size: 11px; }
+  .topbar-right { gap: 6px; }
+}
+
+@media (max-width: 380px) {
+  /* Ultra-narrow: balance pill becomes icon-only, sheets tighten to 8px gutters */
+  .topbar-pill-wallet .wallet-credits { display: none; }
+  .notif-dropdown,
+  .currency-dropdown { left: 8px; right: 8px; }
 }
 
 @media (max-width: 767.98px) {
