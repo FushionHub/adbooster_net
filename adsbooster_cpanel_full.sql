@@ -23,6 +23,49 @@ SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";
 
 -- -----------------------------------------------------
+-- Table structure for `account_deletions`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `account_deletions` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `reason` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `requested_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_account_deletions_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `achievements`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `achievements` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `slug` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `icon` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `points` int NOT NULL DEFAULT '0',
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_achievements_slug` (`slug`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `ad_campaign_variants`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `ad_campaign_variants` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `campaign_id` int NOT NULL,
+  `variant_name` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Variant 1',
+  `description` text COLLATE utf8mb4_unicode_ci,
+  `media_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `budget_share` decimal(5,2) NOT NULL DEFAULT '0.00',
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_ad_campaign_variants_campaign` (`campaign_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
 -- Table structure for `ad_campaigns`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `ad_campaigns` (
@@ -108,6 +151,23 @@ CREATE TABLE IF NOT EXISTS `agency_portals` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 -- -----------------------------------------------------
+-- Table structure for `ai_creatives`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `ai_creatives` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `type` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'image',
+  `prompt` text COLLATE utf8mb4_unicode_ci,
+  `result_output` mediumtext COLLATE utf8mb4_unicode_ci,
+  `credits_used` int NOT NULL DEFAULT '0',
+  `metadata` text COLLATE utf8mb4_unicode_ci,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_ai_creatives_user_type` (`user_id`,`type`),
+  KEY `idx_ai_creatives_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
 -- Table structure for `ai_media_buyer_logs`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `ai_media_buyer_logs` (
@@ -172,6 +232,23 @@ CREATE TABLE IF NOT EXISTS `ai_video_creatives` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 -- -----------------------------------------------------
+-- Table structure for `api_keys`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `api_keys` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `key_hash` char(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `key_prefix` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `scopes` text COLLATE utf8mb4_unicode_ci,
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
+  `last_used_at` datetime DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_api_keys_hash` (`key_hash`),
+  KEY `idx_api_keys_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
 -- Table structure for `api_rate_limits`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `api_rate_limits` (
@@ -209,6 +286,20 @@ CREATE TABLE IF NOT EXISTS `async_job_queue` (
   KEY `idx_queue_subject` (`subject_key`,`status`),
   CONSTRAINT `async_job_queue_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `audience_segments`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `audience_segments` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `name` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `criteria` text COLLATE utf8mb4_unicode_ci,
+  `criteria_json` text COLLATE utf8mb4_unicode_ci,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_audience_segments_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------
 -- Table structure for `blog_posts`
@@ -253,6 +344,48 @@ CREATE TABLE IF NOT EXISTS `campaign_metrics_daily` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------
+-- Table structure for `campaign_recommendations`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `campaign_recommendations` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `campaign_id` int NOT NULL,
+  `recommendation_type` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
+  `message` text COLLATE utf8mb4_unicode_ci,
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_campaign_recommendations_campaign` (`campaign_id`),
+  KEY `idx_campaign_recommendations_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `campaign_run_logs`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `campaign_run_logs` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `campaign_id` int DEFAULT NULL,
+  `action` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
+  `details` text COLLATE utf8mb4_unicode_ci,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_campaign_run_logs_campaign` (`campaign_id`),
+  KEY `idx_campaign_run_logs_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `combo_purchases`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `combo_purchases` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_combo_purchases_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
 -- Table structure for `competitor_ad_analyses`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `competitor_ad_analyses` (
@@ -292,6 +425,27 @@ CREATE TABLE IF NOT EXISTS `connected_accounts` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 -- -----------------------------------------------------
+-- Table structure for `cookie_consents`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `cookie_consents` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `consent_uuid` char(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_id` int DEFAULT NULL,
+  `necessary` tinyint(1) NOT NULL DEFAULT '1',
+  `preferences` tinyint(1) NOT NULL DEFAULT '0',
+  `analytics` tinyint(1) NOT NULL DEFAULT '0',
+  `marketing` tinyint(1) NOT NULL DEFAULT '0',
+  `ip_address` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `current_page` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `user_agent` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_cookie_consents_uuid` (`consent_uuid`),
+  KEY `idx_cookie_consents_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
 -- Table structure for `creator_bounties`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `creator_bounties` (
@@ -315,6 +469,12 @@ CREATE TABLE IF NOT EXISTS `creator_bounties` (
   KEY `idx_bounties_status` (`status`),
   KEY `idx_bounties_creator` (`claimed_creator_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- Seed data for `creator_bounties` (INSERT IGNORE — existing rows win)
+INSERT IGNORE INTO `creator_bounties` (`id`, `brand_user_id`, `title`, `description`, `platform`, `content_type`, `deliverables_req`, `bounty_amount`, `platform_fee_pct`, `total_escrow_held`, `escrow_status`, `claimed_creator_id`, `status`, `submission_deadline`, `created_at`) VALUES
+(1, 3, '15s UGC Talking Head Review for Hydrating Skincare Brand', 'Looking for a female creator (20-35) to test our glow serum and record an authentic selfie-style talking head review.', 'tiktok', 'ugc_talking_head', '1x 9:16 vertical video, 1080p, clear audio, with hook & CTA.', '120.00', '10.00', '120.00', 'funded', NULL, 'open', '2026-11-08 18:45:52', '2026-11-01 19:45:52'),
+(2, 3, 'SaaS Productivity App Unboxing & Workflow Demo', 'Tech creator needed to record a screen-share and face-cam walkthrough of our AI automation tool.', 'instagram_reels', 'tutorial', '1x Reel (30s) highlighting 3 core features.', '200.00', '10.00', '200.00', 'funded', NULL, 'open', '2026-11-08 18:45:52', '2026-11-01 19:45:52'),
+(3, 3, 'Athletic Compression Gym Wear Try-On Haul', 'Fitness influencer needed to showcase workout durability and squat-proof fit.', 'youtube_shorts', 'lifestyle_testimonial', '1x Short with trending audio beat.', '150.00', '10.00', '150.00', 'funded', NULL, 'open', '2026-11-08 18:45:52', '2026-11-01 19:45:52');
 
 -- -----------------------------------------------------
 -- Table structure for `creator_bounty_submissions`
@@ -348,6 +508,86 @@ CREATE TABLE IF NOT EXISTS `cron_run_logs` (
   `status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `notes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `dating_blocks`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `dating_blocks` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `blocker_id` int NOT NULL,
+  `blocked_id` int NOT NULL,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_dating_blocks_pair` (`blocker_id`,`blocked_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `dating_pairs`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `dating_pairs` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `sender_id` int NOT NULL,
+  `receiver_id` int NOT NULL,
+  `icebreaker_message` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `matched_at` datetime DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_dating_pairs_sender` (`sender_id`),
+  KEY `idx_dating_pairs_receiver` (`receiver_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `dating_profiles`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `dating_profiles` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `age` int DEFAULT NULL,
+  `gender` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `looking_for` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `city` varchar(120) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `occupation` varchar(120) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `interests` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `bio` text COLLATE utf8mb4_unicode_ci,
+  `relationship_goals` varchar(120) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `photo` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `photo_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_dating_profiles_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `dating_reports`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `dating_reports` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `reporter_id` int NOT NULL,
+  `reported_id` int NOT NULL,
+  `reason` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_dating_reports_reported` (`reported_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `dynamic_content`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `dynamic_content` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `page_slug` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `section_key` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'general',
+  `item_key` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `content_value` mediumtext COLLATE utf8mb4_unicode_ci,
+  `media_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_dynamic_content_page` (`page_slug`,`section_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------
@@ -404,6 +644,54 @@ CREATE TABLE IF NOT EXISTS `ecommerce_stores` (
   PRIMARY KEY (`id`),
   KEY `idx_ecom_stores_user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- -----------------------------------------------------
+-- Table structure for `email_logs`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `email_logs` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `sender_id` int DEFAULT NULL,
+  `recipient` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `subject` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `body` mediumtext COLLATE utf8mb4_unicode_ci,
+  `type` varchar(60) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'sent',
+  `sent_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_email_logs_recipient` (`recipient`),
+  KEY `idx_email_logs_sent` (`sent_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `fraud_flags`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `fraud_flags` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `flag_type` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'generic',
+  `description` text COLLATE utf8mb4_unicode_ci,
+  `severity` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'low',
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'flagged',
+  `reviewed_at` datetime DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_fraud_flags_user` (`user_id`),
+  KEY `idx_fraud_flags_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `invoices`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `invoices` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `transaction_id` bigint unsigned DEFAULT NULL,
+  `invoice_number` varchar(40) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `file_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `generated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_invoices_transaction` (`transaction_id`),
+  KEY `idx_invoices_number` (`invoice_number`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------
 -- Table structure for `jobs`
@@ -473,6 +761,30 @@ CREATE TABLE IF NOT EXISTS `marketplace_items` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- -----------------------------------------------------
+-- Table structure for `marketplace_listings`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `marketplace_listings` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `title` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `slug` varchar(220) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `category` varchar(80) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `address` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `phone` varchar(40) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `whatsapp` varchar(40) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci,
+  `website_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
+  `is_verified` tinyint(1) NOT NULL DEFAULT '0',
+  `rating` decimal(3,1) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_marketplace_listings_user` (`user_id`),
+  KEY `idx_marketplace_listings_slug` (`slug`(191)),
+  KEY `idx_marketplace_listings_category` (`category`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
 -- Table structure for `notifications`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `notifications` (
@@ -487,6 +799,103 @@ CREATE TABLE IF NOT EXISTS `notifications` (
   PRIMARY KEY (`id`),
   KEY `idx_notifications_user` (`user_id`,`is_read`),
   KEY `idx_notifications_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `p2p_conversations`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `p2p_conversations` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_a` int NOT NULL,
+  `user_b` int NOT NULL,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_p2p_conversations_pair` (`user_a`,`user_b`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `p2p_deals`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `p2p_deals` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `conversation_id` bigint unsigned DEFAULT NULL,
+  `proposer_id` int NOT NULL,
+  `receiver_id` int DEFAULT NULL,
+  `title` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `amount` decimal(12,2) NOT NULL DEFAULT '0.00',
+  `currency` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'USD',
+  `terms` text COLLATE utf8mb4_unicode_ci,
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'proposed',
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_p2p_deals_conversation` (`conversation_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `p2p_messages`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `p2p_messages` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `conversation_id` bigint unsigned NOT NULL,
+  `sender_id` int NOT NULL,
+  `receiver_id` int DEFAULT NULL,
+  `message` mediumtext COLLATE utf8mb4_unicode_ci,
+  `is_read` tinyint(1) NOT NULL DEFAULT '0',
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_p2p_messages_conversation` (`conversation_id`),
+  KEY `idx_p2p_messages_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `payout_requests`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `payout_requests` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `amount` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `method` varchar(40) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'paypal',
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `details_json` text COLLATE utf8mb4_unicode_ci,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_payout_requests_user` (`user_id`),
+  KEY `idx_payout_requests_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `policy_rules`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `policy_rules` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `platform` varchar(40) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'all',
+  `category` varchar(60) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `name` varchar(120) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `rule_type` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'text',
+  `pattern` text COLLATE utf8mb4_unicode_ci,
+  `description` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `severity` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'low',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_policy_rules_platform` (`platform`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `policy_scan_logs`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `policy_scan_logs` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `campaign_id` int DEFAULT NULL,
+  `post_id` int DEFAULT NULL,
+  `score` int NOT NULL DEFAULT '0',
+  `issues` mediumtext COLLATE utf8mb4_unicode_ci,
+  `scanned_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_policy_scan_logs_user` (`user_id`),
+  KEY `idx_policy_scan_logs_scanned` (`scanned_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------
@@ -508,6 +917,40 @@ CREATE TABLE IF NOT EXISTS `pricing_plans` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- -----------------------------------------------------
+-- Table structure for `referral_rewards`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `referral_rewards` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `referrer_id` int NOT NULL,
+  `referred_user_id` int NOT NULL,
+  `referrer_reward` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `referred_reward` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_referral_rewards_referrer` (`referrer_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `referrals`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `referrals` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `referrer_id` int NOT NULL,
+  `referred_id` int DEFAULT NULL,
+  `referred_user_id` int DEFAULT NULL,
+  `code` varchar(40) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `reward_credits` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `created_at` datetime DEFAULT NULL,
+  `credited_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_referrals_referrer` (`referrer_id`),
+  KEY `idx_referrals_referred` (`referred_id`),
+  KEY `idx_referrals_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
 -- Table structure for `scheduled_posts`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `scheduled_posts` (
@@ -525,6 +968,18 @@ CREATE TABLE IF NOT EXISTS `scheduled_posts` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `publish_error` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `seller_verifications`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `seller_verifications` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_seller_verifications_user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------
@@ -566,6 +1021,21 @@ CREATE TABLE IF NOT EXISTS `server_tracking_pixels` (
   UNIQUE KEY `uq_pixel_token` (`pixel_token`),
   KEY `idx_tracking_pixels_user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- -----------------------------------------------------
+-- Table structure for `service_check_log`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `service_check_log` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `check_key` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `ok` tinyint(1) NOT NULL DEFAULT '0',
+  `latency_ms` int NOT NULL DEFAULT '0',
+  `detail` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `checked_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_service_check_log_key` (`check_key`),
+  KEY `idx_service_check_log_checked` (`checked_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------
 -- Table structure for `site_reviews`
@@ -648,6 +1118,58 @@ CREATE TABLE IF NOT EXISTS `social_inbox_rules` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 -- -----------------------------------------------------
+-- Table structure for `support_tickets`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `support_tickets` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `ticket_number` varchar(24) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ticket_type` varchar(40) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'general',
+  `priority` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'medium',
+  `subject` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'open',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_support_tickets_user` (`user_id`),
+  KEY `idx_support_tickets_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `team_invitations`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `team_invitations` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `owner_id` int NOT NULL,
+  `email` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `invite_token` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `expires_at` datetime DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `accepted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_team_invitations_token` (`invite_token`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `team_members`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `team_members` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `parent_user_id` int NOT NULL,
+  `user_id` int DEFAULT NULL,
+  `email` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `role` varchar(40) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'member',
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `invite_token` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `invited_at` datetime DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_team_members_parent` (`parent_user_id`),
+  KEY `idx_team_members_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
 -- Table structure for `third_party_gateways`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `third_party_gateways` (
@@ -661,6 +1183,27 @@ CREATE TABLE IF NOT EXISTS `third_party_gateways` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `provider_key` (`provider_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- -----------------------------------------------------
+-- Table structure for `ticket_messages`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `ticket_messages` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `ticket_id` int unsigned NOT NULL,
+  `sender_id` int NOT NULL,
+  `sender_role` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'customer',
+  `message` text COLLATE utf8mb4_unicode_ci,
+  `attachment` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_ticket_messages_ticket` (`ticket_id`),
+  KEY `idx_ticket_messages_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `tickets`
+-- -----------------------------------------------------
+;
 
 -- -----------------------------------------------------
 -- Table structure for `transactions`
@@ -679,6 +1222,46 @@ CREATE TABLE IF NOT EXISTS `transactions` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- -----------------------------------------------------
+-- Table structure for `user_achievements`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `user_achievements` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `achievement_id` int unsigned NOT NULL,
+  `earned_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_user_achievements` (`user_id`,`achievement_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `user_portfolios`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `user_portfolios` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `username` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `display_name` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `job_title` varchar(120) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `headline` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `bio` text COLLATE utf8mb4_unicode_ci,
+  `template_style` varchar(40) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'dark_luxury',
+  `phone` varchar(40) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `email` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `company` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `location` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `website` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `skills_json` mediumtext COLLATE utf8mb4_unicode_ci,
+  `services_json` mediumtext COLLATE utf8mb4_unicode_ci,
+  `portfolio_items_json` mediumtext COLLATE utf8mb4_unicode_ci,
+  `is_public` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_portfolios_user` (`user_id`),
+  KEY `idx_user_portfolios_username` (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
 -- Table structure for `user_subscriptions`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `user_subscriptions` (
@@ -689,6 +1272,32 @@ CREATE TABLE IF NOT EXISTS `user_subscriptions` (
   PRIMARY KEY (`id`),
   KEY `idx_usubs_user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `user_vcards`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `user_vcards` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `username` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `headline` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `bio` text COLLATE utf8mb4_unicode_ci,
+  `template` varchar(40) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'dark_luxury',
+  `phone` varchar(40) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `whatsapp` varchar(40) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `company` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `job_title` varchar(120) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `location` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `website` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `skills_json` mediumtext COLLATE utf8mb4_unicode_ci,
+  `projects_json` mediumtext COLLATE utf8mb4_unicode_ci,
+  `is_public` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_vcards_user` (`user_id`),
+  KEY `idx_user_vcards_username` (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------
 -- Table structure for `users`
@@ -720,15 +1329,70 @@ CREATE TABLE IF NOT EXISTS `users` (
   `two_factor_secret` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `two_factor_enabled` tinyint(1) NOT NULL DEFAULT '0',
   `totp_enabled` tinyint(1) NOT NULL DEFAULT '0',
+  `created_at` datetime DEFAULT NULL,
+  `achievement_points` int NOT NULL DEFAULT '0',
+  `billing_cycle` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'monthly',
+  `plan_expiry` datetime DEFAULT NULL,
+  `auto_refill_enabled` tinyint(1) NOT NULL DEFAULT '0',
+  `auto_refill_threshold` decimal(10,2) NOT NULL DEFAULT '10.00',
+  `auto_refill_amount` decimal(12,2) NOT NULL DEFAULT '50.00',
+  `auto_refill_gateway` varchar(40) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `parent_user_id` int DEFAULT NULL,
+  `username` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `headline` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `bio` text COLLATE utf8mb4_unicode_ci,
+  `two_factor_backup` text COLLATE utf8mb4_unicode_ci,
+  `fa_attempts` int NOT NULL DEFAULT '0',
+  `is_verified_seller` tinyint(1) NOT NULL DEFAULT '0',
+  `totp_secret` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `two_factor_type` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `two_factor_setup_at` datetime DEFAULT NULL,
+  `remember_token` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `remember_token_expires_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Seed data for `users` (INSERT IGNORE — existing rows win)
-INSERT IGNORE INTO `users` (`id`, `full_name`, `email`, `ad_credits`, `ai_credits`, `ai_preferred_provider`, `avatar`, `company`, `user_role`, `plan_id`, `status`, `is_admin`, `password`, `role`, `phone`, `facebook`, `twitter`, `linkedin`, `account_type`, `google_id`, `referral_code`, `referred_by`, `onboarding_completed`, `two_factor_secret`, `two_factor_enabled`, `totp_enabled`) VALUES
-(1, 'Smoke Tester', 'smoke@adsbooster.net', '500.00', 500, 'nvidia', NULL, NULL, 'user', NULL, 'active', 0, '$2y$10$S4.kmWp6AnyMgi6d.unA4ewBqlNvVXAKPvM01Jx7/H92YYc1XWSke', 'user', NULL, NULL, NULL, NULL, 'individual', NULL, NULL, NULL, 0, NULL, 0, 0),
-(2, 'Adsbooster Administrator', 'admin@adsbooster.net', '0.00', 100, NULL, NULL, NULL, 'admin', NULL, 'active', 1, '$2y$10$/q92Hapy9UrSnuq1qkCj2eFA7XAM3M91OEng4t/XdhCvSoJP4c3E.', 'admin', NULL, NULL, NULL, NULL, 'individual', NULL, NULL, NULL, 0, NULL, 0, 0),
-(3, 'Jamachi Maurice Mauricennadi', 'jotahecomng@gmail.com', '0.00', 100, NULL, NULL, NULL, 'user', NULL, 'active', 0, '$2y$10$1OGZYLBBprChu8fF2CONle1ZMgi77x5c6FLC1DfumCdE7eA7pQBNG', 'user', NULL, NULL, NULL, NULL, 'individual', NULL, '488651a1e3b454ea', NULL, 1, NULL, 0, 0);
+INSERT IGNORE INTO `users` (`id`, `full_name`, `email`, `ad_credits`, `ai_credits`, `ai_preferred_provider`, `avatar`, `company`, `user_role`, `plan_id`, `status`, `is_admin`, `password`, `role`, `phone`, `facebook`, `twitter`, `linkedin`, `account_type`, `google_id`, `referral_code`, `referred_by`, `onboarding_completed`, `two_factor_secret`, `two_factor_enabled`, `totp_enabled`, `created_at`, `achievement_points`, `billing_cycle`, `plan_expiry`, `auto_refill_enabled`, `auto_refill_threshold`, `auto_refill_amount`, `auto_refill_gateway`, `parent_user_id`, `username`, `headline`, `bio`, `two_factor_backup`, `fa_attempts`, `is_verified_seller`, `totp_secret`, `two_factor_type`, `two_factor_setup_at`, `remember_token`, `remember_token_expires_at`) VALUES
+(1, 'Smoke Tester', 'smoke@adsbooster.net', '500.00', 500, 'nvidia', NULL, NULL, 'user', NULL, 'active', 0, '$2y$10$S4.kmWp6AnyMgi6d.unA4ewBqlNvVXAKPvM01Jx7/H92YYc1XWSke', 'user', NULL, NULL, NULL, NULL, 'individual', NULL, NULL, NULL, 0, NULL, 0, 0, '2020-06-23 00:00:00', 0, 'monthly', NULL, 0, '10.00', '50.00', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL),
+(2, 'Adsbooster Administrator', 'admin@adsbooster.net', '0.00', 100, NULL, NULL, NULL, 'admin', NULL, 'active', 1, '$2y$10$/q92Hapy9UrSnuq1qkCj2eFA7XAM3M91OEng4t/XdhCvSoJP4c3E.', 'admin', NULL, NULL, NULL, NULL, 'individual', NULL, NULL, NULL, 0, NULL, 0, 0, '2019-11-29 00:00:00', 0, 'monthly', NULL, 0, '10.00', '50.00', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL),
+(3, 'Jamachi Maurice Mauricennadi', 'jotahecomng@gmail.com', '0.00', 100, NULL, NULL, NULL, 'user', NULL, 'active', 0, '$2y$10$1OGZYLBBprChu8fF2CONle1ZMgi77x5c6FLC1DfumCdE7eA7pQBNG', 'user', NULL, NULL, NULL, NULL, 'individual', NULL, '488651a1e3b454ea', NULL, 1, NULL, 0, 0, '2019-02-10 00:00:00', 0, 'monthly', NULL, 0, '10.00', '50.00', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL),
+(4, 'E2E Check', 'e2e-check@adsbooster.net', '100.00', 100, NULL, NULL, NULL, 'user', NULL, 'active', 0, '$2y$10$L88/48fz57ARb.cgoMilz..ppvrPk9c8mZrMzof1WaOQ.S9G52SPK', 'user', NULL, NULL, NULL, NULL, 'individual', NULL, 'B8B3A514', NULL, 0, NULL, 0, 0, '2023-09-02 00:00:00', 0, 'monthly', NULL, 0, '10.00', '50.00', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL);
+
+-- -----------------------------------------------------
+-- Table structure for `visitor_logs`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `visitor_logs` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int DEFAULT NULL,
+  `ip` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `user_agent` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `browser` varchar(60) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `os` varchar(60) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `device_type` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `request_uri` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `country` varchar(60) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_visitor_logs_uri` (`request_uri`(191)),
+  KEY `idx_visitor_logs_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `webhooks`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `webhooks` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `target_url` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `event_type` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'campaign.status_changed',
+  `secret` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_webhooks_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
 -- =====================================================================

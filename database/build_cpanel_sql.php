@@ -75,7 +75,10 @@ $viewSql = <<<SQL
 -- View structure for `tickets`
 -- -----------------------------------------------------
 DROP VIEW IF EXISTS `tickets`;
-CREATE OR REPLACE VIEW `tickets` AS select `support_tickets`.`id` AS `id`,`support_tickets`.`user_id` AS `user_id`,lpad(`support_tickets`.`id`,6,'0') AS `ticket_number`,`support_tickets`.`ticket_type` AS `type`,`support_tickets`.`priority` AS `priority`,`support_tickets`.`subject` AS `subject`,`support_tickets`.`status` AS `status`,`support_tickets`.`created_at` AS `created_at`,`support_tickets`.`updated_at` AS `updated_at` from `support_tickets`;
+CREATE OR REPLACE VIEW `tickets` AS
+  SELECT id, user_id, ticket_number, ticket_type AS type,
+         priority, subject, status, created_at, updated_at
+  FROM support_tickets;
 
 
 SQL;
