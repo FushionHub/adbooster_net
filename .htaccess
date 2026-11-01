@@ -56,15 +56,18 @@ RewriteRule ^calendar-reschedule/?$ modules/calendar_reschedule.php [QSA,L]
 #    (e.g. "/seopp/dashboard.php"), so the captured group MUST keep
 #    its leading slash — a relative substitution is resolved against
 #    the filesystem directory and produces mangled URLs.
-#    The exclusion checks use substring matching so they work both
-#    when the app is at the vhost root and when it is in /seopp/.
+#    The substitution carries ONLY the extensionless path: embedding
+#    a literal `?query` in the substitution trips Apache 2.4.60+
+#    hardening (AH10508 "Unsafe URL with %3f") and 403s the request.
+#    mod_rewrite re-appends the original query string automatically.
+#    Explicit paths are excluded for rules that need the raw query.
 # -------------------------------------------------------------
 RewriteCond %{THE_REQUEST} \s(/[^?\s]+?)\.php(\?\S*)?\s [NC]
 RewriteCond %{REQUEST_URI} !/modules/ [NC]
 RewriteCond %{REQUEST_URI} !/api/ [NC]
 RewriteCond %{REQUEST_URI} !/cron/ [NC]
 RewriteCond %{REQUEST_URI} !/config/ [NC]
-RewriteRule ^ %1%2 [R=301,L]
+RewriteRule ^ %1 [QSA,R=301,L]
 
 # -------------------------------------------------------------
 # 3. Root deployment (production document root):

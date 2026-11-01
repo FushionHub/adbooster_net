@@ -95,10 +95,22 @@ class ThirdPartyGateway
     /**
      * Check whether an API key is a placeholder or live
      */
-    private static function isPlaceholderKey(string $key): bool
+    public static function isPlaceholderKey(string $key): bool
     {
         $k = trim($key);
         return empty($k) || str_starts_with($k, 'YOUR_') || str_contains($k, 'EXAMPLE');
+    }
+
+    /**
+     * Whether the configured key for a provider is a sandbox placeholder.
+     * Mirror of isPlaceholderKey() resolved against the same config the
+     * gateway uses (DB row first, config fallback). Public so the smoke
+     * harness can assert per-mode expectations instead of one global mode.
+     */
+    public static function isSandboxMode(string $provider): bool
+    {
+        $config = self::getGatewayConfig($provider);
+        return self::isPlaceholderKey((string)($config['api_key'] ?? ''));
     }
 
     /**
@@ -139,44 +151,58 @@ class ThirdPartyGateway
             return self::simulateResponse($provider, $endpoint, $method, $body);
         }
 
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, strtoupper($method));
-        curl_setopt($ch, CURLOPT_TIMEOUT, 45);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-
-        if (function_exists('ca_curl_setopt')) {
-            ca_curl_setopt($ch);
-        }
-
-        $headers = [
-            'Content-Type: application/json',
-            'Accept: application/json',
-            'User-Agent: Adsbooster-Gateway/5.0',
-        ];
-
-        // Provider-specific auth: Bundle.social uses x-api-key,
-        // Zernio uses Bearer (per each provider's documented scheme).
-        if ($provider === 'bundle_social') {
-            $headers[] = 'x-api-key: ' . $apiKey;
-        } else {
-            $headers[] = 'Authorization: Bearer ' . $apiKey;
-        }
-
-        foreach (($opts['headers'] ?? []) as $h) {
-            $headers[] = (string)$h;
-        }
-
         $methodUpper = strtoupper($method);
-        if (!empty($body) && in_array($methodUpper, ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body, JSON_UNESCAPED_SLASHES));
-        }
 
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlErr  = curl_error($ch);
-        curl_close($ch);
+        // Bounded retry: Windows threaded SAPIs (mod_php) can hit transient
+        // DNS/connect timeouts that a fresh cURL handle resolves. One retry
+        // keeps interactive connect flows stable; deeper failures surface as
+        // honest HTTP-0 refusals as before.
+        for ($attempt = 1; $attempt <= 2; $attempt++) {
+            $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $methodUpper);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 45);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+
+            if (function_exists('ca_curl_setopt')) {
+                ca_curl_setopt($ch);
+            }
+
+            $headers = [
+                'Content-Type: application/json',
+                'Accept: application/json',
+                'User-Agent: Adsbooster-Gateway/5.0',
+            ];
+
+            // Provider-specific auth: Bundle.social uses x-api-key,
+            // Zernio uses Bearer (per each provider's documented scheme).
+            if ($provider === 'bundle_social') {
+                $headers[] = 'x-api-key: ' . $apiKey;
+            } else {
+                $headers[] = 'Authorization: Bearer ' . $apiKey;
+            }
+
+            foreach (($opts['headers'] ?? []) as $h) {
+                $headers[] = (string)$h;
+            }
+
+            if (!empty($body) && in_array($methodUpper, ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body, JSON_UNESCAPED_SLASHES));
+            }
+
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlErr  = curl_error($ch);
+            curl_close($ch);
+
+            if ($response !== false && $httpCode > 0) {
+                break;
+            }
+            if ($attempt < 2) {
+                usleep(250000);
+            }
+        }
 
         if ($response === false) {
             error_log("ThirdPartyGateway [{$provider}] cURL error: " . $curlErr);
@@ -579,10 +605,16 @@ class ThirdPartyGateway
      * that URL and Bundle.social runs the platform OAuth, then lands the
      * browser back on `redirectUrl` as-is (or with ?error= appended).
      *
+     * @param string $returnPath Optional page basename the provider lands back
+     *        on ('dashboard.php' (default) | 'social-connect.php' | 'onboarding.php').
+     *        The signed state rides in the redirect query; the return page's
+     *        own `bundle_connected` handler validates it.
      * @return string The OAuth URL (or '' when the gateway refused).
      */
-    public static function getBundleConnectUrl(int $userId, string $platform): string
+    public static function getBundleConnectUrl(int $userId, string $platform, string $returnPath = 'dashboard.php'): string
     {
+        $safeReturn = preg_replace('~[^\w\-]~', '', pathinfo($returnPath, PATHINFO_FILENAME)) ?: 'dashboard';
+
         $type = self::bundleType($platform);
         if ($type === null) {
             error_log('ThirdPartyGateway: unsupported Bundle.social platform "' . $platform . '".');
@@ -596,7 +628,9 @@ class ThirdPartyGateway
         }
 
         $state = self::issueGatewayState('bundle_social', $userId, $platform);
-        $redirectUrl = BASE_URL . "/dashboard.php?action=bundle_connected&state=" . urlencode($state);
+        // Clean URL (no .php): with a literal `?` query the provider lands
+        // directly on the canonical route — no explicit-.php 301 hop.
+        $redirectUrl = BASE_URL . "/" . $safeReturn . "?action=bundle_connected&state=" . urlencode($state);
 
         $res = self::makeRequest('bundle_social', 'social-account/connect', 'POST', [
             'type'        => $type,
@@ -1018,8 +1052,9 @@ class ThirdPartyGateway
      *
      * @return string The authUrl (or an already-connected marker URL; '' on refusal).
      */
-    public static function getZernioAdConnectUrl(int $userId, string $network): string
+    public static function getZernioAdConnectUrl(int $userId, string $network, string $returnPath = 'dashboard.php'): string
     {
+        $safeReturn = preg_replace('~[^\w\-]~', '', pathinfo($returnPath, PATHINFO_FILENAME)) ?: 'dashboard';
         $segment = self::zernioPlatformSegment($network);
         if ($segment === null) {
             error_log('ThirdPartyGateway: unsupported Zernio ads platform "' . $network . '".');
@@ -1027,18 +1062,38 @@ class ThirdPartyGateway
         }
 
         // --- Step 1: resolve/ensure the profile (one per end user).
-        // Real API (verified live): POST /v1/profiles requires `name`;
-        // the profile id key is `_id` (POST returns {profile:{_id}},
-        // GET returns {profiles:[{_id, ...}]}).
+        // Real API (verified live): POST /v1/profiles requires `name` AND the
+        // name must be UNIQUE across the Zernio workspaces (a second user
+        // with the same 'Adsbooster' name 409s with profile_name_conflict —
+        // so the name is user-scoped). The profile id key is `_id`
+        // (POST returns {profile:{_id}}, GET returns {profiles:[{_id}]}).
         $externalId = 'adsbooster_user_' . (int)$userId;
         $profileId  = '';
         $res = self::makeRequest('zernio', 'profiles', 'POST', [
-            'name'      => 'Adsbooster',
+            'name'      => 'Adsbooster User ' . (int)$userId,
             'externalId'=> $externalId,
         ], ['query' => []]);
         if (!empty($res['success'])) {
             $profileObj = $res['data']['profile'] ?? ($res['data'] ?? []);
             $profileId  = (string)($profileObj['_id'] ?? ($profileObj['id'] ?? ''));
+        }
+        if ($profileId === '') {
+            // Conflict payloads carry the existing profile id directly
+            // (works for both profile_external_id_conflict and the
+            // profile_name_conflict of an older same-name profile).
+            $detailId = '';
+            if (is_array($res['data'])) {
+                $detailId = (string)($res['data']['details']['existingProfileId'] ?? '');
+            }
+            if ($detailId === '' && !empty($res['raw'])) {
+                $decoded = json_decode((string)$res['raw'], true);
+                if (is_array($decoded)) {
+                    $detailId = (string)($decoded['details']['existingProfileId'] ?? '');
+                }
+            }
+            if ($detailId !== '') {
+                $profileId = $detailId;
+            }
         }
         if ($profileId === '') {
             // 409 duplicate externalId (or any create refusal): fetch the
@@ -1065,7 +1120,9 @@ class ThirdPartyGateway
 
         // --- Step 2: start the ads connection.
         $state = self::issueGatewayState('zernio', $userId, $network);
-        $redirectUrl = BASE_URL . "/dashboard.php?action=zernio_connected&state=" . urlencode($state);
+        // Clean URL (no .php): the provider lands directly on the canonical
+        // route — no explicit-.php 301 hop.
+        $redirectUrl = BASE_URL . "/" . $safeReturn . "?action=zernio_connected&state=" . urlencode($state);
 
         $res = self::makeRequest('zernio', 'connect/' . rawurlencode($segment) . '/ads', 'GET', [], [
             'query' => [

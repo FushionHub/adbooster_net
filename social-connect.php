@@ -8,6 +8,32 @@ require_once __DIR__ . '/modules/notification_service.php';
 $userId = current_user_id();
 $tab = $_GET['tab'] ?? 'all'; // 'all', 'organic', 'ads'
 
+// Start Bundle.social connect ON CLICK (server dispatch → OAuth redirect).
+// Connect requests are dispatched here so clicking a platform card always
+// starts the real gateway flow — no live gateway calls at render time.
+if (isset($_GET['action']) && $_GET['action'] === 'connect_bundle') {
+    $platform = strtolower(trim((string)($_GET['platform'] ?? '')));
+    $authUrl  = ThirdPartyGateway::getBundleConnectUrl($userId, $platform, 'social-connect.php');
+    if ($authUrl === '') {
+        set_flash('error', 'Bundle.social could not start the connection (gateway key or connectivity issue). Check the gateway settings and try again.');
+        redirect(url('social-connect'));
+    }
+    header('Location: ' . $authUrl);
+    exit;
+}
+
+// Start Zernio ad-account connect ON CLICK (server dispatch → OAuth redirect).
+if (isset($_GET['action']) && $_GET['action'] === 'connect_zernio') {
+    $network = strtolower(trim((string)($_GET['platform'] ?? '')));
+    $authUrl = ThirdPartyGateway::getZernioAdConnectUrl($userId, $network, 'social-connect.php');
+    if ($authUrl === '') {
+        set_flash('error', 'Zernio could not start the ads connection (gateway key or connectivity issue). Check the gateway settings and try again.');
+        redirect(url('social-connect'));
+    }
+    header('Location: ' . $authUrl);
+    exit;
+}
+
 // Handle Bundle.social OAuth callback (organic journey — signed, single-use state)
 if (isset($_GET['action']) && $_GET['action'] === 'bundle_connected') {
     $validatedPlatform = ThirdPartyGateway::validateGatewayState($_GET['state'] ?? null, 'bundle_social', $userId);
@@ -144,10 +170,11 @@ $organicList = [
 ];
 
 $adList = [
-    'meta'     => ['label' => 'Meta Ads (FB & IG)',  'icon' => 'ph-facebook-logo', 'color' => '#1877F2', 'desc' => 'Advantage+ shopping, dynamic creative feeds, and retargeting'],
-    'tiktok'   => ['label' => 'TikTok Ads Manager',  'icon' => 'ph-video-camera',  'color' => '#00f2fe', 'desc' => 'Spark ads, in-feed video ads, and high-converting UGC'],
-    'google'   => ['label' => 'Google Ads & PMax',   'icon' => 'ph-google-logo',    'color' => '#4285F4', 'desc' => 'High-intent search, Performance Max, and YouTube video ads'],
-    'snapchat' => ['label' => 'Snapchat Ads',        'icon' => 'ph-ghost',          'color' => '#FFFC00', 'desc' => 'Full-screen vertical story ads and swipe-up campaigns'],
+    'meta'      => ['label' => 'Meta Ads (FB & IG)', 'icon' => 'ph-facebook-logo',  'color' => '#1877F2', 'desc' => 'Advantage+ shopping, dynamic creative feeds, and retargeting'],
+    'tiktok'    => ['label' => 'TikTok Ads Manager', 'icon' => 'ph-video-camera',   'color' => '#00f2fe', 'desc' => 'Spark ads, in-feed video ads, and high-converting UGC'],
+    'google'    => ['label' => 'Google Ads & PMax',  'icon' => 'ph-google-logo',    'color' => '#4285F4', 'desc' => 'High-intent search, Performance Max, and YouTube video ads'],
+    'linkedin'  => ['label' => 'LinkedIn Ads',       'icon' => 'ph-linkedin-logo',  'color' => '#0A66C2', 'desc' => 'B2B lead-gen campaigns, sponsored content, and job ads'],
+    'pinterest' => ['label' => 'Pinterest Ads',      'icon' => 'ph-pinterest-logo', 'color' => '#E60023', 'desc' => 'Product pins, shopping spotlights, and affinity targeting'],
 ];
 
 $pageTitle = 'Connected Accounts & Third-Party Gateways — ' . get_setting('site_name', 'Adsbooster.net');
@@ -215,7 +242,9 @@ require_once __DIR__ . '/includes/app_header.php';
                         break;
                     }
                 }
-                $connectUrl = ThirdPartyGateway::getBundleConnectUrl($userId, $opKey);
+                // Connect happens ON CLICK via the server-dispatch route — the
+                // gateway OAuth URL is only resolved when the user initiates it.
+                $connectUrl = url('social-connect') . '?action=connect_bundle&platform=' . rawurlencode($opKey);
             ?>
                 <div style="background:var(--bg);border:1px solid <?= $isLinked ? 'rgba(200,255,0,0.3)' : 'var(--border)' ?>;border-radius:14px;padding:16px;display:flex;flex-direction:column;justify-content:space-between">
                     <div>
@@ -288,7 +317,9 @@ require_once __DIR__ . '/includes/app_header.php';
                         break;
                     }
                 }
-                $connectUrl = ThirdPartyGateway::getZernioAdConnectUrl($userId, $apKey);
+                // Connect happens ON CLICK via the server-dispatch route — the
+                // gateway OAuth URL is only resolved when the user initiates it.
+                $connectUrl = url('social-connect') . '?action=connect_zernio&platform=' . rawurlencode($apKey);
             ?>
                 <div style="background:var(--bg);border:1px solid <?= $isLinked ? 'rgba(56,189,248,0.35)' : 'var(--border)' ?>;border-radius:14px;padding:16px;display:flex;flex-direction:column;justify-content:space-between">
                     <div>
@@ -305,7 +336,7 @@ require_once __DIR__ . '/includes/app_header.php';
                                 <span class="badge-status badge-inactive" style="font-size:10.5px">Unlinked</span>
                             <?php endif; ?>
                         </div>
-                        <p style="font-size:12px;color:var(--fg3);margin:0 0 14px;line-line:1.4"><?= $ap['desc'] ?></p>
+                        <p style="font-size:12px;color:var(--fg3);margin:0 0 14px;line-height:1.4"><?= $ap['desc'] ?></p>
                         <?php if ($linkedAccount): ?>
                             <div style="background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:8px;margin-bottom:12px;font-size:11.5px">
                                 <div style="color:var(--fg);font-weight:600"><?= e($linkedAccount['display_name']) ?></div>

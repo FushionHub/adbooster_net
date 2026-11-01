@@ -473,6 +473,23 @@ CREATE TABLE IF NOT EXISTS `marketplace_items` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- -----------------------------------------------------
+-- Table structure for `notifications`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `notifications` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `type` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'system',
+  `title` varchar(190) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `body` text COLLATE utf8mb4_unicode_ci,
+  `link` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `is_read` tinyint(1) NOT NULL DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_notifications_user` (`user_id`,`is_read`),
+  KEY `idx_notifications_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------
 -- Table structure for `pricing_plans`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `pricing_plans` (
@@ -710,7 +727,8 @@ CREATE TABLE IF NOT EXISTS `users` (
 -- Seed data for `users` (INSERT IGNORE — existing rows win)
 INSERT IGNORE INTO `users` (`id`, `full_name`, `email`, `ad_credits`, `ai_credits`, `ai_preferred_provider`, `avatar`, `company`, `user_role`, `plan_id`, `status`, `is_admin`, `password`, `role`, `phone`, `facebook`, `twitter`, `linkedin`, `account_type`, `google_id`, `referral_code`, `referred_by`, `onboarding_completed`, `two_factor_secret`, `two_factor_enabled`, `totp_enabled`) VALUES
 (1, 'Smoke Tester', 'smoke@adsbooster.net', '500.00', 500, 'nvidia', NULL, NULL, 'user', NULL, 'active', 0, '$2y$10$S4.kmWp6AnyMgi6d.unA4ewBqlNvVXAKPvM01Jx7/H92YYc1XWSke', 'user', NULL, NULL, NULL, NULL, 'individual', NULL, NULL, NULL, 0, NULL, 0, 0),
-(2, 'Adsbooster Administrator', 'admin@adsbooster.net', '0.00', 100, NULL, NULL, NULL, 'admin', NULL, 'active', 1, '$2y$10$/q92Hapy9UrSnuq1qkCj2eFA7XAM3M91OEng4t/XdhCvSoJP4c3E.', 'admin', NULL, NULL, NULL, NULL, 'individual', NULL, NULL, NULL, 0, NULL, 0, 0);
+(2, 'Adsbooster Administrator', 'admin@adsbooster.net', '0.00', 100, NULL, NULL, NULL, 'admin', NULL, 'active', 1, '$2y$10$/q92Hapy9UrSnuq1qkCj2eFA7XAM3M91OEng4t/XdhCvSoJP4c3E.', 'admin', NULL, NULL, NULL, NULL, 'individual', NULL, NULL, NULL, 0, NULL, 0, 0),
+(3, 'Jamachi Maurice Mauricennadi', 'jotahecomng@gmail.com', '0.00', 100, NULL, NULL, NULL, 'user', NULL, 'active', 0, '$2y$10$1OGZYLBBprChu8fF2CONle1ZMgi77x5c6FLC1DfumCdE7eA7pQBNG', 'user', NULL, NULL, NULL, NULL, 'individual', NULL, '488651a1e3b454ea', NULL, 1, NULL, 0, 0);
 
 
 -- =====================================================================

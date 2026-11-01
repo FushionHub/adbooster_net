@@ -20,20 +20,27 @@ if (!is_logged_in()) {
 
 $userId = current_user_id();
 
-$unreadCount = db()->count(
-    'notifications',
-    'user_id = ? AND is_read = 0',
-    [$userId]
-);
+try {
+    $unreadCount = db()->count(
+        'notifications',
+        'user_id = ? AND is_read = 0',
+        [$userId]
+    );
 
-$latestNotifications = db()->fetchAll(
-    "SELECT id, type, title, body, link, is_read, created_at
-     FROM notifications
-     WHERE user_id = ?
-     ORDER BY created_at DESC
-     LIMIT 20",
-    [$userId]
-);
+    $latestNotifications = db()->fetchAll(
+        "SELECT id, type, title, body, link, is_read, created_at
+         FROM notifications
+         WHERE user_id = ?
+         ORDER BY created_at DESC
+         LIMIT 20",
+        [$userId]
+    );
+} catch (\Throwable $e) {
+    error_log('notifications_poll: ' . $e->getMessage());
+    http_response_code(503);
+    echo json_encode(['unread_count' => 0, 'notifications' => [], 'error' => 'Notifications temporarily unavailable.'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
 echo json_encode([
     'unread_count'   => $unreadCount,

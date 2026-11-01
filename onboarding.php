@@ -19,12 +19,94 @@ $step = max(1, min(4, (int)($_GET['step'] ?? 1)));
 $message = '';
 $scrapeResult = null;
 
+require_once __DIR__ . '/modules/ThirdPartyGateway.php';
+
 // Step 1 connections: gateway-shaped rows only (Bundle.social / Zernio).
 $connections = db()->fetchAll(
     "SELECT platform_name FROM connected_accounts WHERE user_id = ? AND status = 'connected'",
     [$userId]
 );
 $connectedPlatforms = array_values(array_filter(array_column($connections, 'platform_name')));
+
+// ---------------------------------------------------------------------
+// REAL GATEWAY CONNECTS (on click): clicking a platform starts the
+// provider OAuth flow like every other connection surface (dashboard,
+// social-connect). No live gateway calls at render time.
+// ---------------------------------------------------------------------
+if (isset($_GET['action']) && $_GET['action'] === 'connect_bundle') {
+    $platform = strtolower(trim((string)($_GET['platform'] ?? '')));
+    $authUrl  = ThirdPartyGateway::getBundleConnectUrl($userId, $platform, 'onboarding.php');
+    if ($authUrl === '') {
+        set_flash('error', 'Bundle.social could not start the connection (gateway key or connectivity issue). Check the gateway settings and try again.');
+        redirect(url('onboarding', ['step' => 1]));
+    }
+    header('Location: ' . $authUrl);
+    exit;
+}
+
+if (isset($_GET['action']) && $_GET['action'] === 'connect_zernio') {
+    $network = strtolower(trim((string)($_GET['platform'] ?? '')));
+    $authUrl = ThirdPartyGateway::getZernioAdConnectUrl($userId, $network, 'onboarding.php');
+    if ($authUrl === '') {
+        set_flash('error', 'Zernio could not start the ads connection (gateway key or connectivity issue). Check the gateway settings and try again.');
+        redirect(url('onboarding', ['step' => 1]));
+    }
+    header('Location: ' . $authUrl);
+    exit;
+}
+
+// Bundle.social OAuth callback (organic journey — signed, single-use state).
+if (isset($_GET['action']) && $_GET['action'] === 'bundle_connected') {
+    $validatedPlatform = ThirdPartyGateway::validateGatewayState($_GET['state'] ?? null, 'bundle_social', $userId);
+    if ($validatedPlatform === null) {
+        set_flash('error', 'Bundle.social connection could not be verified (invalid, expired or already-used auth state). Please start the connect flow again.');
+        redirect(url('onboarding', ['step' => 1]));
+    }
+    $platform = $validatedPlatform;
+    $extId = trim((string)($_GET['account_id'] ?? ($_GET['external_id'] ?? ('bndl_' . $platform . '_' . bin2hex(random_bytes(4))))));
+    $name  = trim((string)($_GET['display_name'] ?? ($_GET['name'] ?? ucfirst($platform) . ' Profile')));
+    $avatar = trim((string)($_GET['avatar_url'] ?? ''));
+
+    try {
+        db()->query(
+            "INSERT INTO connected_accounts (user_id, gateway_provider, account_type, platform_name, external_account_id, display_name, avatar_url, status)
+             VALUES (?, 'bundle_social', 'organic_profile', ?, ?, ?, ?, 'connected')
+             ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), avatar_url = VALUES(avatar_url), status = 'connected'",
+            [$userId, $platform, $extId, $name, $avatar]
+        );
+        set_flash('success', "{$name} was successfully connected via Bundle.social!");
+    } catch (\Throwable $e) {
+        set_flash('error', "Could not link account: " . $e->getMessage());
+    }
+    redirect(url('onboarding', ['step' => 1]));
+}
+
+// Zernio Ad Account callback (paid-ads journey — signed, single-use state).
+if (isset($_GET['action']) && $_GET['action'] === 'zernio_connected') {
+    $validatedNetwork = ThirdPartyGateway::validateGatewayState($_GET['state'] ?? null, 'zernio', $userId);
+    if ($validatedNetwork === null) {
+        set_flash('error', 'Zernio connection could not be verified (invalid, expired or already-used auth state). Please start the ad-account connect flow again.');
+        redirect(url('onboarding', ['step' => 1]));
+    }
+    // Normalize to the onboarding platform key ('googleads' → 'google_ads')
+    // so the connect-state check below lights up the right card.
+    $network = $validatedNetwork === 'googleads' ? 'google_ads' : $validatedNetwork;
+    $extId = trim((string)($_GET['ad_account_id'] ?? ($_GET['account_id'] ?? ('act_' . $network . '_' . bin2hex(random_bytes(4))))));
+    $name  = trim((string)($_GET['name'] ?? ($_GET['display_name'] ?? ucfirst($network) . ' Ad Account')));
+
+    try {
+        db()->query(
+            "INSERT INTO connected_accounts (user_id, gateway_provider, account_type, platform_name, external_account_id, display_name, status)
+             VALUES (?, 'zernio', 'ad_account', ?, ?, ?, 'connected')
+             ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), status = 'connected'",
+            [$userId, $network, $extId, $name]
+        );
+        set_flash('success', "{$name} was successfully connected via Zernio Ad Gateway!");
+    } catch (\Throwable $e) {
+        set_flash('error', "Could not link ad account: " . $e->getMessage());
+    }
+    redirect(url('onboarding', ['step' => 1]));
+}
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -33,54 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $action = $_POST['action'] ?? '';
 
-        if ($action === 'connect_social') {
-            $platform = trim($_POST['platform'] ?? '');
-            $validPlatforms = ['meta', 'instagram', 'tiktok', 'google_ads', 'snapchat', 'google_calendar', 'google_business'];
-
-            // Gateway routing: paid advertising channels are owned by the
-            // Zernio Ad Engine; every organic channel, calendar and business
-            // profile is owned by the Bundle.social gateway. No direct
-            // platform tokens are stored anywhere.
-            if (in_array($platform, ['google_ads', 'snapchat'], true)) {
-                $gatewayProvider = 'zernio';
-                $accountType     = 'ad_account';
-            } else {
-                $gatewayProvider = 'bundle_social';
-                $accountType     = 'organic_profile';
-            }
-
-            if (in_array($platform, $validPlatforms, true)) {
-                $exists = db()->fetch(
-                    "SELECT id FROM connected_accounts WHERE user_id = ? AND gateway_provider = ? AND platform_name = ?",
-                    [$userId, $gatewayProvider, $platform]
-                );
-                if (!$exists) {
-                    // Deterministic external id matching the engine fallback
-                    // IDs (SocialPostEngine / create-ad) until the gateway's
-                    // connect URL flow returns its own account ids.
-                    $externalId = $gatewayProvider === 'zernio'
-                        ? 'act_' . $platform . '_' . $userId
-                        : 'bndl_' . $platform . '_' . $userId;
-                    db()->query(
-                        "INSERT INTO connected_accounts
-                            (user_id, gateway_provider, account_type, platform_name, external_account_id, display_name, status)
-                         VALUES (?, ?, ?, ?, ?, ?, 'connected')
-                         ON DUPLICATE KEY UPDATE status = 'connected'",
-                        [
-                            (int)$userId,
-                            $gatewayProvider,
-                            $accountType,
-                            $platform,
-                            $externalId,
-                            ucfirst(str_replace('_', ' ', $platform)) . ' via ' . ($gatewayProvider === 'zernio' ? 'Zernio' : 'Bundle.social'),
-                        ]
-                    );
-                    $connectedPlatforms[] = $platform;
-                    $gatewayLabel = $gatewayProvider === 'zernio' ? 'Zernio Ad Engine' : 'Bundle.social';
-                    $message = '<div class="alert alert-success">' . ucfirst(str_replace('_', ' ', $platform)) . ' connected via ' . $gatewayLabel . '!</div>';
-                }
-            }
-        } elseif ($action === 'disconnect_social') {
+        if ($action === 'disconnect_social') {
             $platform = trim($_POST['platform'] ?? '');
             db()->delete('connected_accounts', 'user_id = ? AND platform_name = ?', [$userId, $platform]);
             $connectedPlatforms = array_values(array_diff($connectedPlatforms, [$platform]));
@@ -112,11 +147,11 @@ $pageTitle = 'Getting Started â€” ' . get_setting('site_name', 'Adsbooster.
 require_once __DIR__ . '/includes/header.php';
 
 $socialPlatforms = [
-    ['id' => 'meta',             'icon' => 'ph-facebook-logo',  'label' => 'Meta (Facebook)',  'color' => '#1877F2'],
-    ['id' => 'instagram',        'icon' => 'ph-instagram-logo', 'label' => 'Instagram',        'color' => '#E4405F'],
-    ['id' => 'tiktok',           'icon' => 'ph-music-note',     'label' => 'TikTok',           'color' => '#000000'],
-    ['id' => 'google_ads',       'icon' => 'ph-google-logo',    'label' => 'Google Ads',       'color' => '#4285F4'],
-    ['id' => 'snapchat',         'icon' => 'ph-ghost',          'label' => 'Snapchat',         'color' => '#FFFC00'],
+    ['id' => 'meta',       'icon' => 'ph-facebook-logo',  'label' => 'Meta (Facebook)', 'color' => '#1877F2', 'gateway' => 'bundle_social', 'connect' => 'facebook'],
+    ['id' => 'instagram',  'icon' => 'ph-instagram-logo', 'label' => 'Instagram',       'color' => '#E4405F', 'gateway' => 'bundle_social', 'connect' => 'instagram'],
+    ['id' => 'tiktok',     'icon' => 'ph-music-note',     'label' => 'TikTok',          'color' => '#000000', 'gateway' => 'bundle_social', 'connect' => 'tiktok'],
+    ['id' => 'google_ads', 'icon' => 'ph-google-logo',    'label' => 'Google Ads',      'color' => '#4285F4', 'gateway' => 'zernio',        'connect' => 'google_ads'],
+    ['id' => 'snapchat',   'icon' => 'ph-ghost',          'label' => 'Snapchat',        'color' => '#FFFC00', 'gateway' => 'bundle_social', 'connect' => 'snapchat'],
 ];
 $businessPlatforms = [
     ['id' => 'google_business',  'icon' => 'ph-storefront',     'label' => 'Google Business Profile', 'color' => '#4285F4'],
@@ -152,6 +187,9 @@ $businessPlatforms = [
             <div class="row g-3">
                 <?php foreach ($socialPlatforms as $p):
                     $isConnected = in_array($p['id'], $connectedPlatforms);
+                    $connectHref = $p['gateway'] === 'bundle_social'
+                        ? url('onboarding') . '?action=connect_bundle&platform=' . rawurlencode($p['connect'])
+                        : url('onboarding') . '?action=connect_zernio&platform=' . rawurlencode($p['connect']);
                 ?>
                     <div class="col-md-6">
                         <div class="bg-dark-900 border <?= $isConnected ? 'border-success-600' : 'border-neutral-700' ?> tw-rounded-lg tw-p-4 d-flex align-items-center tw-gap-3">
@@ -165,12 +203,8 @@ $businessPlatforms = [
                                     <button type="submit" class="badge bg-success-600 bg-opacity-15 text-success-600 rounded-pill tw-px-3 tw-py-1 tw-text-xs border-0 cursor-pointer">Connected</button>
                                 </form>
                             <?php else: ?>
-                                <form method="POST" class="d-inline">
-                                    <?= csrf_field() ?>
-                                    <input type="hidden" name="action" value="connect_social">
-                                    <input type="hidden" name="platform" value="<?= e($p['id']) ?>">
-                                    <button type="submit" class="badge bg-main-600 bg-opacity-15 text-main-600 rounded-pill tw-px-3 tw-py-1 tw-text-xs border-0 cursor-pointer">Connect</button>
-                                </form>
+                                <a href="<?= e($connectHref) ?>" class="badge bg-main-600 bg-opacity-15 text-main-600 rounded-pill tw-px-3 tw-py-1 tw-text-xs text-decoration-none"
+                                   title="Connect <?= e($p['label']) ?> via the real <?= $p['gateway'] === 'zernio' ? 'Zernio Ad Gateway' : 'Bundle.social' ?> OAuth flow">Connect</a>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -200,12 +234,8 @@ $businessPlatforms = [
                                     <button type="submit" class="badge bg-success-600 bg-opacity-15 text-success-600 rounded-pill tw-px-3 tw-py-1 tw-text-xs border-0 cursor-pointer">Connected</button>
                                 </form>
                             <?php else: ?>
-                                <form method="POST" class="d-inline">
-                                    <?= csrf_field() ?>
-                                    <input type="hidden" name="action" value="connect_social">
-                                    <input type="hidden" name="platform" value="<?= e($p['id']) ?>">
-                                    <button type="submit" class="badge bg-main-600 bg-opacity-15 text-main-600 rounded-pill tw-px-3 tw-py-1 tw-text-xs border-0 cursor-pointer">Connect</button>
-                                </form>
+                                <a href="<?= e(url('social-connect')) ?>" class="badge bg-neutral-600 bg-opacity-40 text-white-60 rounded-pill tw-px-3 tw-py-1 tw-text-xs text-decoration-none"
+                                   title="Business integrations are managed from the Channel Connections hub">Manage</a>
                             <?php endif; ?>
                         </div>
                     </div>
