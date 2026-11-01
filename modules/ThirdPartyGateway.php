@@ -1026,19 +1026,28 @@ class ThirdPartyGateway
             return '';
         }
 
-        // --- Step 1: resolve/ensure the profile (one profile per end user).
+        // --- Step 1: resolve/ensure the profile (one per end user).
+        // Real API (verified live): POST /v1/profiles requires `name`;
+        // the profile id key is `_id` (POST returns {profile:{_id}},
+        // GET returns {profiles:[{_id, ...}]}).
         $externalId = 'adsbooster_user_' . (int)$userId;
         $profileId  = '';
-        $res = self::makeRequest('zernio', 'profiles', 'POST', ['externalId' => $externalId], ['query' => []]);
-        if (!empty($res['success']) && !empty($res['data']['id'])) {
-            $profileId = (string)$res['data']['id'];
-        } elseif ((int)($res['status_code'] ?? 0) === 409) {
-            // Duplicate externalId: fetch the existing profile.
+        $res = self::makeRequest('zernio', 'profiles', 'POST', [
+            'name'      => 'Adsbooster',
+            'externalId'=> $externalId,
+        ], ['query' => []]);
+        if (!empty($res['success'])) {
+            $profileObj = $res['data']['profile'] ?? ($res['data'] ?? []);
+            $profileId  = (string)($profileObj['_id'] ?? ($profileObj['id'] ?? ''));
+        }
+        if ($profileId === '') {
+            // 409 duplicate externalId (or any create refusal): fetch the
+            // existing profile by externalId.
             $find = self::makeRequest('zernio', 'profiles', 'GET', [], ['query' => ['externalId' => $externalId]]);
             $profiles = $find['data']['profiles'] ?? ($find['data'][0] ?? null);
             if (is_array($profiles)) {
                 $first = $profiles[0] ?? $profiles;
-                $profileId = (string)($first['id'] ?? '');
+                $profileId = (string)($first['_id'] ?? ($first['id'] ?? ''));
             }
         }
 
@@ -1137,17 +1146,16 @@ class ThirdPartyGateway
         }
 
         // adAccountId is required but the caller may not know it: resolve the
-        // connection's first ad account (GET /v1/ads/accounts) once.
+        // connection's first ad account once — GET /v1/ads/accounts requires
+        // accountId (the Zernio connection id) and answers {accounts:[{id}]}.
         if ($body['adAccountId'] === '') {
-            $accs = self::makeRequest('zernio', 'ads/accounts', 'GET', [], []);
-            $items = $accs['data']['items'] ?? ($accs['data']['accounts'] ?? []);
-            foreach ((array)$items as $acc) {
-                if (!empty($acc['adAccountId'])) {
-                    $body['adAccountId'] = (string)$acc['adAccountId'];
-                } elseif (!empty($acc['id'])) {
+            $accs = $accountId !== ''
+                ? self::getZernioAdAccounts($accountId)
+                : self::getZernioAdAccounts();
+            $items = (array)($accs['data']['accounts'] ?? ($accs['data']['ad_accounts'] ?? ($accs['data']['items'] ?? [])));
+            foreach ($items as $acc) {
+                if (is_array($acc) && !empty($acc['id'])) {
                     $body['adAccountId'] = (string)$acc['id'];
-                }
-                if (!empty($body['adAccountId'])) {
                     break;
                 }
             }
@@ -1259,26 +1267,76 @@ class ThirdPartyGateway
     }
 
     /**
-     * List all connected Zernio ad accounts across every supported network
-     * (real endpoint: GET /v1/ads/accounts).
+     * List all connected Zernio ad accounts (real endpoint:
+     * GET /v1/ads/accounts?accountId={connectionId} — verified live: the
+     * connection `accountId` is REQUIRED and the response carries
+     * {accounts: [{id: "act_…", name, currency, selected, …}]}).
      *
-     * @return array Legacy envelope; each item is a connection's ad account
-     *         (accountId, adAccountId, platform metaads|linkedinads|…).
+     * @param string|null $zernioAccountId A Zernio ads connection id. When
+     *        omitted, every `connected_accounts` row routed through Zernio
+     *        (gateway_provider = 'zernio') is queried in turn.
+     * @return array Legacy envelope; data.ad_accounts carries the flattened
+     *         platform ad account list.
      */
-    public static function getZernioAdAccounts(): array
+    public static function getZernioAdAccounts(?string $zernioAccountId = null): array
     {
-        $res = self::makeRequest('zernio', 'ads/accounts', 'GET', [], []);
-
-        // Normalize list container shapes for the legacy callers.
-        if (!empty($res['success']) && is_array($res['data']) && !isset($res['data']['simulated'])) {
-            $d = $res['data'];
-            $items = $d['items'] ?? ($d['accounts'] ?? []);
-            if (is_array($items) && !isset($d['ad_accounts'])) {
-                $d['ad_accounts'] = array_values($items);
-                $res['data'] = $d;
+        // Resolve candidate connection ids.
+        $connectionIds = [];
+        if ($zernioAccountId !== null && $zernioAccountId !== '') {
+            $connectionIds[] = $zernioAccountId;
+        } else {
+            try {
+                $rows = db()->fetchAll(
+                    "SELECT DISTINCT external_account_id FROM connected_accounts
+                     WHERE gateway_provider = 'zernio' AND status = 'connected'
+                       AND external_account_id <> ''"
+                );
+                foreach ($rows as $r) {
+                    $cid = (string)($r['external_account_id'] ?? '');
+                    if ($cid !== '') {
+                        $connectionIds[] = $cid;
+                    }
+                }
+            } catch (\Throwable $e) {
+                $connectionIds = [];
             }
         }
-        return $res;
+
+        if (!$connectionIds) {
+            // No connections known yet — issue one call without accountId so
+            // the provider's own 400 ("accountId is required") surfaces
+            // honestly instead of a fabricated empty list.
+            return self::makeRequest('zernio', 'ads/accounts', 'GET', [], []);
+        }
+
+        $allAccounts = [];
+        $lastRes = null;
+        foreach ($connectionIds as $cid) {
+            $res = self::makeRequest('zernio', 'ads/accounts', 'GET', [], ['query' => ['accountId' => $cid]]);
+            $lastRes = $res;
+            if (!empty($res['success']) && is_array($res['data'])) {
+                $accounts = $res['data']['accounts'] ?? ($res['data']['items'] ?? []);
+                if (is_array($accounts)) {
+                    foreach ($accounts as $acc) {
+                        if (is_array($acc) && !empty($acc['id'])) {
+                            $acc['zernioAccount'] = $cid;
+                            $allAccounts[] = $acc;
+                        }
+                    }
+                }
+            }
+        }
+
+        return [
+            'success'     => true,
+            'status_code' => 200,
+            'data'        => [
+                'accounts'    => $allAccounts,
+                'ad_accounts' => $allAccounts,
+                'connections' => $connectionIds,
+            ],
+            'raw'         => is_array($lastRes['raw'] ?? null) ? json_encode($lastRes['raw']) : ($lastRes['raw'] ?? ''),
+        ];
     }
 
     /**
