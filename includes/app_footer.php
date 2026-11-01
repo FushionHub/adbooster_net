@@ -114,6 +114,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (notifWrap && !notifWrap.contains(e.target)) {
             notifWrap.classList.remove('open');
         }
+        var currencyWrap = document.getElementById('currencyWrap');
+        if (currencyWrap && !currencyWrap.contains(e.target)) {
+            currencyWrap.classList.remove('open');
+        }
     });
 
     // Keyboard Shortcuts (Esc closes drawers/dropdowns, Ctrl+B toggles sidebar)
@@ -124,6 +128,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (userWrap) userWrap.classList.remove('open');
             var notifWrap = document.getElementById('notifWrapper');
             if (notifWrap) notifWrap.classList.remove('open');
+            var currencyWrap = document.getElementById('currencyWrap');
+            if (currencyWrap) currencyWrap.classList.remove('open');
         }
         if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) {
             e.preventDefault();
@@ -156,6 +162,20 @@ document.addEventListener('DOMContentLoaded', function() {
             closeMobileNav();
         }
     });
+
+    // Currency Switcher Dropdown Handler
+    var currencyWrap = document.getElementById('currencyWrap');
+    var currencyBtn = document.getElementById('currencyBtn');
+    if (currencyWrap && currencyBtn) {
+        currencyBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            currencyWrap.classList.toggle('open');
+            var notifWrap = document.getElementById('notifWrapper');
+            if (notifWrap) notifWrap.classList.remove('open');
+            var userWrap = document.getElementById('userDropdownWrap');
+            if (userWrap) userWrap.classList.remove('open');
+        });
+    }
 
     // Notifications Dropdown Handler
     var notifWrap = document.getElementById('notifWrapper');

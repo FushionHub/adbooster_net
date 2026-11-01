@@ -629,6 +629,96 @@ a:hover { color: var(--accent2); }
 .notif-header h6 { font-size: 14px; font-weight: 700; margin: 0; color: var(--fg); }
 .notif-header a { font-size: 12px; color: var(--accent); font-weight: 600; }
 .notif-list { max-height: 360px; overflow-y: auto; }
+
+/* CURRENCY SWITCHER DROPDOWN */
+.currency-wrap { position: relative; }
+.currency-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--fg2);
+  height: 40px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.currency-btn .currency-btn-code {
+  font-size: 12.5px;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.4px;
+}
+.currency-btn .currency-caret { font-size: 12px; transition: transform var(--transition-fast); }
+.currency-wrap.open .currency-caret { transform: rotate(180deg); }
+.currency-btn:hover, .currency-wrap.open .currency-btn {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--surface-hover);
+  transform: translateY(-1px);
+}
+.currency-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 240px;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  display: none;
+  z-index: 1100;
+  animation: dropdownIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.currency-wrap.open .currency-dropdown { display: block; }
+.currency-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.currency-header h6 { font-size: 13px; font-weight: 700; margin: 0; color: var(--fg); }
+.currency-header span { font-size: 11px; color: var(--fg2); }
+.currency-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+  text-decoration: none;
+  color: var(--fg2);
+  transition: background var(--transition-fast);
+}
+.currency-item:last-child { border-bottom: none; }
+.currency-item:hover { background: var(--surface-hover); color: var(--fg); text-decoration: none; }
+.currency-item.active { background: rgba(200, 255, 0, 0.06); }
+.currency-item-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: rgba(146, 168, 205, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--fg2);
+  flex-shrink: 0;
+}
+.currency-item.active .currency-item-icon { background: var(--accent); color: #0a0f1a; }
+.currency-item-body { display: flex; flex-direction: column; gap: 1px; }
+.currency-item-body strong {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--fg);
+  font-family: 'JetBrains Mono', monospace;
+}
+.currency-item-body small { font-size: 11.5px; color: var(--fg2); }
+.currency-check { margin-left: auto; color: var(--accent); font-size: 16px; }
 .notif-item {
   padding: 12px 18px;
   border-bottom: 1px solid var(--border);
@@ -1190,6 +1280,7 @@ body.nav-open { overflow: hidden; touch-action: none; }
   .grid-2 { grid-template-columns: 1fr; }
   .page { padding: 20px 16px; }
   .notif-dropdown { width: calc(100vw - 32px); right: -10px; }
+  .currency-dropdown { width: calc(100vw - 32px); right: -10px; }
   .user-menu-info { display: none; }
   .topbar-pill-wallet .wallet-divider,
   .topbar-pill-wallet .wallet-ai,
@@ -1574,11 +1665,31 @@ body.nav-open { overflow: hidden; touch-action: none; }
           <span class="wallet-ai"><?= number_format($_aiCredits) ?></span>
         </a>
 
-        <!-- Currency Switcher (USD / NGN) -->
-        <div class="topbar-btn" style="padding:0;overflow:hidden;border-radius:999px;display:flex;" title="Switch currency">
-          <?php foreach (currency_supported() as $__code => $__sym): ?>
-            <a href="<?= currency_toggle_url($__code) ?>" style="padding:8px 12px;font-size:12.5px;font-weight:800;text-decoration:none;<?= currency_current() === $__code ? 'background:var(--accent);color:#0a0f1a;' : 'color:var(--fg2);' ?>"><?= $__sym ?> <?= $__code ?></a>
-          <?php endforeach; ?>
+        <!-- Currency Switcher Dropdown (USD / NGN) -->
+        <div class="currency-wrap" id="currencyWrap">
+          <button class="currency-btn" id="currencyBtn" title="Switch currency" aria-label="Switch currency">
+            <i class="ph <?= currency_icon(currency_current()) ?>" style="color:var(--accent)"></i>
+            <span class="currency-btn-code"><?= e(currency_current()) ?></span>
+            <i class="ph ph-caret-down currency-caret"></i>
+          </button>
+          <div class="currency-dropdown" id="currencyDropdown">
+            <div class="currency-header">
+              <h6>Currency</h6>
+              <span>Applies instantly</span>
+            </div>
+            <?php foreach (currency_supported() as $__code => $__sym): ?>
+              <a href="<?= currency_toggle_url($__code) ?>" class="currency-item <?= currency_current() === $__code ? 'active' : '' ?>">
+                <span class="currency-item-icon"><i class="ph <?= currency_icon($__code) ?>"></i></span>
+                <span class="currency-item-body">
+                  <strong><?= $__sym ?> <?= e($__code) ?></strong>
+                  <small><?= e(currency_name($__code)) ?></small>
+                </span>
+                <?php if (currency_current() === $__code): ?>
+                  <i class="ph ph-check-circle currency-check"></i>
+                <?php endif; ?>
+              </a>
+            <?php endforeach; ?>
+          </div>
         </div>
 
         <!-- Fullscreen Mode Toggle -->

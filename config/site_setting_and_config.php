@@ -759,6 +759,26 @@ function currency_supported(): array
     return ['USD' => '$', 'NGN' => '₦'];
 }
 
+/** Phosphor icon for a display currency (pickers/buttons). */
+function currency_icon(string $code): string
+{
+    return match (strtoupper($code)) {
+        'USD'   => 'ph-currency-dollar',
+        'NGN'   => 'ph-currency-ngn',
+        default => 'ph-coins',
+    };
+}
+
+/** Human-readable currency name for pickers/dropdowns. */
+function currency_name(string $code): string
+{
+    return match (strtoupper($code)) {
+        'USD'   => 'US Dollar',
+        'NGN'   => 'Nigerian Naira',
+        default => strtoupper($code),
+    };
+}
+
 /** The active display currency (session → cookie → USD). */
 function currency_current(): string
 {
