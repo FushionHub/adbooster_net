@@ -195,7 +195,18 @@ $checks[] = probe('storage', 'Upload storage', 'Core', function () {
     return [true, 'writable'];
 });
 
-// 4. Google image generation (Nano Banana 2) used by the studios.
+// 4. Session / cache directory.
+// (Core checks are kept contiguous so the page renders each group heading
+// exactly once — see the foreach grouping below.)
+$checks[] = probe('cache', 'Cache & rate-limit store', 'Core', function () {
+    $dir = ROOT_PATH . '/cache/rate_limit';
+    if (!is_dir($dir) && !@mkdir($dir, 0755, true)) {
+        return [false, 'cache dir missing'];
+    }
+    return [is_writable($dir), 'writable'];
+});
+
+// 5. Google image generation (Nano Banana 2) used by the studios.
 $checks[] = probe('image_cdn', 'Image generation (Gemini)', 'AI', function () use ($remote, $geminiKey) {
     if ($geminiKey === '') {
         return [true, 'not configured on this node'];
@@ -209,22 +220,13 @@ $checks[] = probe('image_cdn', 'Image generation (Gemini)', 'AI', function () us
     return [$r['ok'], $r['note']];
 });
 
-// 5. Script-writing model.
+// 6. Script-writing model.
 $checks[] = probe('ai_script', 'AI script model (Groq)', 'AI', function () use ($remote, $groqKey) {
     if ($groqKey === '') {
         return [true, 'not configured on this node'];
     }
     $r = $remote['ai_script'] ?? ['ok' => false, 'note' => 'probe not run'];
     return [$r['ok'], $r['note']];
-});
-
-// 6. Session / cache directory.
-$checks[] = probe('cache', 'Cache & rate-limit store', 'Core', function () {
-    $dir = ROOT_PATH . '/cache/rate_limit';
-    if (!is_dir($dir) && !@mkdir($dir, 0755, true)) {
-        return [false, 'cache dir missing'];
-    }
-    return [is_writable($dir), 'writable'];
 });
 
 // 7. REST API v1 — bootstrap loads, key table reachable, rate limiter writable.
@@ -243,9 +245,11 @@ $checks[] = probe('rest_api', 'REST API v1', 'Platform', function () {
 });
 
 // 8. Webhooks — subscriptions registered and dispatchable.
+// (table column is `is_active`, not `status` — SUM(status='active') was the
+// silent failure that kept the overall banner red with everything green)
 $checks[] = probe('webhooks', 'Webhooks engine', 'Platform', function () {
     try {
-        $rows = db()->fetchOne("SELECT COUNT(*) AS total, SUM(status='active') AS active FROM webhooks");
+        $rows = db()->fetchOne("SELECT COUNT(*) AS total, SUM(is_active=1) AS active FROM webhooks");
         $total  = (int)($rows['total'] ?? 0);
         $active = (int)($rows['active'] ?? 0);
         return [true, "{$active} active / {$total} registered webhook endpoint(s)"];

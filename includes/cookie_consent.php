@@ -213,10 +213,12 @@ if (!empty($_SESSION['adsbooster_consent'])) {
     var settingsPanel = document.getElementById('cookie-settings-panel');
 
     function generateUUID() {
+        // Column `cookie_consents.consent_uuid` is CHAR(32): strip the dashes
+        // from the canonical dashed form so fresh ids fit every write.
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
             var r = Math.random() * 16 | 0;
             return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-        });
+        }).replace(/-/g, '');
     }
 
     function getCookie(name) {

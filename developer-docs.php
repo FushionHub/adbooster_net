@@ -929,7 +929,8 @@ await client.posts.create({ platform: 'tiktok', caption: 'New drop 🚀 #ad', me
                             <tr><td><code>client.directory</code></td><td><code>list({category,q,limit})</code> · <code>createListing(payload)</code></td></tr>
                             <tr><td><code>client.reviews</code></td><td><code>list()</code> · <code>submit({rating,review_text})</code></td></tr>
                             <tr><td><code>client.capi</code></td><td><code>scriptUrl()</code> · <code>track({pixel_token,event_name,custom_data})</code></td></tr>
-                            <tr><td><code>client.webhooks</code></td><td><code>testPingUrl(url)</code> · <code>Adsbooster.webhooks.verify(rawBody, signature, secret)</code> (Node)</td></tr>
+                            <tr><td><code>client.webhooks</code></td><td><code>list()</code> · <code>test(url)</code> — signed ping to YOUR registered https:// endpoint · <code>Adsbooster.webhooks.verify(rawBody, signature, secret)</code> (Node)</td></tr>
+                            <tr><td><code>client.publicAnalytics</code></td><td><code>feed(view?)</code> · <code>totals()</code> — public aggregate analytics, no auth</td></tr>
                         </tbody>
                     </table>
                 </div>

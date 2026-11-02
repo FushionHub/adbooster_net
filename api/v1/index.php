@@ -1,129 +1,46 @@
 <?php declare(strict_types=1);
 
 /**
- * API Router/Dispatcher
+ * API v1 Directory / Discovery Endpoint
  * Adsbooster.net
  *
- * Central entry point for all v1 API requests.
- * Validates API key from Authorization header and routes to the appropriate endpoint.
+ * History note: this file used to be a router, but it was unreachable for
+ * every resource it named — .htaccess rule 3 internally rewrites
+ * /api/v1/<resource> to the existing <resource>.php (each one authenticates
+ * itself through bootstrap.php), and requiring webhooks.php — a sender
+ * class library, not an endpoint — produced an empty 200. It is now the
+ * bare /api/v1 discovery directory listing the real, matching files.
  */
 
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');
 
-require_once __DIR__ . '/../../config/db.php';
-
 function jsonResponse(int $statusCode, array $data): void
 {
     http_response_code($statusCode);
-    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     exit;
 }
 
-function authenticateApiKey(): array
-{
-    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-
-    if (empty($authHeader)) {
-        jsonResponse(401, ['error' => 'Missing Authorization header.']);
-    }
-
-    if (preg_match('/^Bearer\s+(.+)$/i', $authHeader, $matches)) {
-        $apiKey = trim($matches[1]);
-    } else {
-        jsonResponse(401, ['error' => 'Invalid Authorization format. Use: Bearer <api_key>']);
-    }
-
-    $keyHash = hash('sha256', $apiKey);
-
-    $keyRecord = db()->fetchOne(
-        "SELECT id, user_id, scopes, last_used_at
-         FROM api_keys
-         WHERE key_hash = ?",
-        [$keyHash]
-    );
-
-    if ($keyRecord === null) {
-        jsonResponse(401, ['error' => 'Invalid API key.']);
-    }
-
-    $user = db()->fetchOne(
-        "SELECT id, full_name, email, status FROM users WHERE id = ?",
-        [$keyRecord['user_id']]
-    );
-
-    if ($user === null || $user['status'] !== 'active') {
-        jsonResponse(403, ['error' => 'Account is inactive or suspended.']);
-    }
-
-    db()->update('api_keys', [
-        'last_used_at' => date('Y-m-d H:i:s'),
-    ], 'id = ?', [$keyRecord['id']]);
-
-    $scopes = json_decode($keyRecord['scopes'] ?? '[]', true) ?: [];
-
-    return [
-        'user'   => $user,
-        'scopes' => $scopes,
-        'key_id' => $keyRecord['id'],
-    ];
-}
-
-function getRequestBody(): array
-{
-    $raw = file_get_contents('php://input');
-    if (empty($raw)) {
-        return [];
-    }
-
-    $decoded = json_decode($raw, true);
-    if (!is_array($decoded)) {
-        jsonResponse(400, ['error' => 'Invalid JSON body.']);
-    }
-
-    return $decoded;
-}
-
-$uri = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
-$uri = rtrim($uri, '/');
-
-$baseApiPath = '/api/v1';
-if (strpos($uri, $baseApiPath) === 0) {
-    $uri = substr($uri, strlen($baseApiPath));
-}
-
-$uri = '/' . ltrim($uri, '/');
-
-$segments = array_values(array_filter(explode('/', $uri)));
-$resource = $segments[0] ?? '';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-
-$auth = authenticateApiKey();
-
-switch ($resource) {
-    case 'campaigns':
-        require __DIR__ . '/campaigns.php';
-        break;
-    case 'posts':
-        require __DIR__ . '/posts.php';
-        break;
-    case 'credits':
-        require __DIR__ . '/credits.php';
-        break;
-    case 'webhooks':
-        require __DIR__ . '/webhooks.php';
-        break;
-    default:
-        jsonResponse(404, [
-            'error' => 'Endpoint not found.',
-            'available_endpoints' => [
-                'GET/POST /campaigns',
-                'PUT /campaigns/{id}',
-                'GET/POST /posts',
-                'DELETE /posts/{id}',
-                'GET /credits',
-            ],
-        ]);
-}
+jsonResponse(200, [
+    'name'    => 'Adsbooster REST API v1',
+    'auth'    => 'X-API-Key header (or Authorization: Bearer) — keys in api-settings',
+    'limits'  => '60 requests/minute per key, sliding window (X-RateLimit-* headers)',
+    // Direct files live beside this index; extensionless /api/v1/<resource>
+    // requests are rewritten to them by .htaccess.
+    'base'    => '/api/v1/',
+    'sdk'     => 'https://adsbooster.net/api/v1/sdk/adsbooster.js',
+    'docs'    => 'https://adsbooster.net/developer-docs',
+    'resources' => [
+        'GET/POST   /campaigns.php   (PUT /campaigns.php?id=N, pause/resume payloads)',
+        'GET/POST   /posts.php       (DELETE /posts.php?id=N)',
+        'GET/POST   /ugc.php         (limit ≤ 50, AI UGC image generation)',
+        'GET        /credits.php     (balance)',
+        'GET/POST   /directory.php   (≤ 50, marketplace listings)',
+        'GET/POST   /reviews.php     (≤ 50, approved)',
+        'GET/POST   /capi-bridge.php (server-side conversion tracking; ?js=1 drop-in script)',
+        'GET        /webhooks.php    (list endpoints; ?ping=<registered https url> test ping)',
+        'GET        /public-analytics.php (aggregate, no auth, 30 req/min/IP)',
+    ],
+]);

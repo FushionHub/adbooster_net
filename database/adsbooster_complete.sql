@@ -61,6 +61,10 @@ CREATE TABLE IF NOT EXISTS `ad_campaign_variants` (
   `budget_share` decimal(5,2) NOT NULL DEFAULT '0.00',
   `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
   `created_at` datetime DEFAULT NULL,
+  `variant_label` varchar(120) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `headline` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `traffic_split_pct` decimal(5,2) NOT NULL DEFAULT '0.00',
+  `is_winner` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `idx_ad_campaign_variants_campaign` (`campaign_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -87,6 +91,7 @@ CREATE TABLE IF NOT EXISTS `ad_campaigns` (
   `autopilot_enabled` tinyint(1) DEFAULT '0',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `winning_variant_id` bigint unsigned DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -1217,8 +1222,14 @@ CREATE TABLE IF NOT EXISTS `transactions` (
   `currency` varchar(10) DEFAULT 'USD',
   `metadata` text,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `gateway` varchar(40) DEFAULT NULL,
+  `reference` varchar(64) DEFAULT NULL,
+  `gateway_reference` varchar(100) DEFAULT NULL,
+  `invoice_number` varchar(40) DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_tx_user` (`user_id`)
+  KEY `idx_tx_user` (`user_id`),
+  KEY `idx_tx_gateway_reference` (`gateway_reference`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- -----------------------------------------------------
@@ -1357,8 +1368,9 @@ CREATE TABLE IF NOT EXISTS `users` (
 INSERT IGNORE INTO `users` (`id`, `full_name`, `email`, `ad_credits`, `ai_credits`, `ai_preferred_provider`, `avatar`, `company`, `user_role`, `plan_id`, `status`, `is_admin`, `password`, `role`, `phone`, `facebook`, `twitter`, `linkedin`, `account_type`, `google_id`, `referral_code`, `referred_by`, `onboarding_completed`, `two_factor_secret`, `two_factor_enabled`, `totp_enabled`, `created_at`, `achievement_points`, `billing_cycle`, `plan_expiry`, `auto_refill_enabled`, `auto_refill_threshold`, `auto_refill_amount`, `auto_refill_gateway`, `parent_user_id`, `username`, `headline`, `bio`, `two_factor_backup`, `fa_attempts`, `is_verified_seller`, `totp_secret`, `two_factor_type`, `two_factor_setup_at`, `remember_token`, `remember_token_expires_at`) VALUES
 (1, 'Smoke Tester', 'smoke@adsbooster.net', '500.00', 500, 'nvidia', NULL, NULL, 'user', NULL, 'active', 0, '$2y$10$S4.kmWp6AnyMgi6d.unA4ewBqlNvVXAKPvM01Jx7/H92YYc1XWSke', 'user', NULL, NULL, NULL, NULL, 'individual', NULL, NULL, NULL, 0, NULL, 0, 0, '2020-06-23 00:00:00', 0, 'monthly', NULL, 0, '10.00', '50.00', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL),
 (2, 'Adsbooster Administrator', 'admin@adsbooster.net', '0.00', 100, NULL, NULL, NULL, 'admin', NULL, 'active', 1, '$2y$10$/q92Hapy9UrSnuq1qkCj2eFA7XAM3M91OEng4t/XdhCvSoJP4c3E.', 'admin', NULL, NULL, NULL, NULL, 'individual', NULL, NULL, NULL, 0, NULL, 0, 0, '2019-11-29 00:00:00', 0, 'monthly', NULL, 0, '10.00', '50.00', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL),
-(3, 'Jamachi Maurice Mauricennadi', 'jotahecomng@gmail.com', '0.00', 100, NULL, NULL, NULL, 'user', NULL, 'active', 0, '$2y$10$1OGZYLBBprChu8fF2CONle1ZMgi77x5c6FLC1DfumCdE7eA7pQBNG', 'user', NULL, NULL, NULL, NULL, 'individual', NULL, '488651a1e3b454ea', NULL, 1, NULL, 0, 0, '2019-02-10 00:00:00', 0, 'monthly', NULL, 0, '10.00', '50.00', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL),
-(4, 'E2E Check', 'e2e-check@adsbooster.net', '100.00', 100, NULL, NULL, NULL, 'user', NULL, 'active', 0, '$2y$10$L88/48fz57ARb.cgoMilz..ppvrPk9c8mZrMzof1WaOQ.S9G52SPK', 'user', NULL, NULL, NULL, NULL, 'individual', NULL, 'B8B3A514', NULL, 0, NULL, 0, 0, '2023-09-02 00:00:00', 0, 'monthly', NULL, 0, '10.00', '50.00', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL);
+(3, 'Jamachi Maurice Mauricennadi', 'jotahecomng@gmail.com', '0.00', 99, 'nvidia', NULL, NULL, 'user', NULL, 'active', 0, '$2y$10$1OGZYLBBprChu8fF2CONle1ZMgi77x5c6FLC1DfumCdE7eA7pQBNG', 'user', NULL, NULL, NULL, NULL, 'individual', NULL, '488651a1e3b454ea', NULL, 1, NULL, 0, 0, '2019-02-10 00:00:00', 0, 'monthly', NULL, 0, '10.00', '50.00', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL),
+(4, 'E2E Check', 'e2e-check@adsbooster.net', '100.00', 100, NULL, NULL, NULL, 'user', NULL, 'active', 0, '$2y$10$L88/48fz57ARb.cgoMilz..ppvrPk9c8mZrMzof1WaOQ.S9G52SPK', 'user', NULL, NULL, NULL, NULL, 'individual', NULL, 'B8B3A514', NULL, 0, NULL, 0, 0, '2023-09-02 00:00:00', 0, 'monthly', NULL, 0, '10.00', '50.00', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL),
+(99999, 'Adsbooster AI Consultant', 'ai@adsbooster.net', '0.00', 0, NULL, NULL, NULL, 'user', NULL, 'active', 0, 'ai_bot_protected', 'admin', NULL, NULL, NULL, NULL, 'individual', NULL, NULL, NULL, 0, NULL, 0, 0, '2026-11-01 21:47:10', 0, 'monthly', NULL, 0, '10.00', '50.00', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL);
 
 -- -----------------------------------------------------
 -- Table structure for `visitor_logs`

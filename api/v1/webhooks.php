@@ -153,5 +153,72 @@ class WebhookSender
             'signature'  => 'sha256=' . $signature,
         ];
     }
+
+    /**
+     * Ping your own registered endpoint by NAME-matching URL (API surface).
+     *
+     * Only pings a target_url belonging to the calling user's webhooks — a
+     * caller can never turn this endpoint into an SSRF relay against
+     * arbitrary third-party hosts. Reuses testPing() so the payload, the
+     * signature headers and the delivery id are identical to console pings.
+     */
+    public static function testPingUrl(int $userId, string $targetUrl): array
+    {
+        $hook = db()->fetchOne(
+            "SELECT id FROM webhooks WHERE user_id = ? AND target_url = ? LIMIT 1",
+            [$userId, $targetUrl]
+        );
+        if (!$hook) {
+            return ['success' => false, 'error' => 'No webhook registered with that exact URL for this account'];
+        }
+        return self::testPing((int)$hook['id'], $userId);
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   REST surface: GET /api/v1/webhooks.php
+   Runs only when this file itself is the requested script — when it
+   is require_once'd as the sender library (api-settings.php, cron) the
+   guard keeps the handler dormant.
+
+   GET /api/v1/webhooks.php            → list your endpoints
+   GET /api/v1/webhooks.php?ping=<url> → signed test ping to YOUR url
+   Requires X-API-Key (bootstrap auth + 60 req/min limiter).
+   ══════════════════════════════════════════════════════════════════ */
+if (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'webhooks.php'
+    && ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'OPTIONS') {
+
+    require_once __DIR__ . '/bootstrap.php';
+    $auth = authenticateApiKey();
+    $userId = (int)$auth['user']['id'];
+
+    $pingUrl = isset($_GET['ping']) ? trim((string)$_GET['ping']) : '';
+
+    if ($pingUrl !== '') {
+        if (!filter_var($pingUrl, FILTER_VALIDATE_URL)
+            || !preg_match('#^https://#i', $pingUrl)) {
+            jsonResponse(400, ['success' => false, 'error' => 'ValidationFailed',
+                'message' => 'ping must be an exact https:// Webhook endpoint URL registered to your account.']);
+        }
+        $result = WebhookSender::testPingUrl($userId, $pingUrl);
+        jsonResponse($result['success'] ? 200 : 502, [
+            'success'  => $result['success'],
+            'event'    => 'webhook.test_ping',
+            'ping_url' => $pingUrl,
+        ] + $result);
+    }
+
+    $endpoints = db()->fetchAll(
+        "SELECT id, event_type, target_url, is_active, created_at
+         FROM webhooks WHERE user_id = ? ORDER BY id DESC",
+        [$userId]
+    );
+    jsonResponse(200, [
+        'success'   => true,
+        'endpoints' => $endpoints,
+        '_links'    => [
+            'test' => 'GET ' . ($_SERVER['REQUEST_URI'] ?? '') . ' ping=<registered https:// target_url>',
+        ],
+    ]);
 }
 

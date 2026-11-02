@@ -611,3 +611,73 @@ PREPARE stmt FROM @ddl; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 UPDATE `users`
 SET `created_at` = IFNULL(`created_at`, DATE_ADD('2019-01-01', INTERVAL FLOOR(RAND(20260101) * 2500) DAY))
 WHERE `created_at` IS NULL;
+
+-- ============================================================
+-- 2026-11-02 crosscheck sweep — column-level gaps
+-- ============================================================
+
+-- Ado: A/B split testing (ab-test.php, cron/ab_test_winner.php, modules/ab_test.php).
+-- The backfilled table carried the legacy names (variant_name/budget_share);
+-- the page, the cron and the module read/write variant_label + headline +
+-- traffic_split_pct + is_winner. Add the missing columns without dropping
+-- either convention.
+
+SET @ddl = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `ad_campaign_variants` ADD COLUMN `variant_label` VARCHAR(120) NULL DEFAULT NULL', 'DO 0') FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'ad_campaign_variants' AND column_name = 'variant_label');
+PREPARE stmt FROM @ddl; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @ddl = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `ad_campaign_variants` ADD COLUMN `headline` VARCHAR(255) NULL DEFAULT NULL', 'DO 0') FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'ad_campaign_variants' AND column_name = 'headline');
+PREPARE stmt FROM @ddl; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @ddl = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `ad_campaign_variants` ADD COLUMN `traffic_split_pct` DECIMAL(5,2) NOT NULL DEFAULT 0', 'DO 0') FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'ad_campaign_variants' AND column_name = 'traffic_split_pct');
+PREPARE stmt FROM @ddl; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @ddl = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `ad_campaign_variants` ADD COLUMN `is_winner` TINYINT(1) NOT NULL DEFAULT 0', 'DO 0') FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'ad_campaign_variants' AND column_name = 'is_winner');
+PREPARE stmt FROM @ddl; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- Seed the unified columns from the legacy ones where they are still empty.
+-- variant_label <- variant_name (page + cron order by / read variant_label)
+UPDATE `ad_campaign_variants` SET `variant_label` = `variant_name`
+WHERE `variant_label` IS NULL AND `variant_name` IS NOT NULL AND `variant_name` <> '';
+
+-- Mirror the legacy budget split so winner reallocation reads the same data
+-- whichever column the caller wrote.
+UPDATE `ad_campaign_variants` SET `traffic_split_pct` = `budget_share`
+WHERE `traffic_split_pct` = 0 AND `budget_share` <> 0;
+
+-- Both writers in the app update budget_share and traffic_split_pct
+-- together; the seed UPDATE above covers pre-existing rows.
+
+-- Link column for the winner pointer used by modules/ab_test.php declareWinner.
+SET @ddl = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `ad_campaigns` ADD COLUMN `winning_variant_id` BIGINT UNSIGNED NULL DEFAULT NULL', 'DO 0') FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'ad_campaigns' AND column_name = 'winning_variant_id');
+PREPARE stmt FROM @ddl; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- Ado: payments / billing (billing.php => modules/payments.php, payment-verify.php,
+-- cron/auto_refill_check.php, api/v1/credits.php, admin/transactions.php,
+-- modules/invoice_generator.php). The minimal legacy table lacked every
+-- gateway-facing column; PaymentProcessor::initiatePayment writes all of them.
+
+SET @ddl = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `transactions` ADD COLUMN `gateway` VARCHAR(40) NULL DEFAULT NULL', 'DO 0') FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'transactions' AND column_name = 'gateway');
+PREPARE stmt FROM @ddl; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @ddl = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `transactions` ADD COLUMN `reference` VARCHAR(64) NULL DEFAULT NULL', 'DO 0') FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'transactions' AND column_name = 'reference');
+PREPARE stmt FROM @ddl; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @ddl = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `transactions` ADD COLUMN `gateway_reference` VARCHAR(100) NULL DEFAULT NULL', 'DO 0') FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'transactions' AND column_name = 'gateway_reference');
+PREPARE stmt FROM @ddl; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @ddl = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `transactions` ADD COLUMN `invoice_number` VARCHAR(40) NULL DEFAULT NULL', 'DO 0') FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'transactions' AND column_name = 'invoice_number');
+PREPARE stmt FROM @ddl; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @ddl = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `transactions` ADD COLUMN `updated_at` TIMESTAMP NULL DEFAULT NULL', 'DO 0') FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'transactions' AND column_name = 'updated_at');
+PREPARE stmt FROM @ddl; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- payment-verify.php looks pending transactions up by gateway_reference.
+SET @ddl = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `transactions` ADD INDEX `idx_tx_gateway_reference` (`gateway_reference`)', 'DO 0') FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'transactions' AND index_name = 'idx_tx_gateway_reference');
+PREPARE stmt FROM @ddl; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- Seed gateway/gateway_reference/invoice_number for rows written before the
+-- columns existed (invoice generator falls back to generating on the fly, so
+-- gateway fields stay NULL for those legacy rows).
+UPDATE `transactions`
+SET `gateway_reference` = `reference`
+WHERE `gateway_reference` IS NULL AND `reference` IS NOT NULL;

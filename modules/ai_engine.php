@@ -35,9 +35,13 @@ class AIEngine
     ];
 
     private const NVIDIA_TEXT_MODELS = [
-        'meta/llama-3.1-70b-instruct',
-        'nvidia/llama-3.1-nemotron-70b-instruct',
-        'mistralai/mixtral-8x22b-instruct-v0.1',
+        // Verified live against integrate.api.nvidia.com (chat/completions),
+        // 2026-11. meta/llama-3.1-70b-instruct and mixtral-8x22b-instruct
+        // were retired by NVIDIA (HTTP 410) — see php_errors.log 01-Nov-2026.
+        // NOTE: /v1/models may list models this key cannot call (404 on
+        // chat); only chat-verified models belong here.
+        'mistralai/mistral-large-4-1t-a52b',
+        'deepseek-ai/deepseek-v4.1-flash',
     ];
 
     /** Image models */
@@ -701,44 +705,52 @@ class AIEngine
 
     private static function nvidiaText(string $prompt, string $apiKey): array
     {
-        $model = self::NVIDIA_TEXT_MODELS[0];
-        $payload = json_encode([
-            'model'      => $model,
-            'messages'   => [
-                ['role' => 'system', 'content' => 'You are an expert marketing copywriter for Adsbooster.net, a multi-network advertising platform.'],
-                ['role' => 'user',   'content' => $prompt],
-            ],
-            'temperature' => 0.7,
-            'max_tokens'  => 1024,
-        ]);
-
         $base = rtrim(defined('NVIDIA_BASE_URL') ? NVIDIA_BASE_URL : 'https://integrate.api.nvidia.com/v1', '/');
-        $ch = curl_init($base . '/chat/completions');
-        curl_setopt_array($ch, [
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => $payload,
-            CURLOPT_HTTPHEADER     => [
-                'Authorization: Bearer ' . $apiKey,
-                'Content-Type: application/json',
-                'Accept: application/json',
-            ],
-            CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT        => 25,
-                CURLOPT_SSL_VERIFYPEER => true,
-                CURLOPT_SSL_VERIFYHOST => 2,
-            ]);
-            ca_curl_setopt($ch);
-            $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        $lastErr = '';
 
-        if ($httpCode === 200 && $response) {
-            $data = json_decode($response, true);
-            $text = $data['choices'][0]['message']['content'] ?? '';
-            return ['output' => $text, 'provider' => 'nvidia', 'model' => $model];
+        foreach (self::NVIDIA_TEXT_MODELS as $model) {
+            $payload = json_encode([
+                'model'      => $model,
+                'messages'   => [
+                    ['role' => 'system', 'content' => 'You are an expert marketing copywriter for Adsbooster.net, a multi-network advertising platform.'],
+                    ['role' => 'user',   'content' => $prompt],
+                ],
+                'temperature' => 0.7,
+                'max_tokens'  => 1024,
+            ]);
+            $ch = curl_init($base . '/chat/completions');
+            curl_setopt_array($ch, [
+                CURLOPT_POST           => true,
+                CURLOPT_POSTFIELDS     => $payload,
+                CURLOPT_HTTPHEADER     => [
+                    'Authorization: Bearer ' . $apiKey,
+                    'Content-Type: application/json',
+                    'Accept: application/json',
+                ],
+                CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT        => 25,
+                    CURLOPT_SSL_VERIFYPEER => true,
+                    CURLOPT_SSL_VERIFYHOST => 2,
+                ]);
+                ca_curl_setopt($ch);
+                $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($httpCode === 200 && $response) {
+                $data = json_decode($response, true);
+                $text = $data['choices'][0]['message']['content'] ?? '';
+                if ($text !== '') {
+                    return ['output' => $text, 'provider' => 'nvidia', 'model' => $model];
+                }
+            } else {
+                // 404 on chat = key lacks that model even when /v1/models
+                // lists it (NVIDIA returns 404 instead of 403 here).
+                $lastErr = "model {$model}: HTTP {$httpCode}: " . substr((string)$response, 0, 100);
+            }
         }
 
-        throw new \RuntimeException("NVIDIA NIM API returned HTTP {$httpCode}: {$response}");
+        throw new \RuntimeException("NVIDIA NIM API failed on all models. Last response: {$lastErr}");
     }
 
     private static function geminiImage(string $prompt, string $apiKey): array

@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         $variants[] = [
                             'label'        => 'Variant ' . chr(64 + $i),
                             'headline'     => $h,
-                            'primary_text' => trim($_POST["variant_text_{$i}"] ?? ''),
+                            'description'  => trim($_POST["variant_text_{$i}"] ?? ''),
                             'split_pct'    => max(5, min(100, (int)($_POST["variant_split_{$i}"] ?? 25))),
                         ];
                     }

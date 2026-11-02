@@ -26,7 +26,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var VERSION = '1.0.0';
+  var VERSION = '1.1.0';
   var DEFAULT_TIMEOUT = 30000;   // ms
   var DEFAULT_RETRIES = 2;       // retries on 429/5xx (initial attempt excluded)
   var AI_CREDITS_PER_USD = 100;  // documented platform rate
@@ -382,9 +382,34 @@
 
   function WebhooksResource(client) { this._c = client; }
 
-  /** Ping-test URL helper for your webhook receiver (fires from the Developer Console). */
+  /**
+   * GET /webhooks.php — list your registered webhook endpoints.
+   * Result: { success, endpoints: [{ id, event_type, target_url, is_active, created_at }] }
+   */
+  WebhooksResource.prototype.list = function () {
+    return this._c.request('GET', '/webhooks.php');
+  };
+
+  /**
+   * GET /webhooks.php?ping=<url> — fire a signed test ping to one of YOUR
+   * registered https:// endpoints. Authenticated with the API key, so no
+   * console session is needed. Returns { success, http_code, latency_ms,
+   * signature, response, error }.
+   */
+  WebhooksResource.prototype.test = function (targetUrl) {
+    if (!targetUrl || typeof targetUrl !== 'string' || targetUrl.indexOf('https://') !== 0) {
+      return Promise.reject(new AdsboosterError('webhooks.test() requires an exact https:// target_url registered to your account.'));
+    }
+    return this._c.request('GET', '/webhooks.php?ping=' + encodeURIComponent(targetUrl));
+  };
+
+  /**
+   * @deprecated SDK-side URL builder for the old console flow — the console
+   * tests endpoints server-side via the session (api-settings form POST),
+   * which an API key cannot sign for. Prefer webhooks.test(url).
+   */
   WebhooksResource.prototype.testPingUrl = function (targetUrl) {
-    return this._c.baseUrl + '/api-settings.php?ping=' + encodeURIComponent(targetUrl);
+    return Promise.resolve(this._c.apiBase + '/webhooks.php?ping=' + encodeURIComponent(targetUrl));
   };
 
   /* ───────────────── Public aggregate analytics (no auth) ─────── */

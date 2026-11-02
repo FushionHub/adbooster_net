@@ -11,32 +11,50 @@ require_once __DIR__ . '/../config/db.php';
 class ABTest
 {
     /**
-     * Create A/B test variants for a campaign
+     * Create A/B test variants for a campaign.
+     *
+     * Accepts either payload shape:
+     *   • page / SDK style:  { label, headline, description, split_pct }
+     *   • legacy style:      { variant_name, headline, description, media_url, budget_share }
+     * Both are written through to BOTH column conventions (variant_name +
+     * variant_label, budget_share + traffic_split_pct) so the page listing,
+     * the winner cron and legacy readers all stay in agreement.
      *
      * @param int $campaignId The campaign ID
-     * @param array $variants Array of variant data (headline, description, media_url, budget_share)
+     * @param array $variants Array of variant data
      * @return int Number of variants created
      * @throws Exception On database error
      */
     public static function createTest(int $campaignId, array $variants): int
     {
+        if (count($variants) < 2) {
+            return 0;
+        }
+
         try {
             $db = db();
             $created = 0;
 
-            foreach ($variants as $variant) {
+            foreach ($variants as $index => $variant) {
+                $name        = $variant['variant_name'] ?? $variant['label'] ?? 'Variant ' . ($index + 1);
+                $description = $variant['description'] ?? $variant['primary_text'] ?? '';
+                $share       = (float)($variant['budget_share'] ?? $variant['split_pct'] ?? (100 / count($variants)));
+                $share       = round(max(0.0, $share), 2);
+
                 $stmt = $db->prepare(
-                    "INSERT INTO ad_campaign_variants 
-                     (campaign_id, variant_name, headline, description, media_url, budget_share, status) 
-                     VALUES (?, ?, ?, ?, ?, ?, 'active')"
+                    "INSERT INTO ad_campaign_variants
+                     (campaign_id, variant_name, variant_label, headline, description, media_url, budget_share, traffic_split_pct, status)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')"
                 );
                 $stmt->execute([
                     $campaignId,
-                    $variant['variant_name'] ?? 'Variant ' . ($created + 1),
+                    $name,
+                    $name,
                     $variant['headline'] ?? '',
-                    $variant['description'] ?? '',
+                    $description,
                     $variant['media_url'] ?? null,
-                    $variant['budget_share'] ?? (100 / count($variants))
+                    $share,
+                    $share,
                 ]);
                 $created++;
             }
@@ -133,17 +151,25 @@ class ABTest
 
             $db->beginTransaction();
 
-            // Deactivate all variants
+            // Deactivate all variants and clear any previous winner flags
             $stmt = $db->prepare(
-                "UPDATE ad_campaign_variants SET status = 'inactive' WHERE campaign_id = ?"
+                "UPDATE ad_campaign_variants SET status = 'inactive', is_winner = 0 WHERE campaign_id = ?"
             );
             $stmt->execute([$campaignId]);
 
-            // Mark winner
+            // Mark winner: status + is_winner flag (page badge) + 100% of the
+            // budget in both the legacy (budget_share) and unified
+            // (traffic_split_pct) columns
             $stmt = $db->prepare(
-                "UPDATE ad_campaign_variants SET status = 'winner', budget_share = 100 WHERE id = ?"
+                "UPDATE ad_campaign_variants SET status = 'winner', is_winner = 1, budget_share = 100, traffic_split_pct = 100 WHERE id = ?"
             );
             $stmt->execute([$winner['id']]);
+
+            // Losers restart with an empty split
+            $stmt = $db->prepare(
+                "UPDATE ad_campaign_variants SET budget_share = 0, traffic_split_pct = 0 WHERE campaign_id = ? AND id <> ?"
+            );
+            $stmt->execute([$campaignId, $winner['id']]);
 
             // Update campaign to use winning variant
             $stmt = $db->prepare(

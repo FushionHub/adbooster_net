@@ -32,7 +32,15 @@ if (empty($consentUuid)) {
     $consentUuid = bin2hex(random_bytes(16));
 }
 
-$consentUuid = filter_var($consentUuid, FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+// Column cookie_consents.consent_uuid is CHAR(32): keep hex characters only
+// and reject values that would truncate (dashed 36-char UUIDs from older
+// cookie banners or foreign clients caused 1406 errors here before).
+$consentUuid = strtolower(preg_replace('/[^a-f0-9]/i', '', (string)$consentUuid));
+if (!preg_match('/^[a-f0-9]{32}$/', $consentUuid)) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'error' => 'consent_uuid must be a 32-character hex identifier.']);
+    exit;
+}
 $necessary = (int)($_GET['necessary'] ?? $_POST['necessary'] ?? 1);
 $preferences = (int)($_GET['preferences'] ?? $_POST['preferences'] ?? 0);
 $analytics = (int)($_GET['analytics'] ?? $_POST['analytics'] ?? 0);
