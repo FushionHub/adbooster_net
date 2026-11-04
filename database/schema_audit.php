@@ -80,11 +80,14 @@ function row_value(array $row, array $keys): string
 
 /**
  * Extract quoted array keys that sit at the top level of an array literal.
+ *
+ * The body passed in is the *inside* of the array, so the nesting depth
+ * starts at 1.
  */
 function top_level_keys(string $arrayBody): array
 {
     $keys = [];
-    $depth = 0;
+    $depth = 1;
     $len = strlen($arrayBody);
     for ($i = 0; $i < $len; $i++) {
         $ch = $arrayBody[$i];
@@ -101,7 +104,9 @@ function top_level_keys(string $arrayBody): array
             }
             $rest = substr($arrayBody, $j + 1);
             if (preg_match('/^\s*=>/', $rest)) {
-                $keys[] = strtolower($key);
+                // Keys may be backticked (db()->update() interpolates them
+                // raw into SQL, so `2fa_attempts` is a valid PHP array key).
+                $keys[] = strtolower(trim($key, "` \t\n\r"));
             }
             $i = $j;
         }

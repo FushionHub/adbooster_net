@@ -42,6 +42,11 @@ RewriteRule ^listing-details/([0-9]+)/?$ listing-details.php?id=$1 [QSA,L]
 RewriteRule ^job-details/([0-9]+)/?$ job-details.php?id=$1 [QSA,L]
 RewriteRule ^client-approval/([a-zA-Z0-9_\-]+)/?$ client-approval.php?token=$1 [QSA,L]
 
+# SEO / AEO endpoints — the canonical .xml extension is served by the
+# dynamic generator. (llms.txt / llms.md are static files and are served
+# directly by Apache.)
+RewriteRule ^sitemap\.xml$ sitemap.php [QSA,L]
+
 # Clean AJAX Module Endpoints
 RewriteRule ^chat-poll/?$ modules/chat_poll.php [QSA,L]
 RewriteRule ^notifications-poll/?$ modules/notifications_poll.php [QSA,L]

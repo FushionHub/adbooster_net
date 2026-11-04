@@ -1,13 +1,69 @@
+# Adsbooster.net — crawler policy
+# https://adsbooster.net/sitemap.xml
+
 User-agent: *
 Allow: /
-Disallow: /admin/
-Disallow: /config/
-Disallow: /modules/
-Disallow: /cron/
-Disallow: /cache/
 
-# AI Search & Answer Engine Bots (AEO)
+# ── Application surfaces that must never be indexed ────────────────────
+Disallow: /admin/
+Disallow: /admin
+Disallow: /config/
+Disallow: /config
+Disallow: /database/
+Disallow: /database
+Disallow: /includes/
+Disallow: /includes
+Disallow: /modules/
+Disallow: /modules
+Disallow: /cron/
+Disallow: /cron
+Disallow: /cache/
+Disallow: /cache
+Disallow: /scratch/
+Disallow: /scratch
+Disallow: /api/
+Disallow: /api
+Disallow: /vendor/
+Disallow: /vendor
+Disallow: /node_modules/
+Disallow: /node_modules
+Disallow: /uploads/
+Disallow: /uploads
+Disallow: /auth-admin/
+Disallow: /auth-admin
+Disallow: /*.sql$
+Disallow: /*.log$
+Disallow: /*.bak$
+Disallow: /*.env
+Disallow: /web.config
+Disallow: /readme.html
+
+# ── Authenticated / transactional pages ─────────────────────────────────
+Disallow: /dashboard
+Disallow: /billing
+Disallow: /create-ad
+Disallow: /campaigns
+Disallow: /post-creator
+Disallow: /calendar
+Disallow: /social-connect
+Disallow: /api-settings
+Disallow: /onboarding
+Disallow: /notifications
+Disallow: /tickets
+Disallow: /p2p-chat
+Disallow: /referrals
+Disallow: /ab-test
+Disallow: /ugc-generator
+Disallow: /logout
+Disallow: /login
+Disallow: /register
+
+# ── AI / answer-engine crawlers: the public marketing, docs and content
+#    surface is explicitly welcome (AEO). ────────────────────────────────
 User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
 Allow: /
 
 User-agent: ChatGPT-User
@@ -22,13 +78,24 @@ Allow: /
 User-agent: Claude-Web
 Allow: /
 
+User-agent: Anthropic-ai
+Allow: /
+
 User-agent: Google-Extended
 Allow: /
 
-User-agent: Applebot
+User-agent: Applebot-Extended
 Allow: /
 
-User-agent: Bingbot
+User-agent: CCBot
 Allow: /
 
-Sitemap: https://adsbooster.net/sitemap.php
+User-agent: Bytespider
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
+# ── Sitemaps ────────────────────────────────────────────────────────────
+Sitemap: https://adsbooster.net/sitemap.xml
+Sitemap: https://adsbooster.net/llms.txt

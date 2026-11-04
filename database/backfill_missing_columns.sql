@@ -60,6 +60,18 @@ CALL `adsb_add_column_if_missing`('notifications', 'read_at', 'DATETIME NULL');
 -- ── referrals: reward credited to the referrer ──────────────────────
 CALL `adsb_add_column_if_missing`('referrals', 'referrer_reward', 'DECIMAL(10,2) NULL');
 
+-- ── marketplace_items: boosted listings expire ─────────────────────
+CALL `adsb_add_column_if_missing`('marketplace_items', 'boost_expires_at', 'DATETIME NULL');
+
+-- ── site_settings: settings are grouped in the admin UI ─────────────
+CALL `adsb_add_column_if_missing`('site_settings', 'setting_group', "VARCHAR(30) NULL DEFAULT 'general'");
+
+-- ── transactions: link to the generated PDF invoice ─────────────────
+CALL `adsb_add_column_if_missing`('transactions', 'invoice_path', 'VARCHAR(255) NULL');
+
+-- ── ticket_messages: reply attachments ──────────────────────────────
+CALL `adsb_add_column_if_missing`('ticket_messages', 'attachment_path', 'VARCHAR(255) NULL');
+
 DROP PROCEDURE IF EXISTS `adsb_add_column_if_missing`;
 
 -- ── Data backfill: mirror the pre-existing reward_credits value ─────

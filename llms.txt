@@ -1,30 +1,35 @@
-# Adsbooster.net — Autonomous Multi-Network Advertising & Social Automation Cloud
+# Adsbooster.net
 
-> Adsbooster.net is an all-in-one advertising automation platform allowing businesses, creators, and agencies to launch multi-network ad campaigns across Meta (Facebook & Instagram), TikTok, Google Ads, Snapchat, and the "All-in-One Combo Pack" simultaneously with AI creative generation, real-time social scheduling, automated split testing, and a built-in credit economy.
+> Adsbooster.net is an all-in-one advertising automation platform for businesses, creators and agencies. Launch paid campaigns across Meta (Facebook & Instagram), TikTok, Google Ads and Snapchat; publish organic social posts to every connected profile; generate AI UGC ad creatives; track conversions server-side; and list your business in a verified directory and marketplace — from one dashboard, one API key and one SDK.
 
-## Core Capabilities
-- **Multi-Network Ad Engine (`/create-ad.php`)**: Create and launch single or cross-platform combo pack ads across Meta, Instagram, TikTok, Google Ads, and Snapchat with granular demographic, geo, and interest targeting.
-- **AI Campaign Doctor & Copy Studio (`/modules/campaign_doctor.php`, `/post-creator.php`)**: Generate high-converting ad copy, viral hooks, reels scripts, and motivational creatives powered by LLMs.
-- **A/B Creative Split Testing (`/ab-test.php`)**: Test up to 4 creative variants with custom traffic splits and automated budget reallocation to statistical winners.
-- **Smart Audience Builder (`/audience-builder.php`)**: Demographic cohort builder and heuristic lookalike audience expansion engine.
-- **Content Calendar (`/calendar.php`)**: Interactive visual scheduling calendar with drag-to-reschedule and rich text post composition.
-- **Real-Time Social Connect (`/social-connect.php`)**: Live OAuth & token integrations with Meta Graph API, TikTok for Business, Google Ads, Snapchat, and Google Calendar.
-- **Credit & Subscription Economy (`/billing.php`, `/pricing-plan.php`)**: Transparent subscription tiers (Starter Booster, Growth Pro, Agency Scaling, Enterprise) with bundled Ad Credits and AI Credits, plus separate wallet top-ups via Paystack and Flutterwave.
-- **Referral Growth Program (`/referrals.php`)**: Two-way commission and credit rewards on successful referrals and payment activations.
-- **Marketplace & Sponsored Ads (`/marketplace.php`)**: Products, services, and company directory featuring dynamic sponsored ad insertions.
-- **Peer-to-Peer Chat & Support (`/p2p-chat.php`, `/tickets.php`)**: Real-time customer messaging and rich text ticket management.
+## Docs
+- [Developer Documentation](https://adsbooster.net/developer-docs): REST API v1 reference, authentication, rate limits, webhooks, CAPI, step-by-step integration guides, and runnable code snippets.
+- [System Status](https://adsbooster.net/status): live uptime calendar, per-service health, and a documented incident log explaining what broke and why.
+- [Pricing](https://adsbooster.net/pricing-plan): plans, bundled ad credits and AI credits.
 
-## Pricing Plans & Bundled Credits
-- **Starter Booster**: $29/mo — Includes $30.00 Ad Credits + 150 AI Credits.
-- **Growth Pro (Most Popular)**: $79/mo — Includes $95.00 Ad Credits + 500 AI Credits.
-- **Agency Scaling**: $199/mo — Includes $260.00 Ad Credits + 1,500 AI Credits.
-- **Enterprise**: $499/mo — Includes $700.00 Ad Credits + 5,000 AI Credits.
+## Platform
+- [Create Ad](https://adsbooster.net/create-ad): build and launch a multi-network paid campaign.
+- [Post Creator](https://adsbooster.net/post-creator): compose and schedule organic social posts.
+- [Image Studio](https://adsbooster.net/ugc-generator): AI UGC creative generator with aspect-ratio presets.
+- [Audience Builder](https://adsbooster.net/audience-builder): demographic and interest targeting cohorts.
+- [A/B Creative Testing](https://adsbooster.net/ab-test): split-test up to four creative variants.
+- [Content Calendar](https://adsbooster.net/calendar): visual scheduling calendar.
+- [Connect Accounts](https://adsbooster.net/social-connect): link social profiles and ad accounts.
+- [API Settings](https://adsbooster.net/api-settings): developer console — API keys, webhooks, usage.
 
-## Developer & API Integration
-- Base URL: `https://adsbooster.net`
-- Developer Console: `/api-settings.php`
-- Endpoints:
-  - `POST /api/v1/campaigns.php`: Programmatic ad campaign launcher
-  - `GET /api/v1/posts.php`: Scheduled post queue and publishing logs
-  - `GET /api/v1/credits.php`: Real-time ad credit and AI credit balance inquiry
-  - Webhooks: Real-time event notifications (`campaign.status_changed`, `post.published`, `payment.completed`)
+## Content & Directory
+- [Blog](https://adsbooster.net/blog): advertising, growth and automation articles.
+- [Marketplace](https://adsbooster.net/marketplace): products, services and company listings.
+- [Jobs](https://adsbooster.net/jobs): open roles and freelance work.
+- [Creator Bounties](https://adsbooster.net/bounties): paid briefs for creators.
+- [Search](https://adsbooster.net/search): one query across listings, jobs and bounties.
+
+## Legal
+- [About](https://adsbooster.net/about)
+- [Contact](https://adsbooster.net/contact)
+- [FAQ](https://adsbooster.net/faq)
+
+## Optional
+- [Extended content for language models](https://adsbooster.net/llms-full.md): full product description, API surface, SDK usage and support details.
+- [Machine-readable index](https://adsbooster.net/llms.md): the same index in Markdown.
+- [XML sitemap](https://adsbooster.net/sitemap.xml)

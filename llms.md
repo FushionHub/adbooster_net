@@ -1,0 +1,40 @@
+# Adsbooster.net
+
+> Adsbooster.net is an all-in-one advertising automation platform for businesses, creators and agencies. Launch paid campaigns across Meta (Facebook & Instagram), TikTok, Google Ads and Snapchat; publish organic social posts to every connected profile; generate AI UGC ad creatives; track conversions server-side; and list your business in a verified directory and marketplace — from one dashboard, one API key and one SDK.
+
+## Docs
+
+- [Developer Documentation](https://adsbooster.net/developer-docs): REST API v1 reference, authentication, rate limits, webhooks, CAPI, step-by-step integration guides, and runnable code snippets.
+- [System Status](https://adsbooster.net/status): live uptime calendar, per-service health, and a documented incident log explaining what broke and why.
+- [Pricing](https://adsbooster.net/pricing-plan): plans, bundled ad credits and AI credits.
+
+## Platform
+
+- [Create Ad](https://adsbooster.net/create-ad): build and launch a multi-network paid campaign.
+- [Post Creator](https://adsbooster.net/post-creator): compose and schedule organic social posts.
+- [Image Studio](https://adsbooster.net/ugc-generator): AI UGC creative generator with aspect-ratio presets.
+- [Audience Builder](https://adsbooster.net/audience-builder): demographic and interest targeting cohorts.
+- [A/B Creative Testing](https://adsbooster.net/ab-test): split-test up to four creative variants.
+- [Content Calendar](https://adsbooster.net/calendar): visual scheduling calendar.
+- [Connect Accounts](https://adsbooster.net/social-connect): link social profiles and ad accounts.
+- [API Settings](https://adsbooster.net/api-settings): developer console — API keys, webhooks, usage.
+
+## Content & Directory
+
+- [Blog](https://adsbooster.net/blog): advertising, growth and automation articles.
+- [Marketplace](https://adsbooster.net/marketplace): products, services and company listings.
+- [Jobs](https://adsbooster.net/jobs): open roles and freelance work.
+- [Creator Bounties](https://adsbooster.net/bounties): paid briefs for creators.
+- [Search](https://adsbooster.net/search): one query across listings, jobs and bounties.
+
+## Legal
+
+- [About](https://adsbooster.net/about)
+- [Contact](https://adsbooster.net/contact)
+- [FAQ](https://adsbooster.net/faq)
+
+## Optional
+
+- [Extended content for language models](https://adsbooster.net/llms-full.md): full product description, API surface, SDK usage and support details.
+- [Machine-readable index](https://adsbooster.net/llms.md): the same index in Markdown.
+- [XML sitemap](https://adsbooster.net/sitemap.xml)

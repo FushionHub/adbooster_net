@@ -52,6 +52,22 @@ class SchemaGuard
         'referrals' => [
             'referrer_reward' => 'DECIMAL(10,2) NULL',
         ],
+        // Boosted listings expire after a window.
+        'marketplace_items' => [
+            'boost_expires_at' => 'DATETIME NULL',
+        ],
+        // Settings are grouped in the admin UI.
+        'site_settings' => [
+            'setting_group' => "VARCHAR(30) NULL DEFAULT 'general'",
+        ],
+        // Link to the generated PDF invoice.
+        'transactions' => [
+            'invoice_path' => 'VARCHAR(255) NULL',
+        ],
+        // Ticket reply attachments.
+        'ticket_messages' => [
+            'attachment_path' => 'VARCHAR(255) NULL',
+        ],
     ];
 
     /**

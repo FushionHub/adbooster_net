@@ -5,6 +5,7 @@ if (!defined('ROOT_PATH')) {
 }
 
 require_once __DIR__ . '/tracker.php';
+require_once __DIR__ . '/seo_meta.php';
 
 $currentFile = basename($_SERVER['SCRIPT_NAME'] ?? '');
 
@@ -18,17 +19,19 @@ $favicon     = get_setting('site_favicon');
 $faviconUrl  = $favicon
     ? BASE_URL . '/' . ltrim($favicon, '/')
     : BASE_URL . '/assets/images/logo/favicon.png';
-$metaDesc  = e(get_content('meta', 'seo', 'description', get_setting('meta_description', 'SEO, Social Media, and Digital Marketing Agency.')));
-$metaKeys  = e(get_content('meta', 'seo', 'keywords', get_setting('meta_keywords', 'SEO HTML Template, Digital Marketing, Social Media Agency')));
 
-if (!isset($pageTitle)) {
-    $pageTitle = e(get_content('meta', 'seo', 'title', $siteName . ' | ' . $siteSlogan));
-}
-if (!isset($pageDescription)) {
-    $pageDescription = $metaDesc;
+// ── SEO meta (page overrides -> site defaults -> fallbacks) ──────────────
+$seo = SeoMeta::resolve();
+
+$metaDesc = e($seo['description']);
+$metaKeys = e($seo['keywords']);
+
+if (!isset($pageTitle) || trim((string)$pageTitle) === '') {
+    $pageTitle = e($seo['title']);
 } else {
-    $pageDescription = e($pageDescription);
+    $pageTitle = e($pageTitle);
 }
+$pageDescription = $metaDesc;
 
 $activeHome    = ($currentFile === 'index.php') ? ' activePage' : '';
 $activeServices = ($currentFile === 'create-ad.php' || $currentFile === 'post-creator.php' || $currentFile === 'marketplace.php' || $currentFile === 'analytics.php') ? ' activePage' : '';
@@ -48,39 +51,35 @@ function _navSubActive(string $page): string {
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $pageTitle ?></title>
-  <meta name="description" content="<?= $pageDescription ?>">
-  <meta name="keywords" content="<?= $metaKeys ?>, AI Ads, Meta Ads, TikTok Automation, Google Ads Automation, Social Scheduler">
+  <meta name="description" content="<?= htmlspecialchars($seo['description']) ?>">
+  <meta name="keywords" content="<?= $metaKeys ?>">
   <meta name="author" content="Adsbooster.net">
-  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <meta name="robots" content="<?= htmlspecialchars($seo['robots']) ?>">
   <meta name="ai-content-declaration" content="verified-platform">
 
   <!-- Canonical URL -->
-  <?php
-  $reqScheme = 'http';
-  if ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-      || (($_SERVER['SERVER_PORT'] ?? '') === '443')
-      || (strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https')
-      || preg_match('/^adsbooster\.net(:\d+)?$/i', (string)($_SERVER['HTTP_HOST'] ?? ''))) {
-      $reqScheme = 'https';
-  }
-  $currentCanonical = $reqScheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . ($_SERVER['REQUEST_URI'] ?? '/'); ?>
-  <link rel="canonical" href="<?= htmlspecialchars($currentCanonical) ?>">
+  <link rel="canonical" href="<?= htmlspecialchars($seo['canonical']) ?>">
 
   <!-- OpenGraph Metadata for Social & AI Engines (ChatGPT, Perplexity, Facebook) -->
-  <meta property="og:type" content="website">
+  <meta property="og:type" content="<?= htmlspecialchars($seo['og_type']) ?>">
   <meta property="og:site_name" content="<?= e($siteName) ?>">
-  <meta property="og:title" content="<?= $pageTitle ?>">
-  <meta property="og:description" content="<?= $pageDescription ?>">
-  <meta property="og:url" content="<?= htmlspecialchars($currentCanonical) ?>">
-  <meta property="og:image" content="<?= $siteLogoUrl ?>">
+  <meta property="og:title" content="<?= htmlspecialchars($seo['title']) ?>">
+  <meta property="og:description" content="<?= htmlspecialchars($seo['description']) ?>">
+  <meta property="og:url" content="<?= htmlspecialchars($seo['canonical']) ?>">
+  <meta property="og:image" content="<?= htmlspecialchars($seo['og_image']) ?>">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="<?= htmlspecialchars($siteName . ' — advertising automation platform') ?>">
+  <meta property="og:locale" content="en_US">
 
   <!-- Twitter Card Metadata -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="<?= $pageTitle ?>">
-  <meta name="twitter:description" content="<?= $pageDescription ?>">
-  <meta name="twitter:image" content="<?= $siteLogoUrl ?>">
+  <meta name="twitter:site" content="<?= htmlspecialchars($seo['twitter_site']) ?>">
+  <meta name="twitter:creator" content="<?= htmlspecialchars($seo['twitter_site']) ?>">
+  <meta name="twitter:title" content="<?= htmlspecialchars($seo['title']) ?>">
+  <meta name="twitter:description" content="<?= htmlspecialchars($seo['description']) ?>">
+  <meta name="twitter:image" content="<?= htmlspecialchars($seo['og_image']) ?>">
+  <meta name="twitter:image:alt" content="<?= htmlspecialchars($siteName . ' — advertising automation platform') ?>">
 
   <!-- Schema.org JSON-LD for Search Engines & Answer Engines (AEO) -->
   <script type="application/ld+json">
