@@ -30,8 +30,8 @@ class ContentCalendar
                 "SELECT 
                     'post' as event_type,
                     sp.id,
-                    sp.title,
-                    sp.content as description,
+                    sp.caption as title,
+                    sp.caption as description,
                     sp.scheduled_time as start_time,
                     sp.platform,
                     sp.status,
