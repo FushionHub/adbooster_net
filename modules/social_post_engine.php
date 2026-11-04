@@ -195,6 +195,21 @@ class SocialPostEngine
         if ($postId <= 0) {
             throw new \RuntimeException('Failed to schedule post. Please try again.');
         }
+
+        // Email-first: the user hears back the moment a post is queued, and
+        // again when the network confirms (or refuses) publication.
+        try {
+            require_once __DIR__ . '/notifier.php';
+            Notifier::user($userId, 'post_scheduled', [
+                'platform'       => ucfirst($platform),
+                'scheduled_time' => date('D d M Y, H:i', $scheduledTimestamp),
+                'caption'        => mb_substr(trim($caption), 0, 400),
+                'link'           => (defined('BASE_URL') ? BASE_URL : '') . '/post-creator',
+            ]);
+        } catch (\Throwable $e) {
+            error_log('Post-scheduled email failed: ' . $e->getMessage());
+        }
+
         return $postId;
     }
 
@@ -271,6 +286,19 @@ class SocialPostEngine
             } catch (\Throwable $uErr) {
                 error_log('publishScheduledRow status update error: ' . $uErr->getMessage());
             }
+            try {
+                require_once __DIR__ . '/notifier.php';
+                Notifier::user($userId, 'post_failed', [
+                    'platform' => ucfirst($platform),
+                    'caption'  => mb_substr($caption, 0, 400),
+                    'reason'   => mb_substr($e->getMessage(), 0, 500),
+                    'post_id'  => 'local-' . $postId,
+                    'link'     => (defined('BASE_URL') ? BASE_URL : '') . '/post-creator',
+                    'time'     => date('c'),
+                ]);
+            } catch (\Throwable $mailErr) {
+                error_log('Post-failure email failed: ' . $mailErr->getMessage());
+            }
             return ['success' => false, 'error' => $e->getMessage(), 'bundle_post_id' => (string)($post['bundle_post_id'] ?? '')];
         }
         $mediaUrl = !empty($post['media_url']) ? (string)$post['media_url'] : null;
@@ -297,6 +325,8 @@ class SocialPostEngine
 
         $status = $isSuccess ? 'published' : 'failed';
 
+        $previousStatus = (string)$post['status'];
+
         try {
             db()->update('scheduled_posts', [
                 'status'         => $status,
@@ -305,6 +335,30 @@ class SocialPostEngine
             ], 'id = ?', [$postId]);
         } catch (\Throwable $e) {
             error_log('publishScheduledRow update error: ' . $e->getMessage());
+        }
+
+        // Email-first: notify on the state transition only, so worker
+        // retries never spam the user with the same outcome.
+        if ($previousStatus !== $status) {
+            try {
+                require_once __DIR__ . '/notifier.php';
+                $notifyData = [
+                    'platform' => ucfirst($platform),
+                    'caption'  => mb_substr($caption, 0, 400),
+                    'post_id'  => $bundlePostId !== '' ? $bundlePostId : ('local-' . $postId),
+                    'link'     => (defined('BASE_URL') ? BASE_URL : '') . '/post-creator',
+                    'time'     => date('c'),
+                ];
+                if ($isSuccess) {
+                    Notifier::user($userId, 'post_published', $notifyData);
+                } else {
+                    Notifier::user($userId, 'post_failed', array_merge($notifyData, [
+                        'reason' => mb_substr((string)($gatewayResult['data']['message'] ?? 'The social network did not accept the post.'), 0, 500),
+                    ]));
+                }
+            } catch (\Throwable $e) {
+                error_log('Post-publish email failed: ' . $e->getMessage());
+            }
         }
 
         return [

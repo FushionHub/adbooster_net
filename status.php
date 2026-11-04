@@ -3,6 +3,7 @@
 require_once __DIR__ . '/config/site_setting_and_config.php';
 require_once __DIR__ . '/config/apikeys.php';   // provides api_key() for the provider checks
 require_once __DIR__ . '/includes/security.php'; // provides ca_bundle_found() for TLS probes
+require_once __DIR__ . '/modules/status_monitor.php'; // outage detection, incidents, owner alerts
 
 // This page runs DB + multi-host TLS probes; give it real wall-clock room
 // (LiteSpeed/FastCGI default is 60s and a cold remote probe can spike).
@@ -48,7 +49,7 @@ function probe(string $key, string $label, string $group, callable $fn): array
         // Logging must never take the page down.
     }
 
-    return [
+    $result = [
         'key'   => $key,
         'label' => $label,
         'group' => $group,
@@ -56,8 +57,16 @@ function probe(string $key, string $label, string $group, callable $fn): array
         'ms'    => $ms,
         'note'  => $note,
     ];
-}
 
+    // Incident tracking + owner alert on a state transition only.
+    try {
+        StatusMonitor::handleTransition($result);
+    } catch (\Throwable $e) {
+        error_log('Status transition detection failed: ' . $e->getMessage());
+    }
+
+    return $result;
+}
 
 /**
  * Probe several URLs concurrently.
@@ -278,10 +287,132 @@ try {
     // Table may not exist yet on a fresh install.
 }
 
+// ── 30-day uptime TIMELINE: one bar per calendar day per check ────
+// Daily buckets from the same real history, so the strip shows the
+// patchwork of actual results rather than one smoothed number.
+$timeline = [];
+$timelineDays = [];
+for ($i = 29; $i >= 0; $i--) {
+    $timelineDays[] = date('Y-m-d', strtotime("-$i day"));
+}
+try {
+    $rows = db()->fetchAll(
+        "SELECT check_key, DATE(checked_at) AS d, COUNT(*) AS total, SUM(ok) AS up
+         FROM service_check_log
+         WHERE checked_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+           AND checked_at < DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+         GROUP BY check_key, DATE(checked_at)"
+    );
+    foreach ($rows as $r) {
+        $timeline[$r['check_key']][$r['d']] = ['total' => (int)$r['total'], 'up' => (int)$r['up']];
+    }
+} catch (\Throwable $e) {
+    // Table may not exist yet on a fresh install — the strip just stays grey.
+}
+
+/** One daily bar cell for the timeline strip (green=100%, amber=partial, red=0%, grey=no data). */
+function status_timeline_bar(string $day, ?array $bucket): string
+{
+    if ($bucket === null) {
+        $bg = 'rgba(255,255,255,.06)';
+        $tip = date('M j', strtotime($day)) . ' — no checks logged';
+    } else {
+        $pct = $bucket['total'] > 0 ? round(100.0 * $bucket['up'] / $bucket['total'], 1) : 0.0;
+        if ($pct >= 100.0) {
+            $bg = '#4ade80';
+        } elseif ($pct <= 0.0) {
+            $bg = '#f87171';
+        } else {
+            $bg = '#fbbf24';
+        }
+        $tip = date('M j', strtotime($day)) . " — {$pct}% ({$bucket['up']}/{$bucket['total']} checks passed)";
+    }
+    return '<span title="' . e($tip) . '" style="flex:1 1 0;min-width:4px;height:22px;border-radius:3px;background:' . $bg . ';cursor:pointer;"></span>';
+}
+
 $overallOk    = count(array_filter($checks, fn($c) => !$c['ok'])) === 0;
 $overallLabel = $overallOk ? 'All systems operational' : 'Some checks are failing';
 $overallClass = $overallOk ? 'success' : 'danger';
 $checkedAt    = date('D d M Y, H:i:s T');
+
+/* ── Uptime calendar ───────────────────────────────────────────────
+   A month grid built from the same real history, plus the incident log
+   that documents what broke, when, and why.
+   ─────────────────────────────────────────────────────────────────── */
+$monthParam = (string)($_GET['month'] ?? date('Y-m'));
+if (!preg_match('/^\d{4}-\d{2}$/', $monthParam)) {
+    $monthParam = date('Y-m');
+}
+$monthStart = date('Y-m-01 00:00:00', strtotime($monthParam . '-01'));
+$monthEnd   = date('Y-m-t 23:59:59', strtotime($monthParam . '-01'));
+$nextMonth  = date('Y-m', strtotime($monthStart . ' +1 month'));
+$prevMonth  = date('Y-m', strtotime($monthStart . ' -1 month'));
+$monthLabel = date('F Y', strtotime($monthStart));
+
+// Daily aggregates across every check for the month.
+$monthDays = [];
+try {
+    $rows = db()->fetchAll(
+        "SELECT DATE(checked_at) AS d, COUNT(*) AS total, SUM(ok) AS up
+         FROM service_check_log
+         WHERE checked_at >= ? AND checked_at <= ?
+         GROUP BY DATE(checked_at)",
+        [$monthStart, $monthEnd]
+    );
+    foreach ($rows as $r) {
+        $monthDays[$r['d']] = ['total' => (int)$r['total'], 'up' => (int)$r['up']];
+    }
+} catch (\Throwable $e) {
+    // Table may not exist yet on a fresh install.
+}
+
+// Incidents for the month (plus anything still open from earlier).
+$incidents = [];
+try {
+    $incidents = db()->fetchAll(
+        "SELECT * FROM service_incidents
+         WHERE (started_at >= ? AND started_at <= ?) OR status = 'open'
+         ORDER BY (status = 'open') DESC, started_at DESC
+         LIMIT 60",
+        [$monthStart, $monthEnd]
+    );
+} catch (\Throwable $e) {
+    // Table may not exist yet on a fresh install.
+}
+
+// Build the calendar grid (weeks start on Monday).
+$firstDayOfMonth = new DateTime($monthStart);
+$gridStart       = (clone $firstDayOfMonth)->modify('-' . ((int)$firstDayOfMonth->format('N') - 1) . ' day');
+$calendarCells   = [];
+$cursor          = clone $gridStart;
+$today           = date('Y-m-d');
+for ($i = 0; $i < 42; $i++) {
+    $dayKey        = $cursor->format('Y-m-d');
+    $inMonth       = $cursor->format('Y-m') === $monthParam;
+    $stats         = $monthDays[$dayKey] ?? null;
+    $dayIncidents  = array_values(array_filter($incidents, fn($inc) => substr((string)$inc['started_at'], 0, 10) === $dayKey));
+
+    if ($stats === null || $stats['total'] === 0) {
+        $state = 'none';
+    } else {
+        $pct = 100.0 * $stats['up'] / $stats['total'];
+        $state = $pct >= 100.0 ? 'ok' : ($pct >= 50.0 ? 'partial' : 'down');
+    }
+
+    $calendarCells[] = [
+        'day'       => $cursor->format('j'),
+        'key'       => $dayKey,
+        'in_month'  => $inMonth,
+        'is_today'  => $dayKey === $today,
+        'state'     => $state,
+        'pct'       => $stats !== null && $stats['total'] > 0
+                        ? round(100.0 * $stats['up'] / $stats['total'], 1)
+                        : null,
+        'checks'    => $stats['total'] ?? 0,
+        'incidents' => $dayIncidents,
+    ];
+    $cursor->modify('+1 day');
+}
 
 require_once __DIR__ . '/includes/app_header.php';
 ?>
@@ -306,6 +437,129 @@ require_once __DIR__ . '/includes/app_header.php';
     </div>
   </div>
 
+  <!-- Uptime calendar -->
+  <div style="background:#0d1524;border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:20px 22px;margin-bottom:18px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+      <div>
+        <div style="color:#fff;font-weight:800;font-size:16px;">
+          <i class="ph ph-calendar-blank" style="color:#7dd3fc;vertical-align:-2px"></i> Uptime calendar
+        </div>
+        <div style="color:#64748b;font-size:12.5px;margin-top:2px;">
+          Every cell is one day of measured results across all services. Hover a day for the exact numbers.
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <a href="?month=<?= e($prevMonth) ?>" class="btn btn-outline-light btn-sm rounded-pill" style="border-color:rgba(255,255,255,.14);">
+          <i class="ph ph-caret-left"></i>
+        </a>
+        <span style="color:#fff;font-weight:700;font-size:14px;min-width:120px;text-align:center;"><?= e($monthLabel) ?></span>
+        <a href="?month=<?= e($nextMonth) ?>" class="btn btn-outline-light btn-sm rounded-pill" style="border-color:rgba(255,255,255,.14);">
+          <i class="ph ph-caret-right"></i>
+        </a>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-bottom:6px;">
+      <?php foreach (['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as $dow): ?>
+        <div style="color:#64748b;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;text-align:center;padding-bottom:2px;"><?= e($dow) ?></div>
+      <?php endforeach; ?>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;">
+      <?php foreach ($calendarCells as $cell):
+        $bg = 'rgba(255,255,255,.035)';
+        $fg = '#475569';
+        if ($cell['state'] === 'ok')      { $bg = 'rgba(74,222,128,.16)';  $fg = '#4ade80'; }
+        elseif ($cell['state'] === 'partial') { $bg = 'rgba(251,191,36,.18)'; $fg = '#fbbf24'; }
+        elseif ($cell['state'] === 'down') { $bg = 'rgba(248,113,113,.22)'; $fg = '#f87171'; }
+        if ($cell['is_today']) { $fg = '#ffffff'; }
+        $tip = $cell['checks'] > 0
+            ? $cell['checks'] . ' checks logged · ' . $cell['pct'] . '% passed'
+            : 'no checks logged';
+        if (!empty($cell['incidents'])) {
+            $tip .= ' · ' . count($cell['incidents']) . ' incident(s): ' . mb_substr((string)$cell['incidents'][0]['title'], 0, 80);
+        }
+      ?>
+        <div title="<?= e($tip) ?>"
+             style="background:<?= $bg ?>;border:1px solid <?= $cell['is_today'] ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.05)' ?>;border-radius:10px;min-height:58px;padding:7px 8px;display:flex;flex-direction:column;justify-content:space-between;<?= $cell['in_month'] ? '' : 'opacity:.35;' ?>">
+          <div style="color:<?= $fg ?>;font-weight:700;font-size:12.5px;"><?= (int)$cell['day'] ?></div>
+          <div style="display:flex;align-items:center;gap:3px;">
+            <?php if ($cell['checks'] > 0): ?>
+              <span style="color:<?= $fg ?>;font-size:10px;font-family:'JetBrains Mono',monospace;"><?= e((string)$cell['pct']) ?>%</span>
+            <?php endif; ?>
+            <?php foreach ($cell['incidents'] as $inc): ?>
+              <span title="<?= e((string)$inc['title']) ?>" style="width:6px;height:6px;border-radius:50%;background:<?= ($inc['status'] ?? '') === 'open' ? '#f87171' : '#fbbf24' ?>;display:inline-block;"></span>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px;color:#64748b;font-size:11.5px;">
+      <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(74,222,128,.5);"></span> all passed</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(251,191,36,.6);"></span> partial failures</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(248,113,113,.65);"></span> mostly failing</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(255,255,255,.06);"></span> no data</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:7px;height:7px;border-radius:50%;background:#f87171;display:inline-block;"></span> incident recorded</span>
+    </div>
+  </div>
+
+  <!-- Incident log: what happened, when, and why -->
+  <div style="background:#0d1524;border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:20px 22px;margin-bottom:18px;">
+    <div style="color:#fff;font-weight:800;font-size:16px;margin-bottom:4px;">
+      <i class="ph ph-fire" style="color:#f87171;vertical-align:-2px"></i> Incident log
+    </div>
+    <div style="color:#64748b;font-size:12.5px;margin-bottom:14px;">
+      Every outage we detected, what caused it, and how long it lasted. Open incidents are also emailed to the platform owner in real time.
+    </div>
+
+    <?php if (empty($incidents)): ?>
+      <div style="color:#64748b;font-size:13px;padding:14px 0;">
+        <i class="ph ph-check-circle" style="color:#4ade80"></i> No incidents recorded for <?= e($monthLabel) ?>. Every check has stayed within its expected behaviour.
+      </div>
+    <?php else: ?>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <?php foreach ($incidents as $inc):
+          $open = ($inc['status'] ?? '') === 'open';
+          $started = (string)$inc['started_at'];
+          $resolved = $inc['resolved_at'] ?? null;
+          $duration = 'ongoing';
+          if ($resolved) {
+            $secs = max(0, strtotime((string)$resolved) - strtotime($started));
+            $duration = $secs < 60 ? $secs . 's'
+                : ($secs < 3600 ? floor($secs / 60) . ' min'
+                : floor($secs / 3600) . 'h ' . floor(($secs % 3600) / 60) . 'm');
+          }
+        ?>
+          <div style="background:rgba(255,255,255,.03);border:1px solid <?= $open ? 'rgba(248,113,113,.35)' : 'rgba(255,255,255,.07)' ?>;border-left:3px solid <?= $open ? '#f87171' : '#fbbf24' ?>;border-radius:12px;padding:14px 16px;">
+            <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:6px;">
+              <span style="color:#fff;font-weight:700;font-size:14px;"><?= e((string)$inc['title']) ?></span>
+              <span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;padding:3px 9px;border-radius:999px;color:<?= $open ? '#fca5a5' : '#fde68a' ?>;background:<?= $open ? 'rgba(248,113,113,.14)' : 'rgba(251,191,36,.14)' ?>;">
+                <?= $open ? 'Investigating' : 'Resolved' ?>
+              </span>
+              <span style="color:#64748b;font-size:11.5px;font-family:'JetBrains Mono',monospace;">
+                <?= e(date('D d M, H:i', strtotime($started))) ?> · <?= e($duration) ?>
+              </span>
+              <?php if (!empty($inc['notified'])): ?>
+                <span style="color:#64748b;font-size:11px;"><i class="ph ph-envelope-simple"></i> owner alerted</span>
+              <?php endif; ?>
+            </div>
+            <?php if (!empty($inc['cause'])): ?>
+              <div style="color:#cbd5e1;font-size:13px;line-height:1.6;">
+                <b style="color:#fff;">Why it happened:</b> <?= e((string)$inc['cause']) ?>
+              </div>
+            <?php endif; ?>
+            <?php if (!empty($inc['detail'])): ?>
+              <div style="color:#64748b;font-size:12px;margin-top:5px;font-family:'JetBrains Mono',monospace;">
+                raw error: <?= e(mb_substr((string)$inc['detail'], 0, 300)) ?>
+              </div>
+            <?php endif; ?>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+  </div>
+
   <?php $lastGroup = ''; foreach ($checks as $c): ?>
     <?php if ($c['group'] !== $lastGroup): $lastGroup = $c['group']; ?>
       <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#64748b;margin:26px 0 10px;"><?= e($c['group']) ?></div>
@@ -323,6 +577,12 @@ require_once __DIR__ . '/includes/app_header.php';
             No history yet — the uptime figure appears after a few hours of logging.
           <?php endif; ?>
         </div>
+        <!-- 30-day daily uptime timeline: hover a bar for that day's real result -->
+        <div aria-label="30-day uptime timeline" style="display:flex;gap:3px;margin-top:8px;max-width:420px;">
+          <?php foreach ($timelineDays as $dKey): ?>
+            <?= status_timeline_bar($dKey, $timeline[$c['key']][$dKey] ?? null) ?>
+          <?php endforeach; ?>
+        </div>
       </div>
       <div style="text-align:right;min-width:120px;">
         <div style="color:<?= $c['ok'] ? '#4ade80' : '#f87171' ?>;font-weight:700;font-size:14px;"><?= $c['ok'] ? 'Operational' : 'Failing' ?></div>
@@ -330,6 +590,15 @@ require_once __DIR__ . '/includes/app_header.php';
       </div>
     </div>
   <?php endforeach; ?>
+
+  <!-- Timeline legend -->
+  <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:16px;color:#64748b;font-size:12px;">
+    <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:#4ade80;"></span> all checks passed</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:#fbbf24;"></span> some failures</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:#f87171;"></span> all failed</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:rgba(255,255,255,.06);"></span> no data</span>
+    <span>· each bar is one day, last 30 days · hover a bar for its real result</span>
+  </div>
 
   <!-- Honest scope note -->
   <div style="background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.14);border-radius:14px;padding:18px 20px;margin-top:28px;">

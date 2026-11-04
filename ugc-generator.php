@@ -213,181 +213,195 @@ $editorProxy = $editorSrc !== '' ? url('media-proxy', ['url' => $editorSrc]) : '
 <?= file_get_contents(__DIR__ . '/assets/js/image-editor.js') ?>
 </script>
 
-<?php require_once __DIR__ . '/includes/footer.php'; exit; ?>
+<?php require_once __DIR__ . '/includes/app_footer.php'; exit; ?>
 <?php endif; ?>
 
 <style>
-/* The generate / gallery surfaces reuse the shared studio design system in
-   assets/css/studio-ui.css. Only page-specific tweaks live here. */
-.page { padding-bottom: 40px; }
+/* The image editor tab reuses assets/css/studio-ui.css; the generate and
+   gallery surfaces use the dedicated cinematic flow theme below. */
+.page { padding-bottom: 0; }
 </style>
+<link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/image-studio-flow.css">
 
-<div class="w-100">
-
-  <div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
-    <div>
-      <h1 class="page-title mb-1"><i class="ph-bold ph-sparkle text-accent me-2"></i>AI Studio</h1>
-      <p class="page-subtitle mb-0">Describe your product, pick a look, and get ad-ready images and videos in one place.</p>
-    </div>
-    <div class="d-flex align-items-center gap-2 flex-wrap">
-      <span class="pill"><i class="ph ph-coins"></i> Credits <b style="color:var(--accent);font-size:14px"><?= number_format($aiCredits) ?></b></span>
-      <a href="<?= url('ugc-video-studio') ?>" class="fl-act"><i class="ph ph-film"></i> Video Studio</a>
-      <a href="<?= url('post-creator') ?>" class="fl-act"><i class="ph ph-share-network"></i> Post</a>
-      <a href="<?= url('create-ad') ?>" class="fl-act pri"><i class="ph ph-megaphone"></i> Launch Ad</a>
-    </div>
+<div class="gf-page">
+  <div class="gf-topnav" style="position:relative">
+    <a href="?tab=generate_image" class="<?= $activeTab === 'generate_image' ? 'on' : '' ?>">
+      <i class="ph ph-aperture"></i> Image Studio
+    </a>
+    <a href="?tab=creative_gallery" class="<?= $activeTab === 'creative_gallery' ? 'on' : '' ?>">
+      <i class="ph ph-squares-four"></i> My images
+    </a>
+    <a href="<?= url('ugc-video-studio') ?>" class="nx">
+      <i class="ph ph-film"></i> Video Studio
+    </a>
   </div>
 
-  <div class="fl-shell fl-3">
+  <div class="gf-shell">
 
-    <!-- ── Left rail: where am I? ─────────────────────────── -->
-    <nav class="fl-rail">
-      <div class="fl-lbl">Studio</div>
-      <div class="fl-nav">
-        <a href="?tab=generate_image" class="<?= $activeTab === 'generate_image' ? 'on' : '' ?>">
-          <i class="ph ph-image-square"></i> Create image
-        </a>
-        <a href="?tab=creative_gallery" class="<?= $activeTab === 'creative_gallery' ? 'on' : '' ?>">
-          <i class="ph ph-squares-four"></i> My images
-        </a>
-        <a href="<?= url('ugc-video-studio') ?>">
-          <i class="ph ph-film"></i> Create video
-        </a>
-      </div>
-      <div class="fl-lbl">Try an example</div>
-      <div class="fl-nav" id="flowInspirationChips">
-        <a href="#" onclick="applyFlowPreset('serum');return false;"><i class="ph ph-drop"></i> Skincare serum</a>
-        <a href="#" onclick="applyFlowPreset('earbuds');return false;"><i class="ph ph-headphones"></i> Wireless earbuds</a>
-        <a href="#" onclick="applyFlowPreset('energy');return false;"><i class="ph ph-lightning"></i> Energy drink</a>
-        <a href="#" onclick="applyFlowPreset('sneakers');return false;"><i class="ph ph-sneaker-move"></i> Running shoes</a>
-        <a href="#" onclick="applyFlowPreset('saas');return false;"><i class="ph ph-desktop"></i> Software app</a>
-        <a href="#" onclick="applyFlowPreset('coffee');return false;"><i class="ph ph-coffee"></i> Cold brew</a>
-      </div>
-    </nav>
-
-    <!-- ── Middle: the controls ───────────────────────────── -->
-    <section class="fl-panel">
+    <!-- ── Left: prompt composer ───────────────────────────── -->
+    <section class="gf-composer">
 
       <?php if ($success): ?>
-        <div class="fl-alert ok"><i class="ph ph-check-circle" style="font-size:18px"></i><span><?= e($success) ?></span></div>
+        <div class="gf-alert ok"><i class="ph ph-check-circle" style="font-size:18px"></i><span><?= e($success) ?></span></div>
       <?php endif; ?>
       <?php if (!empty($errors)): ?>
-        <div class="fl-alert bad"><i class="ph ph-warning-circle" style="font-size:18px"></i>
+        <div class="gf-alert bad"><i class="ph ph-warning-circle" style="font-size:18px"></i>
           <ul><?php foreach ($errors as $err): ?><li><?= e($err) ?></li><?php endforeach; ?></ul>
         </div>
       <?php endif; ?>
 
       <?php if ($activeTab === 'generate_image'): ?>
-        <form method="POST" id="ugcGenForm">
+        <form method="POST" id="ugcGenForm" autocomplete="off">
           <?= csrf_field() ?>
           <input type="hidden" name="action" value="generate_ugc_image">
 
-          <div class="fl-lbl"><span class="step">1</span> What are you selling?</div>
-          <input type="text" id="ugcProductName" name="product_name" class="fl-in" required
-                 placeholder="e.g. Luxe Radiance Facial Serum" value="<?= e($curProduct) ?>">
-          <p class="fl-help">The product, brand or service name. Example: “AquaBottle Pro”.</p>
-
-          <div class="fl-lbl"><span class="step">2</span> What shape do you need?</div>
-          <div class="fl-chips">
-            <?php foreach ($aspectOptions as $val => [$label, $use]): ?>
-              <label class="fl-chip <?= $curAspect === $val ? 'on' : '' ?>">
-                <input type="radio" name="aspect_ratio" value="<?= e($val) ?>" class="d-none" <?= $curAspect === $val ? 'checked' : '' ?>>
-                <?= e($val) ?> · <?= e($label) ?>
-              </label>
-            <?php endforeach; ?>
-          </div>
-          <p class="fl-help">Square for feed posts, vertical for Reels and TikTok, wide for YouTube.</p>
-
-          <div class="fl-lbl"><span class="step">3</span> Where is the photo taken?</div>
-          <?php foreach ($styleOptions as $val => [$label, $desc]): ?>
-            <label class="fl-opt <?= $curStyle === $val ? 'on' : '' ?>">
-              <input type="radio" name="ugc_style" value="<?= e($val) ?>" class="d-none" <?= $curStyle === $val ? 'checked' : '' ?>>
-              <b><?= e($label) ?></b><span><?= e($desc) ?></span>
-            </label>
-          <?php endforeach; ?>
-
-          <div class="fl-lbl"><span class="step">4</span> Who is in the photo?</div>
-          <div class="fl-chips">
-            <?php foreach ($personaOptions as $val => [$label, $desc]): ?>
-              <label class="fl-chip <?= $curPersona === $val ? 'on' : '' ?>">
-                <input type="radio" name="creator_persona" value="<?= e($val) ?>" class="d-none" <?= $curPersona === $val ? 'checked' : '' ?>>
-                <?= e($label) ?> · <?= e($desc) ?>
-              </label>
-            <?php endforeach; ?>
+          <div class="gf-sec">
+            <div class="gf-lbl"><span class="gf-secnum">1</span> What are you selling?</div>
+            <textarea id="ugcProductName" name="product_name" class="gf-in" rows="2" required
+                      placeholder="Describe the product — e.g. Luxe Radiance Facial Serum&#10;(brand, look, what the ad is for)"><?= e($curProduct) ?></textarea>
+            <p class="gf-hint">The studio turns your product into a ready-to-run ad creative.</p>
           </div>
 
-          <details class="fl-disc" <?= ($curAudience !== '' || $curHeadline !== '') ? 'open' : '' ?>>
-            <summary><i class="ph ph-plus-circle"></i> Optional extras <i class="ph ph-caret-down caret"></i></summary>
-            <div class="body">
-              <label class="fl-label" for="ugcAudience">Who is it for?</label>
-              <input type="text" id="ugcAudience" name="target_audience" class="fl-in" style="margin-bottom:10px"
-                     placeholder="e.g. busy students who need focus" value="<?= e($curAudience) ?>">
-              <label class="fl-label" for="ugcHeadline">Text overlay on the image</label>
-              <input type="text" id="ugcHeadline" name="headline" class="fl-in"
-                     placeholder="e.g. My skin in 14 days" value="<?= e($curHeadline) ?>">
-              <p class="fl-help">Leave these blank if you are not sure — we will work without them.</p>
-
-              <label class="fl-label" for="ugcBadgeSelect">Trust badge</label>
-              <select id="ugcBadgeSelect" name="badge_text" class="fl-in">
-                <?php foreach ($badgeOptions as $b): ?>
-                  <option value="<?= e($b) ?>" <?= $curBadge === $b ? 'selected' : '' ?>><?= e($b) ?></option>
-                <?php endforeach; ?>
-              </select>
+          <div class="gf-sec">
+            <div class="gf-lbl"><span class="gf-secnum">2</span> Aspect ratio</div>
+            <div class="gf-chips gf-aspectgr" style="margin-top:8px">
+              <?php foreach ($aspectOptions as $val => [$label, $use]): ?>
+                <label class="gf-chip <?= $curAspect === $val ? 'on' : '' ?>">
+                  <input type="radio" name="aspect_ratio" value="<?= e($val) ?>" class="d-none" <?= $curAspect === $val ? 'checked' : '' ?>>
+                  <i class="ph <?= $val === '9:16' ? 'ph-device-mobile' : ($val === '16:9' ? 'ph-monitor-play' : 'ph-squares-four') ?>"></i>
+                  <span><?= e($val) ?></span>
+                </label>
+              <?php endforeach; ?>
             </div>
-          </details>
+            <p class="gf-hint">Portrait for Reels &amp; TikTok, square for feed posts, wide for YouTube.</p>
+          </div>
 
-          <button type="submit" class="fl-go" id="stGenerateBtn">
-            <i class="ph-bold ph-sparkle"></i> <span>Generate image</span>
+          <div class="gf-sec">
+            <div class="gf-lbl"><span class="gf-secnum">3</span> Scene</div>
+            <div class="gf-styles" style="margin-top:8px">
+              <?php
+              $styleIcons = ['selfie_hold' => 'ph-handbag-simple', 'unboxing' => 'ph-package', 'lifestyle_kitchen' => 'ph-house-line', 'influencer_desk' => 'ph-webcam', 'before_after' => 'ph-swap', 'flatlay' => 'ph-grid-four'];
+              foreach ($styleOptions as $val => [$label, $desc]): ?>
+                <label class="gf-tile <?= $curStyle === $val ? 'on' : '' ?>">
+                  <input type="radio" name="ugc_style" value="<?= e($val) ?>" class="d-none" <?= $curStyle === $val ? 'checked' : '' ?>>
+                  <b><i class="ph <?= $styleIcons[$val] ?? 'ph-image' ?>"></i> <?= e($label) ?></b>
+                  <span><?= e($desc) ?></span>
+                </label>
+              <?php endforeach; ?>
+            </div>
+          </div>
+
+          <div class="gf-sec">
+            <div class="gf-lbl"><span class="gf-secnum">4</span> Creator persona</div>
+            <div class="gf-chips" style="margin-top:8px">
+              <?php foreach ($personaOptions as $val => [$label, $desc]): ?>
+                <label class="gf-chip <?= $curPersona === $val ? 'on' : '' ?>" title="<?= e($desc) ?>">
+                  <input type="radio" name="creator_persona" value="<?= e($val) ?>" class="d-none" <?= $curPersona === $val ? 'checked' : '' ?>>
+                  <span><?= e($label) ?></span>
+                </label>
+              <?php endforeach; ?>
+            </div>
+          </div>
+
+          <div class="gf-sec">
+            <details class="gf-disc" <?= ($curAudience !== '' || $curHeadline !== '' || ($generatedUgc || $curBadge !== $badgeOptions[0])) ? 'open' : '' ?>>
+              <summary><i class="ph ph-plus-circle"></i> Overlay &amp; audience <i class="ph ph-caret-down gf-caret"></i></summary>
+              <div class="gf-discbody">
+                <div class="gf-dl">
+                  <div>
+                    <label for="ugcAudience">Who is it for?</label>
+                    <input type="text" id="ugcAudience" name="target_audience" class="gf-in"
+                           placeholder="e.g. busy students who need focus" value="<?= e($curAudience) ?>">
+                  </div>
+                  <div>
+                    <label for="ugcHeadline">Text overlay</label>
+                    <input type="text" id="ugcHeadline" name="headline" class="gf-in"
+                           placeholder="e.g. My skin in 14 days" value="<?= e($curHeadline) ?>">
+                  </div>
+                </div>
+                <div style="margin-top:12px">
+                  <label for="ugcBadgeSelect" style="font-size:11px;font-weight:700;color:var(--gf-fg2);display:block;margin-bottom:5px;letter-spacing:.02em">Trust badge</label>
+                  <select id="ugcBadgeSelect" name="badge_text" class="gf-in">
+                    <?php foreach ($badgeOptions as $b): ?>
+                      <option value="<?= e($b) ?>" <?= $curBadge === $b ? 'selected' : '' ?>><?= e($b) ?></option>
+                    <?php endforeach; ?>
+                  </select>
+                </div>
+                <p class="gf-hint">Leave blank if unsure — the studio fills reasonable defaults.</p>
+              </div>
+            </details>
+          </div>
+
+          <button type="submit" class="gf-go" id="stGenerateBtn">
+            <i class="ph-bold ph-sparkle"></i> <span>Generate</span>
           </button>
-          <p class="fl-help" style="text-align:center;margin-top:10px">Takes about 10 seconds. Uses 5 credits.</p>
-        </form>
+          <p class="gf-foot">~10 seconds · 5 AI credits</p>
 
+          <div class="gf-insp">
+            <a href="#" onclick="applyFlowPreset('serum');return false;"><i class="ph ph-drop"></i>Skincare serum</a>
+            <a href="#" onclick="applyFlowPreset('earbuds');return false;"><i class="ph ph-headphones"></i>Earbuds</a>
+            <a href="#" onclick="applyFlowPreset('energy');return false;"><i class="ph ph-lightning"></i>Energy drink</a>
+            <a href="#" onclick="applyFlowPreset('sneakers');return false;"><i class="ph ph-sneaker-move"></i>Running shoes</a>
+            <a href="#" onclick="applyFlowPreset('saas');return false;"><i class="ph ph-desktop"></i>Software app</a>
+            <a href="#" onclick="applyFlowPreset('coffee');return false;"><i class="ph ph-coffee"></i>Cold brew</a>
+          </div>
+        </form>
       <?php else: ?>
-        <div class="fl-lbl">Your library</div>
-        <p class="fl-help" style="margin:0 0 14px">
-          Everything you have created is saved here automatically. Pick one to edit, post, or turn into an ad.
-        </p>
-        <a href="?tab=generate_image" class="fl-act pri" style="width:100%;justify-content:center">
-          <i class="ph ph-plus"></i> Create a new image
-        </a>
+        <div class="gf-sec" style="text-align:center">
+          <i class="ph ph-plus" style="font-size:34px;color:var(--gf-fg3);display:inline-block;border:1px solid var(--gf-border);border-radius:18px;padding:18px 22px;margin-bottom:16px"></i>
+          <div class="gf-lbl" style="justify-content:center">Everything you generate is saved here automatically.</div>
+          <p class="gf-hint" style="margin-bottom:16px">Pick any image to edit, post, or turn into a campaign.</p>
+          <a href="?tab=generate_image" class="gf-act pri" style="width:100%;justify-content:center">
+            <i class="ph ph-sparkle"></i> Create a new image
+          </a>
+        </div>
       <?php endif; ?>
     </section>
 
     <!-- ── Right: the stage ───────────────────────────────── -->
-    <section class="fl-stage">
-      <?php if ($activeTab === 'generate_image'): ?>
-        <div class="fl-stagehead">
-          <span class="t"><i class="ph ph-eye"></i> Preview</span>
-          <?php if ($generatedUgc): ?>
-            <span class="m">
-              <?= e($generatedUgc['aspect_ratio']) ?> · <?= (int)$generatedUgc['width'] ?>×<?= (int)$generatedUgc['height'] ?> · seed <?= e((string)$generatedUgc['seed']) ?>
-            </span>
-          <?php endif; ?>
-        </div>
+    <section class="gf-stage">
+      <div class="gf-stagehead">
+        <span class="t"><i class="ph <?= $activeTab === 'generate_image' ? 'ph-image' : 'ph-squares-four' ?>"></i> <?= $activeTab === 'generate_image' ? 'Preview' : 'My images' ?></span>
+        <?php if ($activeTab === 'generate_image' && $generatedUgc): ?>
+          <span class="m">UGGC-1 · <?= e($generatedUgc['aspect_ratio']) ?> · <?= (int)$generatedUgc['width'] ?>×<?= (int)$generatedUgc['height'] ?> · seed <?= e((string)$generatedUgc['seed']) ?></span>
+        <?php elseif ($activeTab === 'generate_image'): ?>
+          <span class="m">waiting for your prompt</span>
+        <?php else: ?>
+          <span class="m"><?= count($recentCreatives) ?> saved</span>
+        <?php endif; ?>
+      </div>
 
-        <div class="fl-canvaswrap" id="stStage">
+      <?php if ($activeTab === 'generate_image'): ?>
+        <div class="gf-canvas" id="stStage">
           <?php if ($generatedUgc): ?>
-            <div style="position:relative;display:inline-block;max-width:100%">
+            <div class="gf-hero">
               <?php if (!empty($generatedUgc['badge_text'])): ?>
-                <span style="position:absolute;top:14px;left:14px;background:var(--accent);color:#0b111c;font-size:12px;font-weight:800;padding:5px 12px;border-radius:999px;z-index:2"><?= e($generatedUgc['badge_text']) ?></span>
+                <span class="gf-badge"><?= e($generatedUgc['badge_text']) ?></span>
               <?php endif; ?>
-              <img id="activeUgcImage" class="fl-img" src="<?= e($generatedUgc['image_url']) ?>" alt="Generated ad image">
-              <div style="position:absolute;left:0;right:0;bottom:0;padding:40px 16px 14px;background:linear-gradient(transparent,rgba(0,0,0,.9));border-radius:0 0 12px 12px;z-index:2">
-                <b style="display:block;color:#fff;font-size:15px;text-shadow:0 2px 6px rgba(0,0,0,.8)"><?= e($generatedUgc['hook_headline']) ?></b>
-                <span style="display:block;color:#cbd5e1;font-size:12.5px;margin-top:3px;text-shadow:0 1px 4px rgba(0,0,0,.8)"><?= e($generatedUgc['ad_copy']) ?></span>
+              <img id="activeUgcImage" src="<?= e($generatedUgc['image_url']) ?>" alt="Generated ad image">
+              <div class="gf-caption">
+                <b><?= e($generatedUgc['hook_headline']) ?></b>
+                <span><?= e($generatedUgc['ad_copy']) ?></span>
               </div>
             </div>
           <?php else: ?>
-            <div class="fl-empty">
-              <i class="ph ph-image"></i>
+            <div class="gf-empty">
+              <i class="ph ph-aperture"></i>
               <h4>Your image appears here</h4>
-              <p>Type your product name on the left, or tap one of the examples in the side menu to fill everything in for you.</p>
+              <p>Describe your product on the left and hit Generate — the studio renders a full ad creative in about ten seconds.</p>
+              <div class="pf-keys">
+                <span><i class="ph ph-handbag-simple" style="vertical-align:-2px"></i> Selfie hold</span>
+                <span><i class="ph ph-package" style="vertical-align:-2px"></i> Unboxing</span>
+                <span><i class="ph ph-grid-four" style="vertical-align:-2px"></i> Flat lay</span>
+                <span><i class="ph ph-swap" style="vertical-align:-2px"></i> Before / after</span>
+              </div>
             </div>
           <?php endif; ?>
         </div>
 
         <?php if ($generatedUgc): ?>
-          <div class="pill-row" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
-            <form method="POST" class="d-inline">
+          <div class="gf-actions">
+            <form method="POST" style="display:contents">
               <?= csrf_field() ?>
               <input type="hidden" name="action" value="regenerate_variation">
               <input type="hidden" name="product_name" value="<?= e($generatedUgc['product_name']) ?>">
@@ -397,78 +411,112 @@ $editorProxy = $editorSrc !== '' ? url('media-proxy', ['url' => $editorSrc]) : '
               <input type="hidden" name="target_audience" value="<?= e($curAudience) ?>">
               <input type="hidden" name="headline" value="<?= e($generatedUgc['hook_headline']) ?>">
               <input type="hidden" name="badge_text" value="<?= e($generatedUgc['badge_text']) ?>">
-              <button type="submit" class="fl-act"><i class="ph ph-arrows-clockwise"></i> Try another version</button>
+              <button type="submit" class="gf-act"><i class="ph ph-arrows-clockwise"></i> New variation</button>
             </form>
-            <a href="?tab=image_editor&img=<?= urlencode($generatedUgc['image_url']) ?>&headline=<?= urlencode($generatedUgc['hook_headline']) ?>&badge=<?= urlencode($generatedUgc['badge_text'] ?? '') ?>" class="fl-act"><i class="ph ph-paint-brush-broad"></i> Edit</a>
-            <a href="<?= e($generatedUgc['image_url']) ?>" target="_blank" rel="noopener" download="adsbooster-ugc-<?= time() ?>.png" class="fl-act"><i class="ph ph-download-simple"></i> Download</a>
-            <a href="<?= url('post-creator') ?>?media_url=<?= urlencode($generatedUgc['image_url']) ?>&caption=<?= urlencode($generatedUgc['hook_headline'] . "\n\n" . $generatedUgc['ad_copy']) ?>" class="fl-act"><i class="ph ph-paper-plane-tilt"></i> Post to social</a>
-            <a href="<?= url('create-ad') ?>?image_url=<?= urlencode($generatedUgc['image_url']) ?>&headline=<?= urlencode($generatedUgc['hook_headline']) ?>&primary_text=<?= urlencode($generatedUgc['ad_copy']) ?>" class="fl-act pri"><i class="ph ph-rocket-launch"></i> Run as an ad</a>
+            <a href="?tab=image_editor&img=<?= urlencode($generatedUgc['image_url']) ?>&headline=<?= urlencode($generatedUgc['hook_headline']) ?>&badge=<?= urlencode($generatedUgc['badge_text'] ?? '') ?>" class="gf-act"><i class="ph ph-paint-brush-broad"></i> Edit</a>
+            <a href="<?= e($generatedUgc['image_url']) ?>" target="_blank" rel="noopener" download="adsbooster-ugc-<?= time() ?>.png" class="gf-act"><i class="ph ph-download-simple"></i> Download</a>
+            <a href="<?= url('post-creator') ?>?media_url=<?= urlencode($generatedUgc['image_url']) ?>&caption=<?= urlencode($generatedUgc['hook_headline'] . "\n\n" . $generatedUgc['ad_copy']) ?>" class="gf-act"><i class="ph ph-paper-plane-tilt"></i> Post</a>
+            <a href="<?= url('create-ad') ?>?image_url=<?= urlencode($generatedUgc['image_url']) ?>&headline=<?= urlencode($generatedUgc['hook_headline']) ?>&primary_text=<?= urlencode($generatedUgc['ad_copy']) ?>" class="gf-act pri"><i class="ph ph-rocket-launch"></i> Run as ad</a>
+          </div>
+        <?php endif; ?>
+
+        <!-- Generation filmstrip — your last creations -->
+        <?php if (!empty($recentCreatives)): ?>
+          <div class="gf-filmwrap">
+            <div class="gf-filmhead">
+              <span><i class="ph ph-clock-counter-clockwise" style="vertical-align:-1px"></i> Recent generations</span>
+              <a href="?tab=creative_gallery">View all <i class="ph ph-arrow-right" style="vertical-align:-2px"></i></a>
+            </div>
+            <div class="gf-film">
+              <?php foreach ($recentCreatives as $c):
+                $data = json_decode($c['result_output'] ?? '{}', true) ?: [];
+                $img  = (string)($data['image_url'] ?? '');
+                if (!$img) continue;
+                $title = (string)($data['product_name'] ?? 'Image creative');
+                $isCur = $generatedUgc && ($generatedUgc['image_url'] ?? '') === $img;
+              ?>
+                <div class="gf-thumb <?= $isCur ? 'cur' : '' ?>">
+                  <img src="<?= e($img) ?>" alt="<?= e($title) ?>" loading="lazy">
+                  <div class="gf-ov">
+                    <a href="?tab=image_editor&img=<?= urlencode($img) ?>" title="Edit"><i class="ph ph-paint-brush-broad"></i></a>
+                    <a href="<?= url('post-creator') ?>?media_url=<?= urlencode($img) ?>" title="Post"><i class="ph ph-paper-plane-tilt"></i></a>
+                    <a href="<?= url('create-ad') ?>?image_url=<?= urlencode($img) ?>" title="Run as ad"><i class="ph ph-rocket-launch"></i></a>
+                  </div>
+                  <div class="tt"><?= e($title) ?></div>
+                </div>
+              <?php endforeach; ?>
+            </div>
           </div>
         <?php endif; ?>
 
       <?php else: ?>
-        <div class="fl-stagehead">
-          <span class="t"><i class="ph ph-images"></i> My images</span>
-          <span class="m"><?= count($recentCreatives) ?> saved</span>
-        </div>
-        <?php if (!empty($recentCreatives)): ?>
-          <div class="fl-lib">
-            <?php foreach ($recentCreatives as $c):
-              $data     = json_decode($c['result_output'] ?? '{}', true) ?: [];
-              $img      = (string)($data['image_url'] ?? '');
-              $title    = (string)($data['product_name'] ?? 'Image creative');
-              $headline = (string)($data['hook_headline'] ?? ($c['prompt'] ?? ''));
-              $badgeTxt = (string)($data['badge_text'] ?? '');
-            ?>
-              <div class="fl-card">
-                <?php if ($img): ?>
-                  <img src="<?= e($img) ?>" alt="<?= e($title) ?>" loading="lazy">
-                <?php else: ?>
-                  <div style="height:168px;display:flex;align-items:center;justify-content:center;color:var(--fg3);font-size:30px"><i class="ph ph-image"></i></div>
-                <?php endif; ?>
-                <div class="bd">
-                  <h5><?= e($title) ?></h5>
-                  <p><?= e($headline) ?></p>
-                  <span style="font-size:11px;color:var(--fg3)"><?= date('M d, Y', strtotime($c['created_at'])) ?> · <?= (int)$c['credits_used'] ?> credits</span>
-                </div>
-                <?php if ($img): ?>
-                  <div class="ft">
-                    <a class="pri" href="?tab=image_editor&img=<?= urlencode($img) ?>&headline=<?= urlencode($headline) ?>&badge=<?= urlencode($badgeTxt) ?>"><i class="ph ph-paint-brush-broad"></i> Edit</a>
-                    <a href="<?= url('post-creator') ?>?media_url=<?= urlencode($img) ?>&caption=<?= urlencode($headline) ?>">Post</a>
-                    <a href="<?= url('create-ad') ?>?image_url=<?= urlencode($img) ?>&headline=<?= urlencode($headline) ?>&primary_text=<?= urlencode($data['ad_copy'] ?? '') ?>">Run ad</a>
+        <div class="gf-canvas" style="min-height:auto;padding:26px;align-items:stretch;display:block">
+          <?php if (!empty($recentCreatives)): ?>
+            <div class="gf-grid">
+              <?php foreach ($recentCreatives as $c):
+                $data     = json_decode($c['result_output'] ?? '{}', true) ?: [];
+                $img      = (string)($data['image_url'] ?? '');
+                $title    = (string)($data['product_name'] ?? 'Image creative');
+                $headline = (string)($data['hook_headline'] ?? ($c['prompt'] ?? ''));
+                $badgeTxt = (string)($data['badge_text'] ?? '');
+              ?>
+                <div class="gf-gcard">
+                  <?php if ($img): ?>
+                    <img src="<?= e($img) ?>" alt="<?= e($title) ?>" loading="lazy">
+                  <?php else: ?>
+                    <div style="height:165px;display:flex;align-items:center;justify-content:center;color:var(--gf-fg3);font-size:32px"><i class="ph ph-image"></i></div>
+                  <?php endif; ?>
+                  <div class="bd">
+                    <h5><?= e($title) ?></h5>
+                    <p><?= e($headline) ?></p>
                   </div>
-                <?php endif; ?>
-              </div>
-            <?php endforeach; ?>
-          </div>
-        <?php else: ?>
-          <div class="fl-canvaswrap">
-            <div class="fl-empty">
-              <i class="ph ph-images"></i>
-              <h4>Nothing saved yet</h4>
-              <p>Images you create are kept here automatically so you can reuse them any time. Start with an example from the left menu.</p>
-              <a href="?tab=generate_image" class="fl-act pri" style="margin-top:16px"><i class="ph ph-sparkle"></i> Create your first image</a>
+                  <?php if ($img): ?>
+                    <div class="ft">
+                      <a class="pri" href="?tab=image_editor&img=<?= urlencode($img) ?>&headline=<?= urlencode($headline) ?>&badge=<?= urlencode($badgeTxt) ?>"><i class="ph ph-paint-brush-broad"></i> Edit</a>
+                      <a href="<?= url('post-creator') ?>?media_url=<?= urlencode($img) ?>&caption=<?= urlencode($headline) ?>"><i class="ph ph-paper-plane-tilt"></i> Post</a>
+                      <a href="<?= url('create-ad') ?>?image_url=<?= urlencode($img) ?>&headline=<?= urlencode($headline) ?>&primary_text=<?= urlencode($data['ad_copy'] ?? '') ?>"><i class="ph ph-rocket-launch"></i> Ad</a>
+                    </div>
+                  <?php endif; ?>
+                </div>
+              <?php endforeach; ?>
             </div>
-          </div>
-        <?php endif; ?>
+          <?php else: ?>
+            <div class="gf-empty" style="padding:30px 10px">
+              <i class="ph ph-squares-four"></i>
+              <h4>Nothing saved yet</h4>
+              <p>Every creative you generate lands here. Start with an example preset from the composer.</p>
+              <a href="?tab=generate_image" class="gf-act pri" style="margin-top:4px"><i class="ph ph-sparkle"></i> Create your first image</a>
+            </div>
+          <?php endif; ?>
+        </div>
       <?php endif; ?>
     </section>
   </div>
 </div>
 
 <script>
-/* ── Chip / option selection (delegated, works for any group) ── */
+/* ── Chip / tile selection (delegated, covers persona chips too) ── */
 document.addEventListener('click', function (e) {
-  const chip = e.target.closest('.fl-chip, .fl-opt');
-  if (!chip || !chip.closest('form')) return;
-  const input = chip.querySelector('input[type=radio]');
-  if (!input) return;
-  const name = input.name;
-  chip.closest('form').querySelectorAll('input[name="' + name + '"]').forEach(r => {
-    const lab = r.closest('.fl-chip, .fl-opt');
-    if (lab) lab.classList.remove('on');
+  const pick = e.target.closest('.gf-chip, .gf-tile');
+  if (!pick) return;
+  const input = pick.querySelector('input[type=radio]');
+  if (!input || !input.name) return;
+  document.querySelectorAll('input[name="' + input.name + '"]').forEach(r => {
+    const lab = r.closest('.gf-chip, .gf-tile');
+    if (lab) lab.classList.toggle('on', r.checked);
   });
-  chip.classList.add('on');
+  pick.classList.add('on');
+});
+
+/* Persona chips have no visual "on" until one is clicked; keep the styled
+   default (Lexi) in sync with the checked radio on load. */
+document.querySelectorAll('input[name="creator_persona"]:checked').forEach(r => {
+  const lab = r.closest('.gf-chip');
+  if (lab) lab.classList.add('on');
+});
+document.querySelectorAll('input[name="aspect_ratio"]:checked, input[name="ugc_style"]:checked').forEach(r => {
+  const lab = r.closest('.gf-chip, .gf-tile');
+  if (lab && !lab.classList.contains('on')) lab.classList.add('on');
 });
 
 /* ── Loading state on generate ── */
@@ -483,12 +531,12 @@ if (genForm) {
 /* ── One-click example presets ── */
 function applyFlowPreset(type) {
   const presets = {
-    serum:   { name:"Luxe Botanical Glow Serum (50ml)", style:"selfie_hold", persona:"luxury_model", aspect:"1:1", audience:"Women 22-45 looking for simple daily hydration", headline:"Glass skin without ten complicated steps", badge:"⭐⭐⭐⭐⭐ 4.9/5 Rating (1,240+ Reviews)" },
-    earbuds: { name:"AuraWave ANC Pro Wireless Earbuds", style:"influencer_desk", persona:"tech_reviewer", aspect:"9:16", audience:"Remote workers who need quiet focus", headline:"I replaced my $300 headphones with these", badge:"🏆 #1 Bestseller in 2026" },
-    energy:  { name:"VoltClean Organic Energy Drink", style:"selfie_hold", persona:"fitness_athlete", aspect:"9:16", audience:"Students and athletes who need steady focus", headline:"Zero sugar, zero crash", badge:"🔥 50% OFF TODAY ONLY" },
-    sneakers:{ name:"StrideZero Cloud-Knit Running Shoes", style:"unboxing", persona:"gen_z", aspect:"1:1", audience:"Runners and city commuters", headline:"20,000 steps and no sore feet", badge:"✅ 100% Verified Customer" },
-    saas:    { name:"AdFlow AI Ad Scaling Suite", style:"influencer_desk", persona:"saas_founder", aspect:"16:9", audience:"Online store owners and media buyers", headline:"Scaling ads without wasting budget", badge:"🏆 #1 Bestseller in 2026" },
-    coffee:  { name:"VelvetRoast Micro-Batch Cold Brew", style:"lifestyle_kitchen", persona:"homemaker", aspect:"1:1", audience:"Coffee drinkers who want a smoother cup", headline:"The smoothest morning brew you will try", badge:"🚚 Free Express Shipping Worldwide" }
+    serum:   { name:"Luxe Botanical Glow Serum (50ml)\nA glass skincare bottle with botanical styling, photographed for a paid social ad.", style:"selfie_hold", persona:"luxury_model", aspect:"1:1", audience:"Women 22-45 looking for simple daily hydration", headline:"Glass skin without ten complicated steps", badge:"⭐⭐⭐⭐⭐ 4.9/5 Rating (1,240+ Reviews)" },
+    earbuds: { name:"AuraWave ANC Pro Wireless Earbuds\nMatte black charging case, studio desk setup.", style:"influencer_desk", persona:"tech_reviewer", aspect:"9:16", audience:"Remote workers who need quiet focus", headline:"I replaced my $300 headphones with these", badge:"🏆 #1 Bestseller in 2026" },
+    energy:  { name:"VoltClean Organic Energy Drink\nSlim aluminum can, condensation, gym lighting.", style:"selfie_hold", persona:"fitness_athlete", aspect:"9:16", audience:"Students and athletes who need steady focus", headline:"Zero sugar, zero crash", badge:"🔥 50% OFF TODAY ONLY" },
+    sneakers:{ name:"StrideZero Cloud-Knit Running Shoes\nKnit upper, street colors, city backdrop.", style:"unboxing", persona:"gen_z", aspect:"1:1", audience:"Runners and city commuters", headline:"20,000 steps and no sore feet", badge:"✅ 100% Verified Customer" },
+    saas:    { name:"AdFlow AI Ad Scaling Suite\nDark dashboard on a laptop for a B2B ad.", style:"influencer_desk", persona:"saas_founder", aspect:"16:9", audience:"Online store owners and media buyers", headline:"Scaling ads without wasting budget", badge:"🏆 #1 Bestseller in 2026" },
+    coffee:  { name:"VelvetRoast Micro-Batch Cold Brew\nFrosted glass bottle, morning kitchen light.", style:"lifestyle_kitchen", persona:"homemaker", aspect:"1:1", audience:"Coffee drinkers who want a smoother cup", headline:"The smoothest morning brew you will try", badge:"🚚 Free Express Shipping Worldwide" }
   };
   const p = presets[type];
   const form = document.getElementById('ugcGenForm');
@@ -499,7 +547,7 @@ function applyFlowPreset(type) {
     if (!r) return;
     r.checked = true;
     form.querySelectorAll('input[name="' + name + '"]').forEach(x => {
-      const lab = x.closest('.fl-chip, .fl-opt');
+      const lab = x.closest('.gf-chip, .gf-tile');
       if (lab) lab.classList.toggle('on', x.checked);
     });
   };
@@ -512,8 +560,9 @@ function applyFlowPreset(type) {
   setRadio('creator_persona', p.persona);
   setRadio('aspect_ratio', p.aspect);
 
-  if (n) { n.focus(); n.scrollIntoView({behavior:'smooth', block:'center'}); }
+  if (n) { n.focus(); n.scrollIntoView({behavior:'smooth', block:'start'}); }
+  const details = form.querySelector('details.gf-disc'); if (details) details.open = true;
 }
 </script>
 
-<?php require_once __DIR__ . '/includes/footer.php'; ?>
+<?php require_once __DIR__ . '/includes/app_footer.php'; ?>

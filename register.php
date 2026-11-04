@@ -112,6 +112,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $body     = "Hi {$fullName},\n\nYour account has been created. Start exploring your dashboard:\n\n" . BASE_URL . "/dashboard.php\n\nâ€“ The {$siteName} Team";
             mail($email, $subject, $body);
 
+            // Email-first: the branded transactional email is the account's
+            // first real touchpoint (the bare mail() above depends on a local
+            // MTA that production does not run).
+            try {
+                require_once __DIR__ . '/modules/notifier.php';
+                Notifier::user($userId, 'account_registered', [
+                    'name'    => $fullName,
+                    'credits' => (int)get_setting('signup_ai_credits', '100'),
+                    'link'    => BASE_URL . '/onboarding',
+                ]);
+            } catch (\Throwable $mailErr) {
+                error_log('Registration email failed: ' . $mailErr->getMessage());
+            }
+
             auth_login(db()->fetch("SELECT * FROM users WHERE id = ?", [$userId]));
 
             redirect(url('onboarding'));

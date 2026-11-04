@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS `third_party_gateways` (
     `is_active` TINYINT(1) NOT NULL DEFAULT 1,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 INSERT INTO `third_party_gateways` (`provider_key`, `api_key`, `base_url`, `is_active`) VALUES
 ('bundle_social', 'YOUR_BUNDLE_SOCIAL_API_KEY', 'https://api.bundle.social/v1', 1),
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS `connected_accounts` (
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
     UNIQUE KEY `user_gateway_ext_acc` (`user_id`, `gateway_provider`, `external_account_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 -- 3. Asynchronous High-Throughput Job Queue Engine
 CREATE TABLE IF NOT EXISTS `async_job_queue` (
@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS `async_job_queue` (
     INDEX `idx_queue_status_schedule` (`status`, `scheduled_at`),
     INDEX `idx_user_jobs` (`user_id`, `status`),
     INDEX `idx_queue_subject` (`subject_key`, `status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 -- 4. Link Ad Campaigns to the Zernio gateway (idempotent: pre-existing
 --    columns from migrate_gateways.php v4.0 are left untouched)

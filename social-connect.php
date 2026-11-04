@@ -62,6 +62,18 @@ if (isset($_GET['action']) && $_GET['action'] === 'bundle_connected') {
                 '/social-connect.php'
             );
         } catch (\Throwable $e) {}
+        try {
+            require_once __DIR__ . '/modules/notifier.php';
+            Notifier::user($userId, 'account_connected', [
+                'platform'     => ucfirst((string)$platform),
+                'account_name' => $name,
+                'account_type' => 'Organic profile (Bundle.social)',
+                'connected_at' => date('c'),
+                'link'         => BASE_URL . '/post-creator',
+            ]);
+        } catch (\Throwable $e) {
+            error_log('Account-connected email failed: ' . $e->getMessage());
+        }
         set_flash('success', "Organic social profile ({$name}) connected successfully via Bundle.social!");
     } catch (\Throwable $e) {
         set_flash('error', "Could not link account: " . $e->getMessage());
@@ -96,6 +108,18 @@ if (isset($_GET['action']) && $_GET['action'] === 'zernio_connected') {
                 '/social-connect.php'
             );
         } catch (\Throwable $e) {}
+        try {
+            require_once __DIR__ . '/modules/notifier.php';
+            Notifier::user($userId, 'account_connected', [
+                'platform'     => ucfirst((string)$network) . ' Ads',
+                'account_name' => $name,
+                'account_type' => 'Ad account (Zernio)',
+                'connected_at' => date('c'),
+                'link'         => BASE_URL . '/create-ad',
+            ]);
+        } catch (\Throwable $e) {
+            error_log('Ad-account-connected email failed: ' . $e->getMessage());
+        }
         set_flash('success', "Ad Manager account ({$name}) connected successfully via Zernio!");
     } catch (\Throwable $e) {
         set_flash('error', "Could not link ad account: " . $e->getMessage());

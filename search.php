@@ -3,26 +3,17 @@ require_once __DIR__ . '/config/site_setting_and_config.php';
 
 $pageTitle = 'Search — ' . get_setting('site_name', 'Adsbooster.net');
 
-require_once __DIR__ . '/includes/auth_guard.php';
+// Public page: reachable from the landing header search popup for visitors
+// and members alike — no auth_guard.
 
 $query = trim($_GET['q'] ?? '');
 $blogPosts = [];
 $marketplaceItems = [];
+$jobs = [];
+$bounties = [];
 
 if (mb_strlen($query) >= 2) {
     $searchTerm = '%' . $query . '%';
-
-    try {
-        $blogPosts = db()->fetchAll(
-            "SELECT id, title, slug, excerpt, featured_image, published_at
-             FROM blog_posts
-             WHERE status = 'published'
-               AND (title LIKE ? OR excerpt LIKE ?)
-             ORDER BY published_at DESC
-             LIMIT 12",
-            [$searchTerm, $searchTerm]
-        );
-    } catch (\Throwable $e) { $blogPosts = []; }
 
     try {
         $marketplaceItems = db()->fetchAll(
@@ -35,9 +26,46 @@ if (mb_strlen($query) >= 2) {
             [$searchTerm, $searchTerm, $searchTerm]
         );
     } catch (\Throwable $e) { $marketplaceItems = []; }
+
+    try {
+        $jobs = db()->fetchAll(
+            "SELECT id, title, slug, category, job_type, location_type, location,
+                    salary_min, salary_max, salary_currency, salary_period
+             FROM jobs
+             WHERE status = 'open'
+               AND (title LIKE ? OR description LIKE ? OR skills_required LIKE ? OR category LIKE ? OR location LIKE ?)
+             ORDER BY created_at DESC
+             LIMIT 12",
+            [$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm]
+        );
+    } catch (\Throwable $e) { $jobs = []; }
+
+    try {
+        $bounties = db()->fetchAll(
+            "SELECT id, title, platform, content_type, bounty_amount, total_escrow_held
+             FROM creator_bounties
+             WHERE status = 'open'
+               AND (title LIKE ? OR description LIKE ? OR content_type LIKE ?)
+             ORDER BY created_at DESC
+             LIMIT 12",
+            [$searchTerm, $searchTerm, $searchTerm]
+        );
+    } catch (\Throwable $e) { $bounties = []; }
+
+    try {
+        $blogPosts = db()->fetchAll(
+            "SELECT id, title, slug, excerpt, featured_image, published_at
+             FROM blog_posts
+             WHERE status = 'published'
+               AND (title LIKE ? OR excerpt LIKE ?)
+             ORDER BY published_at DESC
+             LIMIT 12",
+            [$searchTerm, $searchTerm]
+        );
+    } catch (\Throwable $e) { $blogPosts = []; }
 }
 
-$totalResults = count($blogPosts) + count($marketplaceItems);
+$totalResults = count($blogPosts) + count($marketplaceItems) + count($jobs) + count($bounties);
 
 require_once __DIR__ . '/includes/header.php';
 ?>
@@ -67,8 +95,90 @@ require_once __DIR__ . '/includes/header.php';
             </div>
         <?php endif; ?>
 
-        <?php if (!empty($blogPosts)): ?>
+        <?php if (!empty($marketplaceItems)): ?>
         <div class="tw-mb-10">
+            <h3 class="h4 text-white fw-bold tw-mb-6">Marketplace &amp; Directory</h3>
+            <div class="row g-4">
+                <?php foreach ($marketplaceItems as $item): ?>
+                    <div class="col-md-4">
+                        <a href="<?= url('listing-details', ['id' => $item['id']]) ?>"
+                           class="bg-white-06 border border-neutral-700 tw-rounded-xl overflow-hidden d-block text-decoration-none hover-border-main-600 tw-transition h-100">
+                            <?php if (!empty($item['featured_image'])): ?>
+                                <div style="height:180px;">
+                                    <img src="<?= ASSETS_URL . '/' . e($item['featured_image']) ?>" alt="" class="w-100 h-100" style="object-fit:cover;">
+                                </div>
+                            <?php endif; ?>
+                            <div class="tw-p-5">
+                                <h5 class="text-white fw-bold tw-mb-2"><?= e($item['title']) ?></h5>
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span class="badge bg-white-06 text-white rounded-pill tw-px-3 tw-py-1 tw-text-xs text-capitalize"><?= e($item['item_type'] ?? '') ?></span>
+                                    <?php if (!empty($item['price'])): ?>
+                                        <span class="text-main-600 fw-bold">$<?= number_format((float)$item['price'], 2) ?></span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <?php if (!empty($jobs)): ?>
+        <div class="tw-mb-10">
+            <h3 class="h4 text-white fw-bold tw-mb-6">Jobs</h3>
+            <div class="row g-4">
+                <?php foreach ($jobs as $job): ?>
+                    <div class="col-md-4">
+                        <a href="<?= url('job-details', ['id' => $job['id']]) ?>"
+                           class="bg-white-06 border border-neutral-700 tw-rounded-xl d-block text-decoration-none hover-border-main-600 tw-transition h-100 tw-p-5">
+                            <div class="d-flex align-items-center justify-content-between tw-mb-2">
+                                <span class="badge bg-white-06 text-white rounded-pill tw-px-3 tw-py-1 tw-text-xs text-capitalize"><?= e($job['job_type'] ?? '') ?></span>
+                                <small class="text-white-50 text-capitalize"><?= e(($job['location_type'] ?? '') . ($job['location'] !== null && $job['location'] !== '' ? ' · ' . $job['location'] : '')) ?></small>
+                            </div>
+                            <h5 class="text-white fw-bold tw-mb-2"><?= e($job['title']) ?></h5>
+                            <?php if ($job['salary_min'] !== null || $job['salary_max'] !== null): ?>
+                                <span class="text-main-600 fw-bold tw-text-sm">
+                                    $<?= number_format((float)($job['salary_min'] ?? 0)) ?>
+                                    <?php if ($job['salary_max'] !== null && (float)$job['salary_max'] > (float)$job['salary_min']): ?>
+                                        – $<?= number_format((float)$job['salary_max']) ?>
+                                    <?php endif; ?>
+                                    / <?= e($job['salary_period'] ?? 'month') ?>
+                                </span>
+                            <?php endif; ?>
+                        </a>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <?php if (!empty($bounties)): ?>
+        <div class="tw-mb-10">
+            <h3 class="h4 text-white fw-bold tw-mb-6">Creator Bounties</h3>
+            <div class="row g-4">
+                <?php foreach ($bounties as $bounty): ?>
+                    <div class="col-md-4">
+                        <a href="<?= url('bounty-details', ['id' => $bounty['id']]) ?>"
+                           class="bg-white-06 border border-neutral-700 tw-rounded-xl d-block text-decoration-none hover-border-main-600 tw-transition h-100 tw-p-5">
+                            <div class="d-flex align-items-center justify-content-between tw-mb-2">
+                                <span class="badge bg-white-06 text-white rounded-pill tw-px-3 tw-py-1 tw-text-xs text-capitalize"><?= e(str_replace('_', ' ', (string)($bounty['content_type'] ?? ''))) ?></span>
+                                <small class="text-white-50 text-capitalize"><?= e(str_replace('_', ' ', (string)($bounty['platform'] ?? ''))) ?></small>
+                            </div>
+                            <h5 class="text-white fw-bold tw-mb-2"><?= e($bounty['title']) ?></h5>
+                            <span class="text-main-600 fw-bold tw-text-sm">
+                                $<?= number_format((float)$bounty['bounty_amount'], 2) ?>
+                                <small class="text-white-50 fw-normal">escrowed</small>
+                            </span>
+                        </a>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <?php if (!empty($blogPosts)): ?>
+        <div>
             <h3 class="h4 text-white fw-bold tw-mb-6">Blog Posts</h3>
             <div class="row g-4">
                 <?php foreach ($blogPosts as $post): ?>
@@ -86,35 +196,6 @@ require_once __DIR__ . '/includes/header.php';
                                 <?php if ($post['published_at']): ?>
                                     <small class="text-white-50 tw-mt-2 d-block"><?= date('M d, Y', strtotime($post['published_at'])) ?></small>
                                 <?php endif; ?>
-                            </div>
-                        </a>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
-        <?php endif; ?>
-
-        <?php if (!empty($marketplaceItems)): ?>
-        <div>
-            <h3 class="h4 text-white fw-bold tw-mb-6">Marketplace</h3>
-            <div class="row g-4">
-                <?php foreach ($marketplaceItems as $item): ?>
-                    <div class="col-md-4">
-                        <a href="<?= url('marketplace') ?>?tab=<?= e($item['item_type'] ?? 'products') ?>"
-                           class="bg-white-06 border border-neutral-700 tw-rounded-xl overflow-hidden d-block text-decoration-none hover-border-main-600 tw-transition h-100">
-                            <?php if (!empty($item['featured_image'])): ?>
-                                <div style="height:180px;">
-                                    <img src="<?= ASSETS_URL . '/' . e($item['featured_image']) ?>" alt="" class="w-100 h-100" style="object-fit:cover;">
-                                </div>
-                            <?php endif; ?>
-                            <div class="tw-p-5">
-                                <h5 class="text-white fw-bold tw-mb-2"><?= e($item['title']) ?></h5>
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <span class="badge bg-white-06 text-white rounded-pill tw-px-3 tw-py-1 tw-text-xs text-capitalize"><?= e($item['item_type'] ?? '') ?></span>
-                                    <?php if (!empty($item['price'])): ?>
-                                        <span class="text-main-600 fw-bold">$<?= number_format((float)$item['price'], 2) ?></span>
-                                    <?php endif; ?>
-                                </div>
                             </div>
                         </a>
                     </div>

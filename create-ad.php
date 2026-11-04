@@ -291,6 +291,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                             $okLabels = array_map(fn($p) => $dispatchPlatforms[$p]['label'] ?? ucfirst($p), $reqPlatforms);
                             set_flash('success', "🚀 Ad Campaign '{$old['campaign_name']}' queued for launch via the Zernio Ad Engine across: " . implode(', ', $okLabels) . ". Background workers are provisioning it now — status becomes active on Zernio confirmation (job #{$jobId}).");
+
+                            // Email-first: confirm the queue hand-off now, the
+                            // live/failure verdict arrives from the worker.
+                            try {
+                                require_once __DIR__ . '/modules/notifier.php';
+                                Notifier::user($userId, 'ad_launched', [
+                                    'campaign_name' => (string)$old['campaign_name'],
+                                    'platforms'     => implode(', ', $okLabels),
+                                    'budget'        => number_format((float)($old['budget_amount'] ?? 0), 2),
+                                    'objective'     => (string)($old['objective'] ?? 'conversions'),
+                                    'link'          => BASE_URL . '/campaigns',
+                                ]);
+                            } catch (\Throwable $mailErr) {
+                                error_log('Ad-queued email failed: ' . $mailErr->getMessage());
+                            }
+
                             redirect(url('create-ad') . '?launched=1');
                         }
 

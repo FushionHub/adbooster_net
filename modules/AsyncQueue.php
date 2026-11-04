@@ -433,13 +433,39 @@ class AsyncQueue
 
         $zid = (string)($res['data']['campaign_id'] ?? ($res['data']['id'] ?? ''));
 
+        // Email-first: report a launch failure to the user exactly once per
+        // campaign (the queue retries with backoff, so a plain throw would
+        // mail the user on every attempt).
+        $failReason = null;
         if (!empty($res['data']['simulated'])) {
-            // Honest hold: the campaign stays 'pending' (nothing invented);
-            // retryFailed() re-queues once a live Zernio key is configured.
-            throw new \RuntimeException('SIMULATED: Zernio answered from the sandbox (placeholder API key) — launch held, campaign remains pending.');
+            $failReason = 'The ad gateway answered from its sandbox (placeholder API key), so the launch was held and no campaign was created.';
+        } elseif (empty($res['success']) || $zid === '') {
+            $failReason = 'The ad network rejected the launch: ' . mb_substr((string)($res['error'] ?? json_encode($res['data'] ?? [])), 0, 400);
         }
 
-        if (empty($res['success']) || $zid === '') {
+        if ($failReason !== null) {
+            try {
+                if (empty($spec['failure_notified_at'])) {
+                    require_once __DIR__ . '/notifier.php';
+                    Notifier::user((int)$campaign['user_id'], 'ad_failed', [
+                        'campaign_name' => (string)($campaign['campaign_name'] ?? 'Campaign'),
+                        'reason'        => $failReason,
+                        'link'          => (defined('BASE_URL') ? BASE_URL : '') . '/campaigns',
+                        'time'          => date('c'),
+                    ]);
+                    $spec['failure_notified_at'] = date('c');
+                    db()->update('ad_campaigns', ['targeting_spec' => json_encode($spec)], 'id = ?', [$campaignId]);
+                }
+            } catch (\Throwable $mailErr) {
+                error_log('Ad-failed email failed: ' . $mailErr->getMessage());
+            }
+
+            if (!empty($res['data']['simulated'])) {
+                // Honest hold: the campaign stays 'pending' (nothing invented);
+                // retryFailed() re-queues once a live Zernio key is configured.
+                throw new \RuntimeException('SIMULATED: Zernio answered from the sandbox (placeholder API key) — launch held, campaign remains pending.');
+            }
+
             throw new \RuntimeException('Zernio launch failed: ' . json_encode($res['data'] ?? ($res['error'] ?? 'unknown')));
         }
 
@@ -457,6 +483,21 @@ class AsyncQueue
             'targeting_spec'       => json_encode($spec),
             'updated_at'           => date('Y-m-d H:i:s'),
         ], 'id = ?', [$campaignId]);
+
+        // Email-first: the campaign is genuinely live — tell the user.
+        try {
+            require_once __DIR__ . '/notifier.php';
+            Notifier::user((int)$campaign['user_id'], 'ad_published', [
+                'campaign_name' => (string)($campaign['campaign_name'] ?? 'Campaign'),
+                'campaign_id'   => $zid,
+                'platforms'     => implode(', ', array_map('ucfirst', array_map('strval', $platforms))),
+                'budget'        => number_format((float)($campaign['budget_amount'] ?? 0), 2),
+                'link'          => (defined('BASE_URL') ? BASE_URL : '') . '/campaigns',
+                'time'          => date('c'),
+            ]);
+        } catch (\Throwable $mailErr) {
+            error_log('Ad-published email failed: ' . $mailErr->getMessage());
+        }
 
         $log("[Worker] Campaign #{$campaignId} launched on Zernio (ID: {$zid}).");
     }    /** Pause/resume a mapped campaign via Zernio; persist only on confirmation. */

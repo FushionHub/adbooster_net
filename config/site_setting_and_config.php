@@ -269,7 +269,7 @@ function maybe_migrate_async_queue(): void
                     INDEX `idx_queue_status_schedule` (`status`, `scheduled_at`),
                     INDEX `idx_user_jobs` (`user_id`, `status`),
                     INDEX `idx_queue_subject` (`subject_key`, `status`)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
             ");
             error_log('maybe_migrate_async_queue: async_job_queue table auto-created.');
         } catch (\Throwable $e2) {

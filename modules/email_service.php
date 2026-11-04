@@ -365,6 +365,161 @@ HTML;
                     <div class="code-box">{{code}}</div>
                     <p style="color:#94a3b8;font-size:13px;">This security code will expire in 15 minutes. If you did not make this request, you can safely ignore this email; your current password remains secure.</p>',
             ],
+            'account_registered' => [
+                'subject' => 'Welcome to Adsbooster — your account is live',
+                'body' => '
+                    <h2>Your Adsbooster account is ready 🎉</h2>
+                    <p>Hi {{name}},</p>
+                    <p>Your account has been created and is active. Everything you need to start advertising is one click away:</p>
+                    <ul style="color:#cbd5e1;font-size:14px;line-height:1.9;padding-left:20px;">
+                        <li>Launch paid campaigns on Meta, TikTok, Google Ads and more</li>
+                        <li>Publish organic posts to every connected social account</li>
+                        <li>Generate AI UGC ad creatives in the Image Studio</li>
+                        <li>Track conversions server-side with the CAPI bridge</li>
+                        <li>List your business in the verified directory & marketplace</li>
+                    </ul>
+                    <div style="text-align:center;">
+                        <a href="{{link}}" class="btn-action">Finish your setup &rarr;</a>
+                    </div>
+                    <p style="color:#94a3b8;font-size:13px;">You have {{credits}} AI credits waiting. Connect a social account first so a scheduled post can actually go out.</p>',
+            ],
+            'account_connected' => [
+                'subject' => '{{platform}} connected to your Adsbooster account',
+                'body' => '
+                    <h2>{{platform}} is connected ✅</h2>
+                    <p>Hi {{name}},</p>
+                    <p>Your <b>{{platform}}</b> account <b>{{account_name}}</b> is now connected to Adsbooster and ready to receive posts and campaigns.</p>
+                    <div style="background:#080c14;border:1px solid #1e293b;border-radius:10px;padding:16px;margin:20px 0;">
+                        <p style="margin:0 0 6px;"><b>Channel type:</b> {{account_type}}</p>
+                        <p style="margin:0;"><b>Connected:</b> {{connected_at}}</p>
+                    </div>
+                    <div style="text-align:center;">
+                        <a href="{{link}}" class="btn-action">Write your first post &rarr;</a>
+                    </div>',
+            ],
+            'post_scheduled' => [
+                'subject' => 'Post scheduled for {{scheduled_time}}',
+                'body' => '
+                    <h2>Your post is on the calendar 🗓️</h2>
+                    <p>Hi {{name}},</p>
+                    <p>We scheduled a post to <b>{{platform}}</b> for <b>{{scheduled_time}}</b>. Our publisher will push it to the network automatically — you do not need to keep the tab open.</p>
+                    <div style="background:#080c14;border-left:3px solid #c8ff00;border-radius:6px;padding:16px 20px;margin:20px 0;">
+                        "{{caption}}"
+                    </div>
+                    <p style="color:#94a3b8;font-size:13px;">We will email you as soon as the network confirms publication — and also if it fails, with the reason.</p>
+                    <div style="text-align:center;">
+                        <a href="{{link}}" class="btn-action">Open my content calendar &rarr;</a>
+                    </div>',
+            ],
+            'post_published' => [
+                'subject' => 'Your {{platform}} post is live 🎉',
+                'body' => '
+                    <h2>Published successfully 🎉</h2>
+                    <p>Hi {{name}},</p>
+                    <p>Your post went live on <b>{{platform}}</b>.</p>
+                    <div style="background:#080c14;border-left:3px solid #4ade80;border-radius:6px;padding:16px 20px;margin:20px 0;">
+                        "{{caption}}"
+                    </div>
+                    <p style="color:#94a3b8;font-size:13px;">Network reference: {{post_id}}</p>
+                    <div style="text-align:center;">
+                        <a href="{{link}}" class="btn-action">View my posts &rarr;</a>
+                    </div>',
+            ],
+            'post_failed' => [
+                'subject' => 'Action needed: your {{platform}} post did not publish',
+                'body' => '
+                    <h2>Your post did not publish ⚠️</h2>
+                    <p>Hi {{name}},</p>
+                    <p>We could not publish your post to <b>{{platform}}</b>. Nothing was posted, and no credits were spent on the network side.</p>
+                    <div style="background:#080c14;border-left:3px solid #f87171;border-radius:6px;padding:16px 20px;margin:20px 0;">
+                        <p style="margin:0 0 6px;"><b>Reason:</b> {{reason}}</p>
+                        <p style="margin:0;"><b>Attempted at:</b> {{time}}</p>
+                    </div>
+                    <p>Common causes: the connected account lost its authorisation, the caption or media failed the network policy check, or the network rate-limited the request. Fix the connection and retry — the retry is safe.</p>
+                    <div style="text-align:center;">
+                        <a href="{{link}}" class="btn-action">Retry the post &rarr;</a>
+                    </div>',
+            ],
+            'ad_launched' => [
+                'subject' => 'Ad campaign {{campaign_name}} queued for launch',
+                'body' => '
+                    <h2>Your campaign is queued for launch 🚀</h2>
+                    <p>Hi {{name}},</p>
+                    <p>We accepted <b>{{campaign_name}}</b> and sent it to our ad engine (Zernio). Launch happens in the background — you will get another email the moment the network confirms it is live.</p>
+                    <div style="background:#080c14;border:1px solid #1e293b;border-radius:10px;padding:16px;margin:20px 0;">
+                        <p style="margin:0 0 6px;"><b>Networks:</b> {{platforms}}</p>
+                        <p style="margin:0 0 6px;"><b>Budget:</b> ${{budget}}</p>
+                        <p style="margin:0;"><b>Objective:</b> {{objective}}</p>
+                    </div>
+                    <div style="text-align:center;">
+                        <a href="{{link}}" class="btn-action">See my campaign &rarr;</a>
+                    </div>',
+            ],
+            'ad_published' => [
+                'subject' => 'Ad campaign {{campaign_name}} is live',
+                'body' => '
+                    <h2>Your campaign is live 🚀</h2>
+                    <p>Hi {{name}},</p>
+                    <p><b>{{campaign_name}}</b> was accepted by the ad network and is now delivering on <b>{{platforms}}</b>.</p>
+                    <div style="background:#080c14;border:1px solid #1e293b;border-radius:10px;padding:16px;margin:20px 0;">
+                        <p style="margin:0 0 6px;"><b>Campaign ID:</b> {{campaign_id}}</p>
+                        <p style="margin:0 0 6px;"><b>Budget:</b> ${{budget}}</p>
+                        <p style="margin:0;"><b>Live at:</b> {{time}}</p>
+                    </div>
+                    <p style="color:#94a3b8;font-size:13px;">Performance data appears in your dashboard once the network starts returning spend and conversion data.</p>
+                    <div style="text-align:center;">
+                        <a href="{{link}}" class="btn-action">Open campaign analytics &rarr;</a>
+                    </div>',
+            ],
+            'ad_failed' => [
+                'subject' => 'Action needed: {{campaign_name}} did not launch',
+                'body' => '
+                    <h2>Your campaign did not launch ⚠️</h2>
+                    <p>Hi {{name}},</p>
+                    <p>The ad network rejected <b>{{campaign_name}}</b>. No spend happened — the campaign stays pending until it launches successfully.</p>
+                    <div style="background:#080c14;border-left:3px solid #f87171;border-radius:6px;padding:16px 20px;margin:20px 0;">
+                        <p style="margin:0;"><b>Reason:</b> {{reason}}</p>
+                    </div>
+                    <p>Typical causes: the ad account is not authorised yet, the creative or destination URL failed policy review, or the budget is below the network minimum. We retry automatically with backoff.</p>
+                    <div style="text-align:center;">
+                        <a href="{{link}}" class="btn-action">Review the campaign &rarr;</a>
+                    </div>',
+            ],
+            'downtime_alert' => [
+                'subject' => '[{{platform}}] {{check_label}} is DOWN — {{status}}',
+                'body' => '
+                    <h2>Platform alert: {{check_label}} is failing</h2>
+                    <p>The automated health check for <b>{{check_label}}</b> failed at <b>{{time}}</b>.</p>
+                    <div style="background:#080c14;border-left:3px solid #f87171;border-radius:6px;padding:16px 20px;margin:20px 0;">
+                        <p style="margin:0 0 6px;"><b>Check:</b> {{check_key}}</p>
+                        <p style="margin:0 0 6px;"><b>Error:</b> {{error}}</p>
+                        <p style="margin:0;"><b>Likely cause:</b> {{cause}}</p>
+                    </div>
+                    <p style="color:#94a3b8;font-size:13px;">Status page: {{status_url}}<br>Incident reference: {{reference}}</p>',
+            ],
+            'downtime_recovery' => [
+                'subject' => '[{{platform}}] {{check_label}} recovered',
+                'body' => '
+                    <h2>Recovered: {{check_label}} is operational again ✅</h2>
+                    <p>The check <b>{{check_key}}</b> passed again at <b>{{time}}</b>.</p>
+                    <div style="background:#080c14;border-left:3px solid #4ade80;border-radius:6px;padding:16px 20px;margin:20px 0;">
+                        <p style="margin:0 0 6px;"><b>Error during the incident:</b> {{error}}</p>
+                        <p style="margin:0;"><b>Incident reference:</b> {{reference}}</p>
+                    </div>',
+            ],
+            'feature_error' => [
+                'subject' => '[{{platform}}] Feature error in {{feature}}',
+                'body' => '
+                    <h2>Feature error report</h2>
+                    <p>A user-facing feature threw an error and was reported automatically.</p>
+                    <div style="background:#080c14;border-left:3px solid #fbbf24;border-radius:6px;padding:16px 20px;margin:20px 0;">
+                        <p style="margin:0 0 6px;"><b>Feature:</b> {{feature}}</p>
+                        <p style="margin:0 0 6px;"><b>User:</b> {{user_email}}</p>
+                        <p style="margin:0 0 6px;"><b>Time:</b> {{time}}</p>
+                        <p style="margin:0;"><b>Error:</b> {{error}}</p>
+                    </div>
+                    <p style="color:#94a3b8;font-size:13px;">Log reference: {{reference}}</p>',
+            ],
         ];
     }
 
