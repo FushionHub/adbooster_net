@@ -21,18 +21,18 @@ $header = <<<SQL
 -- =====================================================================
 -- ADSBOOSTER.NET — MASTER DATABASE SCHEMA & COMPLETE SEED DATA
 -- Version: 3.1 (cPanel Shared Hosting & Production Compatible)
--- Engine: InnoDB | Character Set: latin1 | Collation: latin1_swedish_ci
+-- Engine: InnoDB | Character Set: utf8mb4 | Collation: utf8mb4_unicode_ci
 -- Generated Date: 2026-10-20
 -- Compatible with: MySQL 5.5+, MySQL 5.7+, MySQL 8.0+, MariaDB 10.x+
 --
 -- Safe for fresh install or updates:
 -- Uses `CREATE TABLE IF NOT EXISTS` and `INSERT IGNORE INTO`.
--- Zero undefined collations: No latin1_0900_ai_ci errors on cPanel!
+-- Zero undefined collations: every table uses the universally supported utf8mb4_unicode_ci.
 -- =====================================================================
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";
-SET NAMES latin1;
+SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 
@@ -50,17 +50,17 @@ foreach ($tables as $t) {
     // Remove AUTO_INCREMENT=\d+ from table options so clean starts start at 1 or use insert values
     $create = preg_replace('/\s+AUTO_INCREMENT=\d+/i', '', $create);
 
-    // Replace all latin1 / latin1_0900_ai_ci / latin1_swedish_ci column collations with latin1_swedish_ci
-    $create = preg_replace('/COLLATE\s*=?\s*latin1_[a-zA-Z0-9_]+/i', 'COLLATE latin1_swedish_ci', $create);
-    $create = preg_replace('/COLLATE\s*=?\s*utf8_[a-zA-Z0-9_]+/i', 'COLLATE latin1_swedish_ci', $create);
+    // Normalise every column/table collation to utf8mb4_unicode_ci — the one
+    // collation every MySQL 5.5+ / MariaDB 10.x host is guaranteed to have.
+    $create = preg_replace('/COLLATE\s*=?\s*[a-zA-Z0-9_]+_?[a-zA-Z0-9_]*_ci/i', 'COLLATE utf8mb4_unicode_ci', $create);
 
     // Replace table charset and collation
-    $create = preg_replace('/DEFAULT CHARSET=\w+/i', 'DEFAULT CHARSET=latin1', $create);
-    $create = preg_replace('/COLLATE=\w+/i', 'COLLATE=latin1_swedish_ci', $create);
+    $create = preg_replace('/DEFAULT CHARSET=\w+/i', 'DEFAULT CHARSET=utf8mb4', $create);
+    $create = preg_replace('/COLLATE=\w+/i', 'COLLATE=utf8mb4_unicode_ci', $create);
 
     // If COLLATE is not specified on the table options, add it
     if (!str_contains($create, 'COLLATE=')) {
-        $create = preg_replace('/ENGINE=InnoDB/i', 'ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci', $create);
+        $create = preg_replace('/ENGINE=InnoDB/i', 'ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci', $create);
     }
 
     $tablesSql .= "-- -----------------------------------------------------\n";

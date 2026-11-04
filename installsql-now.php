@@ -1,6 +1,6 @@
 <?php
 /**
- * Adsbooster.net — High-Speed cPanel Shared Hosting Database Installer
+ * Adsbooster.net â€” High-Speed cPanel Shared Hosting Database Installer
  * File: installsql-now.php
  *
  * One-click installer for deploying the Adsbooster master database schema
@@ -93,7 +93,7 @@ if ($action === 'test_connection') {
     $pass = (string)($_POST['db_pass'] ?? '');
 
     try {
-        $dsn = "mysql:host={$host};port={$port};charset=latin1";
+        $dsn = "mysql:host={$host};port={$port};charset=utf8mb4";
         if ($name !== '') {
             $dsn .= ";dbname={$name}";
         }
@@ -132,14 +132,14 @@ if ($action === 'install') {
         $errorMsg = "SQL file not found. Ensure `adsbooster_cpanel_full.sql` or `database/adsbooster_complete.sql` exists.";
     } else {
         try {
-            $dsn = "mysql:host={$host};port={$port};dbname={$name};charset=latin1";
+            $dsn = "mysql:host={$host};port={$port};dbname={$name};charset=utf8mb4";
             $pdo = new PDO($dsn, $user, $pass, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_TIMEOUT => 30,
                 PDO::MYSQL_ATTR_MULTI_STATEMENTS => true
             ]);
 
-            $pdo->exec("SET NAMES latin1;");
+            $pdo->exec("SET NAMES utf8mb4;");
             $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
             $pdo->exec("SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO';");
 
@@ -476,7 +476,7 @@ if ($action === 'install') {
             <!-- Success Screen -->
             <div class="success-box">
                 <h3 style="color:#86efac; margin-bottom:8px;">Deployment Finished Successfully</h3>
-                <p style="font-size:0.88rem; color:#cbd5e1;">All 78 database tables, views, pricing plans, and master records were imported seamlessly using safe <code>latin1_swedish_ci</code> encoding.</p>
+                <p style="font-size:0.88rem; color:#cbd5e1;">All 78 database tables, views, pricing plans, and master records were imported seamlessly using safe <code>utf8mb4_unicode_ci</code> encoding.</p>
                 
                 <div class="success-grid">
                     <div class="success-item">
@@ -598,7 +598,7 @@ if ($action === 'install') {
         <?php endif; ?>
 
         <div class="footer-note">
-            Adsbooster.net Platform Architecture &bull; cPanel & MariaDB 10.x / MySQL 5.7+ & 8.x Compatible &bull; Latin1 Swedish CI
+            Adsbooster.net Platform Architecture &bull; cPanel & MariaDB 10.x / MySQL 5.7+ & 8.x Compatible &bull; UTF-8 MB4 Unicode CI
         </div>
     </div>
 </div>

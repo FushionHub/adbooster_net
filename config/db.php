@@ -15,7 +15,7 @@ class Database
     private string $host = '127.0.0.1';
     private string $port = '3306';
     private string $dbname = 'adsbooster';
-    private string $charset = 'latin1';
+    private string $charset = 'utf8mb4';
     private string $username = 'root';
     private string $password = '';
 

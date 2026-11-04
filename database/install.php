@@ -93,7 +93,7 @@ $cred = db()->credentials();
 $dsn = 'mysql:host=' . $cred['host']
     . ';port='   . $cred['port']
     . ';dbname=' . $cred['dbname']
-    . ';charset=latin1';
+    . ';charset=utf8mb4';
 
 $ok = false;
 try {

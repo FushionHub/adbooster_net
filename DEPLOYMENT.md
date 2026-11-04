@@ -127,11 +127,11 @@ sudo chmod -R 775 /var/www/seopp/assets/uploads
 mysql -u root -p
 ```
 
-2. Create the production database with latin1 character set:
+2. Create the production database with the utf8mb4 character set:
 ```sql
 CREATE DATABASE `adsbooster` 
-  CHARACTER SET latin1 
-  COLLATE latin1_swedish_ci;
+  CHARACTER SET utf8mb4 
+  COLLATE utf8mb4_unicode_ci;
 ```
 
 3. Import the master SQL schema and seed data from `database/adsbooster_complete.sql`:

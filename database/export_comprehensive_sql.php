@@ -52,7 +52,7 @@ $sqlHeader = <<<SQL
 --          + the high-throughput `async_job_queue` processed by
 --          `cron/queue_worker.php`. 100% of external platform traffic
 --          routes through the two gateways; no direct platform tokens.
--- Engine: InnoDB | Charset: as emitted from the live schema (latin1/latin1)
+-- Engine: InnoDB | Charset: utf8mb4 / utf8mb4_unicode_ci
 -- Compatible with: MySQL 8.0+, MySQL 5.7+, MariaDB 10.3+
 --
 -- IDEMPOTENT / UPGRADE-SAFE:
@@ -64,7 +64,7 @@ $sqlHeader = <<<SQL
 -- Re-run as often as needed.
 -- =====================================================================
 
-SET NAMES latin1;
+SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";

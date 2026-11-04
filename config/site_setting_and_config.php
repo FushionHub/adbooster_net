@@ -269,7 +269,7 @@ function maybe_migrate_async_queue(): void
                     INDEX `idx_queue_status_schedule` (`status`, `scheduled_at`),
                     INDEX `idx_user_jobs` (`user_id`, `status`),
                     INDEX `idx_queue_subject` (`subject_key`, `status`)
-                ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
             ");
             error_log('maybe_migrate_async_queue: async_job_queue table auto-created.');
         } catch (\Throwable $e2) {
@@ -278,6 +278,14 @@ function maybe_migrate_async_queue(): void
     }
 }
 maybe_migrate_async_queue();
+
+// ============================================================
+// Schema guard — add any column the code needs but the database
+// is missing. Keeps a deployment one migration behind from
+// dying with "Unknown column 'x' in 'field list'".
+// ============================================================
+require_once __DIR__ . '/schema_guard.php';
+SchemaGuard::ensure();
 
 // ============================================================
 // Settings cache (single query per page load)
