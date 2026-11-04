@@ -82,8 +82,8 @@ defined('PAYSTACK_TEST_KEY')   or define('PAYSTACK_TEST_KEY', '');
 defined('PAYSTACK_LIVE_KEY')   or define('PAYSTACK_LIVE_KEY', '');
 
 // ── Payments: Flutterwave ──
-defined('FLUTTERWAVE_PUBLIC_KEY') or define('FLUTTERWAVE_PUBLIC_KEY', '');
-defined('FLUTTERWAVE_SECRET_KEY') or define('FLUTTERWAVE_SECRET_KEY', '');
+defined('FLUTTERWAVE_PUBLIC_KEY') or define('FLUTTERWAVE_PUBLIC_KEY', 'FLWPUBK-ddc6f50bb7c5587ffe46326dc4299484-X');
+defined('FLUTTERWAVE_SECRET_KEY') or define('FLUTTERWAVE_SECRET_KEY', 'FLWSECK-becf82df5cc2313d31fb26fc3ec0b9db-1a1a5ef151bvt-X');
 defined('FLUTTERWAVE_TEST_KEY')   or define('FLUTTERWAVE_TEST_KEY', '');
 defined('FLUTTERWAVE_LIVE_KEY')   or define('FLUTTERWAVE_LIVE_KEY', '');
 
