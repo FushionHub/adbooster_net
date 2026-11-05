@@ -75,7 +75,11 @@ defined('RUNWAY_API_KEY')      or define('RUNWAY_API_KEY', '');
 // ── Scraper ──
 defined('FIRECRAWL_API_KEY') or define('FIRECRAWL_API_KEY', 'fc-13aec1b670b34fc387a45f014ee4666b');
 
-// ── Payments: Paystack ──
+// ── Payments: Paystack (intentionally unconfigured — stays hidden) ──
+// PaymentGateways treats a gateway with missing credentials as switched
+// off: it disappears from the checkout UI and the payment processor
+// refuses it server-side. Enter real keys here (or in Admin → Settings)
+// and it activates automatically.
 defined('PAYSTACK_PUBLIC_KEY') or define('PAYSTACK_PUBLIC_KEY', '');
 defined('PAYSTACK_SECRET_KEY') or define('PAYSTACK_SECRET_KEY', '');
 defined('PAYSTACK_TEST_KEY')   or define('PAYSTACK_TEST_KEY', '');
@@ -84,14 +88,15 @@ defined('PAYSTACK_LIVE_KEY')   or define('PAYSTACK_LIVE_KEY', '');
 // ── Payments: Flutterwave ──
 defined('FLUTTERWAVE_PUBLIC_KEY') or define('FLUTTERWAVE_PUBLIC_KEY', 'FLWPUBK-ddc6f50bb7c5587ffe46326dc4299484-X');
 defined('FLUTTERWAVE_SECRET_KEY') or define('FLUTTERWAVE_SECRET_KEY', 'FLWSECK-becf82df5cc2313d31fb26fc3ec0b9db-1a1a5ef151bvt-X');
+defined('FLUTTERWAVE_ENCRYPTION_KEY') or define('FLUTTERWAVE_ENCRYPTION_KEY', 'becf82df5cc253e3a267fb3e');
 defined('FLUTTERWAVE_TEST_KEY')   or define('FLUTTERWAVE_TEST_KEY', '');
 defined('FLUTTERWAVE_LIVE_KEY')   or define('FLUTTERWAVE_LIVE_KEY', '');
 
 // ── Email / SMTP (Email-first architecture) ──
-defined('SMTP_HOST')  or define('SMTP_HOST', '');
-defined('SMTP_PORT')  or define('SMTP_PORT', '587');
-defined('SMTP_USER')  or define('SMTP_USER', '');
-defined('SMTP_PASS')  or define('SMTP_PASS', '');
+defined('SMTP_HOST')  or define('SMTP_HOST', 'mail.adsbooster.net');
+defined('SMTP_PORT')  or define('SMTP_PORT', '465');
+defined('SMTP_USER')  or define('SMTP_USER', 'support@adsbooster.net');
+defined('SMTP_PASS')  or define('SMTP_PASS', 'Ikeotuonye@0');
 defined('FROM_EMAIL') or define('FROM_EMAIL', 'support@adsbooster.net');
 defined('FROM_NAME')  or define('FROM_NAME', 'Adsbooster.net');
 

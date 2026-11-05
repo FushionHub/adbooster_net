@@ -660,6 +660,89 @@ textarea.form-control-admin { resize: vertical; min-height: 78px; line-height: 1
 .font-monospace { font-family: 'JetBrains Mono', ui-monospace, monospace !important; }
 
 /* =====================================================================
+   ACTIVITY FEED
+   ===================================================================== */
+.admin-feed { display: flex; flex-direction: column; }
+.admin-feed .feed-item {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .62rem 0;
+    border-bottom: 1px solid var(--admin-border-soft);
+}
+.admin-feed .feed-item:last-child { border-bottom: none; padding-bottom: 0; }
+.admin-feed .feed-avatar {
+    width: 32px; height: 32px;
+    flex: 0 0 32px;
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: .74rem;
+    background: var(--admin-green-dim);
+    color: var(--admin-green);
+    border: 1px solid rgba(200,255,0,.16);
+}
+.admin-feed .feed-avatar.blue {
+    background: var(--admin-blue-dim); color: var(--admin-blue); border-color: rgba(56,189,248,.18);
+}
+.admin-feed .feed-body { flex: 1; min-width: 0; }
+.admin-feed .feed-title {
+    font-size: .845rem; font-weight: 550; color: var(--admin-text);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.admin-feed .feed-meta { font-size: .72rem; color: var(--admin-text-muted); }
+
+/* =====================================================================
+   BAR CHART
+   ===================================================================== */
+.admin-barchart {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: .75rem;
+    align-items: end;
+    height: 230px;
+    padding-top: .5rem;
+}
+.admin-barchart .bar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    gap: .4rem;
+}
+.admin-barchart .bar-value {
+    font-size: .72rem;
+    font-weight: 650;
+    color: var(--admin-text-dim);
+    white-space: nowrap;
+}
+.admin-barchart .bar-track {
+    flex: 1;
+    width: 100%;
+    max-width: 58px;
+    display: flex;
+    align-items: flex-end;
+    background: rgba(255,255,255,.035);
+    border: 1px solid var(--admin-border-soft);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.admin-barchart .bar-fill {
+    width: 100%;
+    border-radius: 7px 7px 0 0;
+    background: linear-gradient(180deg, var(--admin-green) 0%, rgba(200,255,0,.35) 100%);
+    box-shadow: 0 -6px 20px -10px rgba(200,255,0,.75);
+    transition: height .5s var(--admin-ease);
+}
+.admin-barchart .bar-label {
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--admin-text-faint);
+}
+
+/* =====================================================================
    RESPONSIVE
    ===================================================================== */
 @media (max-width: 1200px) {

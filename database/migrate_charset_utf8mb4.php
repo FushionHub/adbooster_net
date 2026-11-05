@@ -18,7 +18,14 @@
 require_once __DIR__ . '/../config/db.php';
 
 $targetCharset = 'utf8mb4';
-$targetCollate = 'utf8mb4_unicode_ci';
+// utf8mb4_general_ci is the one utf8mb4 collation that exists on every
+// host the project is deployed to:
+//   * MySQL 5.5.3+  (utf8mb4_0900_ai_ci does NOT exist here)
+//   * MySQL 8.x
+//   * MariaDB 10.x  (utf8mb4_0900_ai_ci does NOT exist here)
+// Using utf8mb4_unicode_ci / utf8mb4_0900_ai_ci in a dump breaks imports
+// on shared cPanel hosting (phpMyAdmin reports "Unknown collation").
+$targetCollate = 'utf8mb4_general_ci';
 
 $pdo = db()->getConnection();
 
@@ -43,8 +50,13 @@ foreach ($tables as $t) {
         continue;
     }
     if (str_starts_with($collate, $targetCharset . '_') || $collate === $targetCharset) {
-        $skipped++;
-        continue;
+        // The charset is already utf8mb4 — only skip when the collation is
+        // the target one too. MySQL 8 creates tables with
+        // utf8mb4_0900_ai_ci, which does not exist on MariaDB / MySQL 5.x.
+        if ($collate === $targetCollate) {
+            $skipped++;
+            continue;
+        }
     }
 
     $sql = "ALTER TABLE `{$name}` CONVERT TO CHARACTER SET {$targetCharset} COLLATE {$targetCollate}";

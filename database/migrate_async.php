@@ -53,7 +53,7 @@ try {
             INDEX `idx_queue_status_schedule` (`status`, `scheduled_at`),
             INDEX `idx_user_jobs` (`user_id`, `status`),
             INDEX `idx_queue_subject` (`subject_key`, `status`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
     ");
     echo " [x] `async_job_queue` ready.\n";
 

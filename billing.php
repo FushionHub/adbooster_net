@@ -20,10 +20,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $message = '<div class="card-dark" style="padding:14px 18px;margin-bottom:20px;border-left:3px solid var(--red)">Invalid security token.</div>';
     } else {
         $type = $_POST['action'];
-        $gateway = strtolower(trim($_POST['gateway'] ?? 'paystack'));
+        $gateway = strtolower(trim($_POST['gateway'] ?? ''));
 
-        if (!in_array($gateway, ['paystack', 'flutterwave'])) {
-            $message = '<div class="card-dark" style="padding:14px 18px;margin-bottom:20px;border-left:3px solid var(--red)">Invalid payment gateway.</div>';
+        $enabledGateways = PaymentGateways::enabled();
+        $defaultGateway  = PaymentGateways::defaultGateway();
+
+        if ($gateway === '' && $defaultGateway !== null) {
+            $gateway = $defaultGateway;
+        }
+
+        if (!in_array($gateway, $enabledGateways, true)) {
+            $message = '<div class="card-dark" style="padding:14px 18px;margin-bottom:20px;border-left:3px solid var(--red)">'
+                . e($gateway !== '' && isset(PaymentGateways::REGISTRY[$gateway])
+                    ? PaymentGateways::config($gateway)['label'] . ' is not available. ' . PaymentGateways::unavailableReason($gateway)
+                    : 'No payment method is currently available. Please contact support.')
+                . '</div>';
         } elseif ($type === 'subscribe_plan') {
             $planId = (int)($_POST['plan_id'] ?? 0);
             $cycle  = ($_POST['cycle'] ?? 'monthly') === 'yearly' ? 'yearly' : 'monthly';
@@ -88,9 +99,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 $status = function_exists('integration_status') ? integration_status() : [];
-$paystackLive = !empty($status['paystack']['configured']);
-$flutterLive  = !empty($status['flutterwave']['configured']);
-$anyLive = $paystackLive || $flutterLive;
+
+// ── Gateway registry ─────────────────────────────────────────────────────
+// Only fully configured gateways are shown to the customer. A gateway with
+// missing credentials (e.g. Paystack on this deployment) is switched off
+// automatically and never reaches the checkout screen.
+$gatewayConfigs = PaymentGateways::all();
+$enabledGateways = PaymentGateways::enabled();
+$defaultGateway  = PaymentGateways::defaultGateway();
+$anyLive = $enabledGateways !== [];
 
 $plans = [];
 try {
@@ -128,13 +145,15 @@ require_once __DIR__ . '/includes/app_header.php';
         <div class="card-dark" style="padding:14px 18px;margin-bottom:20px;border-left:3px solid var(--orange);display:flex;gap:12px;align-items:flex-start;">
             <i class="ph ph-warning-circle" style="font-size:20px;color:var(--orange);flex-shrink:0;margin-top:2px;"></i>
             <div style="font-size:13px;color:var(--fg2);">
-                <strong style="color:var(--fg);">Test mode:</strong> no live payment keys detected.
-                Checkout runs in test mode until keys are added in <strong style="color:var(--fg);">config/apikeys.php</strong>.
+                <strong style="color:var(--fg);">Payments are offline:</strong> no payment gateway is fully configured on this deployment.
+                Top-ups and plan upgrades are paused until an administrator adds gateway keys in
+                <strong style="color:var(--fg);">config/apikeys.php</strong> or <strong style="color:var(--fg);">Admin &rarr; Settings</strong>.
             </div>
         </div>
     <?php endif; ?>
 
-    <!-- Gateway selector -->
+    <!-- Gateway selector — only fully configured gateways are offered -->
+    <?php if ($anyLive): ?>
     <div class="card-dark" style="padding:20px 22px;margin-bottom:20px;">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
             <div class="stat-icon" style="background:rgba(34,197,94,.1);">
@@ -146,34 +165,23 @@ require_once __DIR__ . '/includes/app_header.php';
             </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
-            <label id="gwPaystackCard" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--accent);border-radius:var(--radius);cursor:pointer;background:var(--bg2);">
-                <input type="radio" name="gateway_choice" value="paystack" checked style="accent-color:var(--accent);">
-                <i class="ph ph-bank" style="font-size:20px;color:var(--accent);"></i>
-                <span style="flex:1;">
-                    <strong style="display:block;color:var(--fg);font-size:14px;">Paystack</strong>
-                    <span style="font-size:12px;color:var(--fg3);">Cards, transfers &amp; mobile money</span>
-                </span>
-                <?php if ($paystackLive): ?>
+            <?php foreach ($enabledGateways as $gatewayKey): ?>
+                <?php $gw = $gatewayConfigs[$gatewayKey]; ?>
+                <label id="gw-<?= e($gatewayKey) ?>Card"
+                       style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;background:var(--bg2);">
+                    <input type="radio" name="gateway_choice" value="<?= e($gatewayKey) ?>"
+                           <?= $gatewayKey === $defaultGateway ? 'checked' : '' ?> style="accent-color:var(--accent);">
+                    <i class="ph <?= e($gw['icon']) ?>" style="font-size:20px;color:<?= e($gw['colour']) ?>;"></i>
+                    <span style="flex:1;">
+                        <strong style="display:block;color:var(--fg);font-size:14px;"><?= e($gw['label']) ?></strong>
+                        <span style="font-size:12px;color:var(--fg3);"><?= e($gw['blurb']) ?></span>
+                    </span>
                     <span class="badge-active">Live</span>
-                <?php else: ?>
-                    <span class="badge-pending">Test mode</span>
-                <?php endif; ?>
-            </label>
-            <label id="gwFlutterwaveCard" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;background:var(--bg2);">
-                <input type="radio" name="gateway_choice" value="flutterwave" style="accent-color:var(--accent);">
-                <i class="ph ph-wallet" style="font-size:20px;color:var(--blue);"></i>
-                <span style="flex:1;">
-                    <strong style="display:block;color:var(--fg);font-size:14px;">Flutterwave</strong>
-                    <span style="font-size:12px;color:var(--fg3);">Cards, USSD &amp; bank payments</span>
-                </span>
-                <?php if ($flutterLive): ?>
-                    <span class="badge-active">Live</span>
-                <?php else: ?>
-                    <span class="badge-pending">Test mode</span>
-                <?php endif; ?>
-            </label>
+                </label>
+            <?php endforeach; ?>
         </div>
     </div>
+    <?php endif; ?>
 
     <!-- Smart top-up suggestions -->
     <?php
@@ -236,7 +244,7 @@ require_once __DIR__ . '/includes/app_header.php';
             <form method="POST" style="display:flex;gap:8px;">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="topup_ad">
-                <input type="hidden" name="gateway" value="paystack" class="gateway-field">
+                <input type="hidden" name="gateway" value="<?= e($defaultGateway ?? '') ?>" class="gateway-field">
                 <input type="number" id="adAmount" name="amount" class="form-control" placeholder="Amount (<?= e($cur) ?>)" min="<?= e((string)$minLocal) ?>" step="0.01" required style="flex:1;">
                 <button type="submit" class="btn-accent btn-sm"><i class="ph ph-plus"></i> Top Up</button>
             </form>
@@ -261,7 +269,7 @@ require_once __DIR__ . '/includes/app_header.php';
             <form method="POST" style="display:flex;gap:8px;">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="topup_ai">
-                <input type="hidden" name="gateway" value="paystack" class="gateway-field">
+                <input type="hidden" name="gateway" value="<?= e($defaultGateway ?? '') ?>" class="gateway-field">
                 <input type="number" id="aiAmount" name="amount" class="form-control" placeholder="Amount (<?= e($cur) ?>)" min="<?= e((string)$minLocal) ?>" step="0.01" required style="flex:1;">
                 <button type="submit" class="btn-accent btn-sm"><i class="ph ph-plus"></i> Top Up</button>
             </form>
@@ -333,7 +341,7 @@ require_once __DIR__ . '/includes/app_header.php';
                             <?= csrf_field() ?>
                             <input type="hidden" name="action" value="subscribe_plan">
                             <input type="hidden" name="plan_id" value="<?= (int)$plan['id'] ?>">
-                            <input type="hidden" name="gateway" value="paystack" class="gateway-field">
+                            <input type="hidden" name="gateway" value="<?= e($defaultGateway ?? '') ?>" class="gateway-field">
                             <?php if ($isOneOffPlan): ?>
                                 <input type="hidden" name="cycle" value="monthly">
                             <?php else: ?>
@@ -413,12 +421,12 @@ document.querySelectorAll('.quick-amt').forEach(function (btn) {
 });
 function syncGateway() {
     var sel = document.querySelector('input[name="gateway_choice"]:checked');
-    var gw = sel ? sel.value : 'paystack';
+    var gw = sel ? sel.value : '';
     document.querySelectorAll('.gateway-field').forEach(function (f) { f.value = gw; });
-    var p = document.getElementById('gwPaystackCard');
-    var fl = document.getElementById('gwFlutterwaveCard');
-    if (p) p.style.borderColor = gw === 'paystack' ? 'var(--accent)' : 'var(--border)';
-    if (fl) fl.style.borderColor = gw === 'flutterwave' ? 'var(--accent)' : 'var(--border)';
+    document.querySelectorAll('[id^="gw-"][id$="Card"]').forEach(function (card) {
+        var key = card.id.replace(/^gw-/, '').replace(/Card$/, '');
+        card.style.borderColor = key === gw ? 'var(--accent)' : 'var(--border)';
+    });
 }
 document.querySelectorAll('input[name="gateway_choice"]').forEach(function (r) {
     r.addEventListener('change', syncGateway);

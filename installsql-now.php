@@ -476,7 +476,7 @@ if ($action === 'install') {
             <!-- Success Screen -->
             <div class="success-box">
                 <h3 style="color:#86efac; margin-bottom:8px;">Deployment Finished Successfully</h3>
-                <p style="font-size:0.88rem; color:#cbd5e1;">All 78 database tables, views, pricing plans, and master records were imported seamlessly using safe <code>utf8mb4_unicode_ci</code> encoding.</p>
+                <p style="font-size:0.88rem; color:#cbd5e1;">All 78 database tables, views, pricing plans, and master records were imported seamlessly using safe <code>utf8mb4_general_ci</code> encoding.</p>
                 
                 <div class="success-grid">
                     <div class="success-item">

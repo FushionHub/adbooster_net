@@ -6,9 +6,14 @@
  *
  * Handles payment initiation, verification, and wallet crediting
  * across multiple payment gateways (Paystack, Flutterwave).
+ *
+ * Gateways are resolved through PaymentGateways: a gateway without
+ * complete credentials is auto-deactivated — it can never be selected
+ * by a customer and is refused here server-side.
  */
 
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/payment_gateways.php';
 
 class PaymentProcessor
 {
@@ -17,6 +22,16 @@ class PaymentProcessor
 
     /** @var string Flutterwave API base URL */
     private const FLUTTERWAVE_BASE = 'https://api.flutterwave.com/v3';
+
+    /**
+     * Gateways this deployment can offer.
+     *
+     * @return string[]
+     */
+    public static function availableGateways(): array
+    {
+        return PaymentGateways::enabled();
+    }
 
     /**
      * Initiate a payment transaction.
@@ -43,9 +58,18 @@ class PaymentProcessor
             return ['success' => false, 'transaction_id' => null, 'redirect_url' => null, 'message' => 'Invalid payment amount.'];
         }
 
-        $validGateways = ['paystack', 'flutterwave'];
+        $validGateways = PaymentGateways::enabled();
         if (!in_array($gateway, $validGateways, true)) {
-            return ['success' => false, 'transaction_id' => null, 'redirect_url' => null, 'message' => 'Invalid payment gateway.'];
+            if (!in_array($gateway, array_keys(PaymentGateways::REGISTRY), true)) {
+                return ['success' => false, 'transaction_id' => null, 'redirect_url' => null, 'message' => 'Invalid payment gateway.'];
+            }
+            return [
+                'success'        => false,
+                'transaction_id' => null,
+                'redirect_url'   => null,
+                'message'        => PaymentGateways::config($gateway)['label'] . ' is not available. '
+                    . PaymentGateways::unavailableReason($gateway),
+            ];
         }
 
         $user = db()->fetchOne("SELECT id, email, full_name FROM users WHERE id = ?", [$userId]);
@@ -98,7 +122,7 @@ class PaymentProcessor
      */
     public static function verifyPaystack(string $reference): array
     {
-        $secretKey = get_setting('paystack_secret_key');
+        $secretKey = PaymentGateways::secretKey('paystack');
         if (empty($secretKey)) {
             return ['success' => false, 'data' => null, 'message' => 'Paystack secret key not configured.'];
         }
@@ -154,7 +178,7 @@ class PaymentProcessor
      */
     public static function verifyFlutterwave(string $transactionId): array
     {
-        $secretKey = get_setting('flutterwave_secret_key');
+        $secretKey = PaymentGateways::secretKey('flutterwave');
         if (empty($secretKey)) {
             return ['success' => false, 'data' => null, 'message' => 'Flutterwave secret key not configured.'];
         }
@@ -391,7 +415,7 @@ class PaymentProcessor
         string $currency,
         string $reference
     ): array {
-        $secretKey = get_setting('paystack_secret_key');
+        $secretKey = PaymentGateways::secretKey('paystack');
         if (empty($secretKey)) {
             return ['success' => false, 'redirect_url' => null, 'message' => 'Paystack secret key not configured.'];
         }
@@ -457,7 +481,8 @@ class PaymentProcessor
         string $reference,
         int $transactionId
     ): array {
-        $secretKey = get_setting('flutterwave_secret_key');
+        $cfg       = PaymentGateways::config('flutterwave');
+        $secretKey = (string)$cfg['secret_key'];
         if (empty($secretKey)) {
             return ['success' => false, 'redirect_url' => null, 'message' => 'Flutterwave secret key not configured.'];
         }
@@ -475,15 +500,37 @@ class PaymentProcessor
             ],
         ]);
 
+        $headers = [
+            'Authorization: Bearer ' . $secretKey,
+            'Content-Type: application/json',
+            'Accept: application/json',
+        ];
+
+        // Flutterwave supports an encrypted request body. It is only used
+        // with a genuine 32-character encryption key; otherwise the
+        // standard Bearer flow is used.
+        if ($cfg['mode'] === 'encrypted' && function_exists('openssl_encrypt')) {
+            $encryptionKey = (string)$cfg['encryption_key'];
+            $iv = random_bytes(16);
+            $ciphertext = openssl_encrypt(
+                (string)$payload,
+                'AES-256-CBC',
+                $encryptionKey,
+                OPENSSL_RAW_DATA,
+                $iv
+            );
+            if ($ciphertext !== false) {
+                $payload  = base64_encode($iv . $ciphertext);
+                $headers[] = 'X-Encryption-Key: ' . $encryptionKey;
+            }
+        }
+
         $ch = curl_init(self::FLUTTERWAVE_BASE . '/payments');
         curl_setopt_array($ch, [
             CURLOPT_POST           => true,
             CURLOPT_POSTFIELDS     => $payload,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER     => [
-                'Authorization: Bearer ' . $secretKey,
-                'Content-Type: application/json',
-            ],
+            CURLOPT_HTTPHEADER     => $headers,
             CURLOPT_TIMEOUT        => 30,
             CURLOPT_SSL_VERIFYPEER => true,
         ]);

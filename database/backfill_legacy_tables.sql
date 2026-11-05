@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS `support_tickets` (
   PRIMARY KEY (`id`),
   KEY `idx_support_tickets_user` (`user_id`),
   KEY `idx_support_tickets_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Real ticket_code used by ticket_system.php; exposed through the VIEW below.
 SET @ddl = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `support_tickets` ADD COLUMN `ticket_number` VARCHAR(24) NULL DEFAULT NULL AFTER `user_id`', 'DO 0') FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'support_tickets' AND column_name = 'ticket_number');
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS `ticket_messages` (
   PRIMARY KEY (`id`),
   KEY `idx_ticket_messages_ticket` (`ticket_id`),
   KEY `idx_ticket_messages_created` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Updatable VIEW mirroring ticket_system.php expectations
 -- (build_cpanel_sql.php definition: ticket_type is exposed as `type`).
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS `referrals` (
   KEY `idx_referrals_referrer` (`referrer_id`),
   KEY `idx_referrals_referred` (`referred_id`),
   KEY `idx_referrals_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `referral_rewards` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS `referral_rewards` (
   `created_at` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_referral_rewards_referrer` (`referrer_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `payout_requests` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS `payout_requests` (
   PRIMARY KEY (`id`),
   KEY `idx_payout_requests_user` (`user_id`),
   KEY `idx_payout_requests_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ── Teams ───────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `team_members` (
@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS `team_members` (
   PRIMARY KEY (`id`),
   KEY `idx_team_members_parent` (`parent_user_id`),
   KEY `idx_team_members_email` (`email`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `team_invitations` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS `team_invitations` (
   `accepted_at` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_team_invitations_token` (`invite_token`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ── Gamification ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `achievements` (
@@ -128,7 +128,7 @@ CREATE TABLE IF NOT EXISTS `achievements` (
   `created_at` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_achievements_slug` (`slug`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `user_achievements` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS `user_achievements` (
   `earned_at` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_user_achievements` (`user_id`, `achievement_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `combo_purchases` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -146,7 +146,7 @@ CREATE TABLE IF NOT EXISTS `combo_purchases` (
   `created_at` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_combo_purchases_user` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `seller_verifications` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -155,7 +155,7 @@ CREATE TABLE IF NOT EXISTS `seller_verifications` (
   `created_at` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_seller_verifications_user` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ── Fraud watch ─────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `fraud_flags` (
@@ -170,7 +170,7 @@ CREATE TABLE IF NOT EXISTS `fraud_flags` (
   PRIMARY KEY (`id`),
   KEY `idx_fraud_flags_user` (`user_id`),
   KEY `idx_fraud_flags_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ── Campaign doctor / AB testing ────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `campaign_run_logs` (
@@ -182,7 +182,7 @@ CREATE TABLE IF NOT EXISTS `campaign_run_logs` (
   PRIMARY KEY (`id`),
   KEY `idx_campaign_run_logs_campaign` (`campaign_id`),
   KEY `idx_campaign_run_logs_created` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `campaign_recommendations` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -195,7 +195,7 @@ CREATE TABLE IF NOT EXISTS `campaign_recommendations` (
   PRIMARY KEY (`id`),
   KEY `idx_campaign_recommendations_campaign` (`campaign_id`),
   KEY `idx_campaign_recommendations_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `ad_campaign_variants` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -208,7 +208,7 @@ CREATE TABLE IF NOT EXISTS `ad_campaign_variants` (
   `created_at` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_ad_campaign_variants_campaign` (`campaign_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ── Policy scanner ──────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `policy_rules` (
@@ -225,7 +225,7 @@ CREATE TABLE IF NOT EXISTS `policy_rules` (
   `updated_at` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_policy_rules_platform` (`platform`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `policy_scan_logs` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -238,7 +238,7 @@ CREATE TABLE IF NOT EXISTS `policy_scan_logs` (
   PRIMARY KEY (`id`),
   KEY `idx_policy_scan_logs_user` (`user_id`),
   KEY `idx_policy_scan_logs_scanned` (`scanned_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ── API keys & webhooks ─────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `api_keys` (
@@ -253,7 +253,7 @@ CREATE TABLE IF NOT EXISTS `api_keys` (
   PRIMARY KEY (`id`),
   KEY `idx_api_keys_user` (`user_id`),
   UNIQUE KEY `uniq_api_keys_hash` (`key_hash`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `webhooks` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -265,7 +265,7 @@ CREATE TABLE IF NOT EXISTS `webhooks` (
   `created_at` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_webhooks_user` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ── Email audit & tracking ──────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `email_logs` (
@@ -280,7 +280,7 @@ CREATE TABLE IF NOT EXISTS `email_logs` (
   PRIMARY KEY (`id`),
   KEY `idx_email_logs_recipient` (`recipient`),
   KEY `idx_email_logs_sent` (`sent_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `visitor_logs` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -296,7 +296,7 @@ CREATE TABLE IF NOT EXISTS `visitor_logs` (
   PRIMARY KEY (`id`),
   KEY `idx_visitor_logs_uri` (`request_uri`(191)),
   KEY `idx_visitor_logs_created` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ── Privacy center / cookie consent ─────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `cookie_consents` (
@@ -315,7 +315,7 @@ CREATE TABLE IF NOT EXISTS `cookie_consents` (
   PRIMARY KEY (`id`),
   KEY `idx_cookie_consents_uuid` (`consent_uuid`),
   KEY `idx_cookie_consents_user` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `account_deletions` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -324,7 +324,7 @@ CREATE TABLE IF NOT EXISTS `account_deletions` (
   `requested_at` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_account_deletions_user` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ── CMS / SEO dynamic content ───────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `dynamic_content` (
@@ -338,7 +338,7 @@ CREATE TABLE IF NOT EXISTS `dynamic_content` (
   `updated_at` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_dynamic_content_page` (`page_slug`, `section_key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ── Marketplace / directory listings ────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `marketplace_listings` (
@@ -360,7 +360,7 @@ CREATE TABLE IF NOT EXISTS `marketplace_listings` (
   KEY `idx_marketplace_listings_user` (`user_id`),
   KEY `idx_marketplace_listings_slug` (`slug`(191)),
   KEY `idx_marketplace_listings_category` (`category`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ── Audience builder ────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `audience_segments` (
@@ -372,7 +372,7 @@ CREATE TABLE IF NOT EXISTS `audience_segments` (
   `created_at` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_audience_segments_user` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ── Service status page ─────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `service_check_log` (
@@ -385,7 +385,7 @@ CREATE TABLE IF NOT EXISTS `service_check_log` (
   PRIMARY KEY (`id`),
   KEY `idx_service_check_log_key` (`check_key`),
   KEY `idx_service_check_log_checked` (`checked_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ── Invoices ────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `invoices` (
@@ -397,7 +397,7 @@ CREATE TABLE IF NOT EXISTS `invoices` (
   PRIMARY KEY (`id`),
   KEY `idx_invoices_transaction` (`transaction_id`),
   KEY `idx_invoices_number` (`invoice_number`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ── Public portfolios & vCards ──────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `user_portfolios` (
@@ -423,7 +423,7 @@ CREATE TABLE IF NOT EXISTS `user_portfolios` (
   PRIMARY KEY (`id`),
   KEY `idx_user_portfolios_user` (`user_id`),
   KEY `idx_user_portfolios_username` (`username`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `user_vcards` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -446,7 +446,7 @@ CREATE TABLE IF NOT EXISTS `user_vcards` (
   PRIMARY KEY (`id`),
   KEY `idx_user_vcards_user` (`user_id`),
   KEY `idx_user_vcards_username` (`username`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ── Dating module ───────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `dating_profiles` (
@@ -467,7 +467,7 @@ CREATE TABLE IF NOT EXISTS `dating_profiles` (
   `updated_at` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_dating_profiles_user` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `dating_pairs` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -480,7 +480,7 @@ CREATE TABLE IF NOT EXISTS `dating_pairs` (
   PRIMARY KEY (`id`),
   KEY `idx_dating_pairs_sender` (`sender_id`),
   KEY `idx_dating_pairs_receiver` (`receiver_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `dating_blocks` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -489,7 +489,7 @@ CREATE TABLE IF NOT EXISTS `dating_blocks` (
   `created_at` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_dating_blocks_pair` (`blocker_id`, `blocked_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `dating_reports` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -499,7 +499,7 @@ CREATE TABLE IF NOT EXISTS `dating_reports` (
   `created_at` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_dating_reports_reported` (`reported_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ── P2P chat & deals ────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `p2p_conversations` (
@@ -509,7 +509,7 @@ CREATE TABLE IF NOT EXISTS `p2p_conversations` (
   `created_at` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_p2p_conversations_pair` (`user_a`, `user_b`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `p2p_messages` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -522,7 +522,7 @@ CREATE TABLE IF NOT EXISTS `p2p_messages` (
   PRIMARY KEY (`id`),
   KEY `idx_p2p_messages_conversation` (`conversation_id`),
   KEY `idx_p2p_messages_created` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `p2p_deals` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -537,7 +537,7 @@ CREATE TABLE IF NOT EXISTS `p2p_deals` (
   `created_at` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_p2p_deals_conversation` (`conversation_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ============================================================================
 -- Guarded ALTERs: legacy columns on `users` that the code references but the
@@ -701,7 +701,7 @@ CREATE TABLE IF NOT EXISTS `translations` (
   `updated_at` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_translation_locale_key` (`locale`, `translation_key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Ado: incident log for the status page (calendar view + "what happened and
 -- why" documentation) and the downtime alert workflow.
@@ -721,4 +721,4 @@ CREATE TABLE IF NOT EXISTS `service_incidents` (
   PRIMARY KEY (`id`),
   KEY `idx_incident_check` (`check_key`),
   KEY `idx_incident_started` (`started_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

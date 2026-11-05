@@ -1687,7 +1687,7 @@ class AIVideoEngine
             PRIMARY KEY (`id`),
             KEY `idx_user` (`user_id`,`created_at`),
             KEY `idx_status` (`status`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
 
         // Older installs shipped a narrower `status` enum — widen it in place so
         // the new `rendering_client` state is accepted.

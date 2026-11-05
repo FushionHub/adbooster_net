@@ -27,7 +27,7 @@ $sqls = [
       `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (`id`),
       KEY `idx_ai_video_user` (`user_id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;",
 
   // 2. AI Media Buyer Rules & Logs
   "CREATE TABLE IF NOT EXISTS `ai_media_buyer_rules` (
@@ -45,7 +45,7 @@ $sqls = [
       `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (`id`),
       KEY `idx_media_buyer_user` (`user_id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;",
 
   "CREATE TABLE IF NOT EXISTS `ai_media_buyer_logs` (
       `id` int NOT NULL AUTO_INCREMENT,
@@ -58,7 +58,7 @@ $sqls = [
       `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (`id`),
       KEY `idx_buyer_logs_user` (`user_id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;",
 
   // 3. Competitor Ad Analyses
   "CREATE TABLE IF NOT EXISTS `competitor_ad_analyses` (
@@ -75,7 +75,7 @@ $sqls = [
       `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (`id`),
       KEY `idx_ad_analyses_user` (`user_id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;",
 
   // 4. E-Commerce Stores, Products & Campaign Packs
   "CREATE TABLE IF NOT EXISTS `ecommerce_stores` (
@@ -90,7 +90,7 @@ $sqls = [
       `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (`id`),
       KEY `idx_ecom_stores_user` (`user_id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;",
 
   "CREATE TABLE IF NOT EXISTS `ecommerce_products` (
       `id` int NOT NULL AUTO_INCREMENT,
@@ -109,7 +109,7 @@ $sqls = [
       PRIMARY KEY (`id`),
       KEY `idx_ecom_prods_store` (`store_id`),
       KEY `idx_ecom_prods_user` (`user_id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;",
 
   "CREATE TABLE IF NOT EXISTS `ecommerce_campaign_packs` (
       `id` int NOT NULL AUTO_INCREMENT,
@@ -122,7 +122,7 @@ $sqls = [
       PRIMARY KEY (`id`),
       KEY `idx_ecom_packs_product` (`product_id`),
       KEY `idx_ecom_packs_user` (`user_id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;",
 
   // 5. Server Tracking Pixels & Events
   // NOTE: per-platform access tokens (meta_capi_access_token /
@@ -144,7 +144,7 @@ $sqls = [
       PRIMARY KEY (`id`),
       UNIQUE KEY `uq_pixel_token` (`pixel_token`),
       KEY `idx_tracking_pixels_user` (`user_id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;",
 
   "CREATE TABLE IF NOT EXISTS `server_tracking_events` (
       `id` int NOT NULL AUTO_INCREMENT,
@@ -161,7 +161,7 @@ $sqls = [
       PRIMARY KEY (`id`),
       KEY `idx_tracking_events_pixel` (`pixel_id`),
       KEY `idx_tracking_events_user` (`user_id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;",
 
   // 6. Social Inbox Messages & Rules
   "CREATE TABLE IF NOT EXISTS `social_inbox_messages` (
@@ -183,7 +183,7 @@ $sqls = [
       PRIMARY KEY (`id`),
       KEY `idx_inbox_user` (`user_id`),
       KEY `idx_inbox_status` (`status`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;",
 
   "CREATE TABLE IF NOT EXISTS `social_inbox_rules` (
       `id` int NOT NULL AUTO_INCREMENT,
@@ -198,7 +198,7 @@ $sqls = [
       `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (`id`),
       KEY `idx_inbox_rules_user` (`user_id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;",
 
   // 7. Agency Portals, Clients & Approvals
   "CREATE TABLE IF NOT EXISTS `agency_portals` (
@@ -216,7 +216,7 @@ $sqls = [
       PRIMARY KEY (`id`),
       UNIQUE KEY `uq_agency_subdomain` (`custom_subdomain`),
       KEY `idx_agency_portal_user` (`agency_user_id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;",
 
   "CREATE TABLE IF NOT EXISTS `agency_client_accounts` (
       `id` int NOT NULL AUTO_INCREMENT,
@@ -233,7 +233,7 @@ $sqls = [
       PRIMARY KEY (`id`),
       UNIQUE KEY `uq_client_access_token` (`access_token`),
       KEY `idx_agency_clients_user` (`agency_user_id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;",
 
   "CREATE TABLE IF NOT EXISTS `agency_client_approvals` (
       `id` int NOT NULL AUTO_INCREMENT,
@@ -250,7 +250,7 @@ $sqls = [
       PRIMARY KEY (`id`),
       KEY `idx_approvals_agency` (`agency_user_id`),
       KEY `idx_approvals_client` (`client_account_id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;",
 
   // 8. Creator Bounties & Submissions (Escrow)
   "CREATE TABLE IF NOT EXISTS `creator_bounties` (
@@ -273,7 +273,7 @@ $sqls = [
       KEY `idx_bounties_brand` (`brand_user_id`),
       KEY `idx_bounties_status` (`status`),
       KEY `idx_bounties_creator` (`claimed_creator_id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;",
 
   "CREATE TABLE IF NOT EXISTS `creator_bounty_submissions` (
       `id` int NOT NULL AUTO_INCREMENT,
@@ -291,7 +291,7 @@ $sqls = [
       PRIMARY KEY (`id`),
       KEY `idx_bounty_subs_bounty` (`bounty_id`),
       KEY `idx_bounty_subs_creator` (`creator_user_id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;"
 ];
 
 foreach ($sqls as $sql) {

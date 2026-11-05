@@ -52,7 +52,7 @@ $sqlHeader = <<<SQL
 --          + the high-throughput `async_job_queue` processed by
 --          `cron/queue_worker.php`. 100% of external platform traffic
 --          routes through the two gateways; no direct platform tokens.
--- Engine: InnoDB | Charset: utf8mb4 / utf8mb4_unicode_ci
+-- Engine: InnoDB | Charset: utf8mb4 / utf8mb4_general_ci
 -- Compatible with: MySQL 8.0+, MySQL 5.7+, MariaDB 10.3+
 --
 -- IDEMPOTENT / UPGRADE-SAFE:
@@ -85,7 +85,16 @@ foreach ($tables as $table) {
     // Remove AUTO_INCREMENT=\d+ from table options so clean imports start at 1 or follow data
     $createSql = preg_replace('/\s+AUTO_INCREMENT=\d+/i', '', $createSql);
 
-    // Keep the live schema's own charset/collation — do NOT rewrite it.
+    // Normalise every collation to utf8mb4_general_ci.
+    //
+    // The live MySQL 8 schema uses utf8mb4_0900_ai_ci for tables created after
+    // the server upgrade. That collation does not exist on MySQL 5.x or
+    // MariaDB 10.x, so importing the dump on shared cPanel hosting aborts
+    // with "Unknown collation" and phpMyAdmin shows a broken import.
+    // utf8mb4_general_ci exists on every supported host.
+    $createSql = preg_replace('/COLLATE\s*=?\s*[A-Za-z0-9_]+_ci/i', 'COLLATE utf8mb4_general_ci', $createSql);
+    $createSql = preg_replace('/DEFAULT CHARSET=[A-Za-z0-9_]+/i', 'DEFAULT CHARSET=utf8mb4', $createSql);
+    $createSql = preg_replace('/COLLATE=[A-Za-z0-9_]+/i', 'COLLATE=utf8mb4_general_ci', $createSql);
 
     $sqlTables .= "-- -----------------------------------------------------\n";
     $sqlTables .= "-- Table structure for `$table`\n";

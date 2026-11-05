@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/config/site_setting_and_config.php';
 require_once __DIR__ . '/modules/payments.php';
+require_once __DIR__ . '/modules/payment_gateways.php';
 
 $userId  = current_user_id();
 $errors  = [];
@@ -43,10 +44,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify()) {
         $errors[] = 'Invalid security token.';
     } else {
-        $gateway = $_POST['gateway'] ?? '';
+        $gateway = strtolower(trim((string)($_POST['gateway'] ?? '')));
+        $enabledGateways = PaymentGateways::enabled();
+        $defaultGateway  = PaymentGateways::defaultGateway();
+        if ($gateway === '' && $defaultGateway !== null) {
+            $gateway = $defaultGateway;
+        }
 
-        if (!in_array($gateway, ['paystack', 'flutterwave'], true)) {
-            $errors[] = 'Please select a valid payment gateway.';
+        if (!in_array($gateway, $enabledGateways, true)) {
+            $errors[] = $gateway !== '' && isset(PaymentGateways::REGISTRY[$gateway])
+                ? PaymentGateways::config($gateway)['label'] . ' is not available. ' . PaymentGateways::unavailableReason($gateway)
+                : 'No payment method is currently available. Please contact support.';
         } elseif ($usdAmount <= 0) {
             $errors[] = 'Nothing to pay for.';
         } else {
@@ -142,37 +150,34 @@ require_once __DIR__ . '/includes/app_header.php';
 
                 <div class="checkout-card rounded-3 p-4 mb-4">
                     <h5 class="text-white fw-bold mb-4"><i class="ph-bold ph-credit-card me-2 text-main-600"></i>Payment Gateway</h5>
+                    <?php if (empty($enabledGateways)): ?>
+                        <div class="alert alert-warning mb-0 py-3 px-3" style="font-size:.85rem;">
+                            <i class="ph-bold ph-warning-circle me-1"></i>
+                            No payment method is currently available. Please contact support to complete this order.
+                        </div>
+                    <?php else: ?>
                     <div class="row g-3">
-                        <div class="col-6">
-                            <label class="gateway-option d-flex align-items-center gap-3" id="gw-paystack">
-                                <input type="radio" name="gateway" value="paystack" <?= $gateway === 'paystack' ? 'checked' : '' ?>>
-                                <div class="rounded-circle bg-success d-flex align-items-center justify-content-center" style="width:36px;height:36px;">
-                                    <span class="text-white fw-bold small">P</span>
-                                </div>
-                                <div>
-                                    <span class="text-white fw-semibold small">Paystack</span>
-                                    <small class="d-block text-white-50" style="font-size:.7rem;">Card, Bank, USSD</small>
-                                </div>
-                                <i class="ph-bold ph-check-circle text-main-600 ms-auto gateway-check" style="display:none;"></i>
-                            </label>
-                        </div>
-                        <div class="col-6">
-                            <label class="gateway-option d-flex align-items-center gap-3" id="gw-flutterwave">
-                                <input type="radio" name="gateway" value="flutterwave" <?= $gateway === 'flutterwave' ? 'checked' : '' ?>>
-                                <div class="rounded-circle bg-warning d-flex align-items-center justify-content-center" style="width:36px;height:36px;">
-                                    <span class="text-white fw-bold small">F</span>
-                                </div>
-                                <div>
-                                    <span class="text-white fw-semibold small">Flutterwave</span>
-                                    <small class="d-block text-white-50" style="font-size:.7rem;">Card, Bank, Mobile</small>
-                                </div>
-                                <i class="ph-bold ph-check-circle text-main-600 ms-auto gateway-check" style="display:none;"></i>
-                            </label>
-                        </div>
+                        <?php foreach ($enabledGateways as $gwKey): ?>
+                            <?php $gw = PaymentGateways::config($gwKey); ?>
+                            <div class="col-<?= count($enabledGateways) > 1 ? '6' : '12' ?>">
+                                <label class="gateway-option d-flex align-items-center gap-3" id="gw-<?= e($gwKey) ?>">
+                                    <input type="radio" name="gateway" value="<?= e($gwKey) ?>" <?= $gateway === $gwKey ? 'checked' : '' ?>>
+                                    <div class="rounded-circle <?= $gwKey === 'flutterwave' ? 'bg-warning' : 'bg-success' ?> d-flex align-items-center justify-content-center" style="width:36px;height:36px;">
+                                        <span class="text-white fw-bold small"><?= e(strtoupper(substr($gwKey, 0, 1))) ?></span>
+                                    </div>
+                                    <div>
+                                        <span class="text-white fw-semibold small"><?= e($gw['label']) ?></span>
+                                        <small class="d-block text-white-50" style="font-size:.7rem;"><?= e($gw['blurb']) ?></small>
+                                    </div>
+                                    <i class="ph-bold ph-check-circle text-main-600 ms-auto gateway-check" style="display:none;"></i>
+                                </label>
+                            </div>
+                        <?php endforeach; ?>
                     </div>
+                    <?php endif; ?>
                 </div>
 
-                <button type="submit" class="btn btn-main w-100 rounded-pill fw-semibold py-3" id="payBtn">
+                <button type="submit" class="btn btn-main w-100 rounded-pill fw-semibold py-3" id="payBtn" <?= empty($enabledGateways) ? 'disabled' : '' ?>>
                     <span class="button__flair"></span>
                     <span class="button__label">
                         <i class="ph-bold ph-lock me-1"></i>
@@ -182,7 +187,13 @@ require_once __DIR__ . '/includes/app_header.php';
 
                 <p class="text-center text-white-50 small mt-3">
                     <i class="ph-bold ph-shield-check me-1"></i>
-                    Secured by Paystack / Flutterwave
+                    <?php
+                    $activeLabels = array_map(
+                        static fn(string $k): string => PaymentGateways::config($k)['label'],
+                        $enabledGateways
+                    );
+                    echo 'Secured by ' . e(implode(' / ', $activeLabels));
+                    ?>
                 </p>
             </form>
         <?php endif; ?>

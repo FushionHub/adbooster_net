@@ -1,6 +1,10 @@
 <?php declare(strict_types=1);
 require_once __DIR__ . '/../includes/admin_guard.php';
 require_once __DIR__ . '/../config/site_setting_and_config.php';
+require_once __DIR__ . '/../modules/payment_gateways.php';
+
+$gatewayConfigs    = PaymentGateways::all();
+$activeGatewayKeys = PaymentGateways::enabled();
 
 $pageTitle = 'Platform Settings & Integrations';
 
@@ -168,24 +172,63 @@ require_once __DIR__ . '/sidebar.php';
         <!-- Payment Gateways -->
         <div class="col-lg-6">
             <div class="admin-card h-100">
-                <h6 class="text-white fw-bold mb-3"><i class="ph-bold ph-credit-card text-warning"></i> Payment Gateway Gateways</h6>
-                
-                <div class="mb-3">
-                    <label class="form-label-admin">Paystack Live Secret Key</label>
-                    <input type="password" name="settings[paystack_live_key]" class="form-control-admin w-100" value="<?= sval($currentSettings, 'paystack_live_key') ?>" placeholder="sk_live_...">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h6 class="text-white fw-bold mb-0"><i class="ph-bold ph-credit-card text-warning"></i> Payment Gateways</h6>
+                    <span class="badge-status <?= empty($activeGatewayKeys) ? 'failed' : 'active' ?>">
+                        <?= empty($activeGatewayKeys) ? 'All offline' : count($activeGatewayKeys) . ' active' ?>
+                    </span>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label-admin">Paystack Test Secret Key</label>
-                    <input type="password" name="settings[paystack_test_key]" class="form-control-admin w-100" value="<?= sval($currentSettings, 'paystack_test_key') ?>" placeholder="sk_test_...">
+
+                <div class="text-muted mb-3" style="font-size:.76rem;line-height:1.6;">
+                    A gateway is shown to customers only when its <strong>public key</strong> and
+                    <strong>secret key</strong> are both present. Save the keys below and the
+                    gateway activates immediately \u2014 no code change needed.
                 </div>
-                <div class="mb-3">
-                    <label class="form-label-admin">Flutterwave Live Secret Key</label>
-                    <input type="password" name="settings[flutterwave_live_key]" class="form-control-admin w-100" value="<?= sval($currentSettings, 'flutterwave_live_key') ?>" placeholder="FLWSECK_LIVE-...">
-                </div>
-                <div>
-                    <label class="form-label-admin">Flutterwave Test Secret Key</label>
-                    <input type="password" name="settings[flutterwave_test_key]" class="form-control-admin w-100" value="<?= sval($currentSettings, 'flutterwave_test_key') ?>" placeholder="FLWSECK_TEST-...">
-                </div>
+
+                <?php foreach ($gatewayConfigs as $gwKey => $gw): ?>
+                    <?php $gwOn = !empty($gw['configured']); ?>
+                    <div style="border:1px solid var(--admin-border);border-radius:10px;padding:14px;margin-bottom:12px;">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <strong style="color:#fff;font-size:.88rem;">
+                                <i class="ph <?= htmlspecialchars($gw['icon']) ?>"></i>
+                                <?= htmlspecialchars($gw['label']) ?>
+                            </strong>
+                            <span class="badge-status <?= $gwOn ? 'active' : 'draft' ?>">
+                                <?= $gwOn ? 'Active' : 'Disabled' ?>
+                            </span>
+                        </div>
+
+                        <?php if (!$gwOn): ?>
+                            <div class="text-muted mb-2" style="font-size:.74rem;">
+                                <?= htmlspecialchars(PaymentGateways::unavailableReason($gwKey)) ?>
+                                Hidden from customers until configured.
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <label class="form-label-admin">Public key</label>
+                                <input type="text" name="settings[<?= htmlspecialchars($gwKey) ?>_public_key]"
+                                       class="form-control-admin w-100" value="<?= htmlspecialchars(sval($currentSettings, $gwKey . '_public_key')) ?>"
+                                       placeholder="<?= htmlspecialchars($gwKey === 'flutterwave' ? 'FLWPUBK-...' : 'pk_live_...') ?>">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label-admin">Secret key</label>
+                                <input type="password" name="settings[<?= htmlspecialchars($gwKey) ?>_secret_key]"
+                                       class="form-control-admin w-100" value="<?= htmlspecialchars(sval($currentSettings, $gwKey . '_secret_key')) ?>"
+                                       placeholder="<?= htmlspecialchars($gwKey === 'flutterwave' ? 'FLWSECK-...' : 'sk_live_...') ?>">
+                            </div>
+                            <?php if ($gwKey === 'flutterwave'): ?>
+                            <div class="col-12">
+                                <label class="form-label-admin">Encryption key <span class="text-muted" style="font-weight:400;">(optional, 32 chars)</span></label>
+                                <input type="password" name="settings[flutterwave_encryption_key]"
+                                       class="form-control-admin w-100" value="<?= htmlspecialchars(sval($currentSettings, 'flutterwave_encryption_key')) ?>"
+                                       placeholder="32-character encryption key">
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
             </div>
         </div>
 
