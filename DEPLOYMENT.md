@@ -131,7 +131,7 @@ mysql -u root -p
 ```sql
 CREATE DATABASE `adsbooster` 
   CHARACTER SET utf8mb4 
-  COLLATE utf8mb4_unicode_ci;
+  COLLATE utf8mb4_general_ci;
 ```
 
 3. Import the master SQL schema and seed data from `database/adsbooster_complete.sql`:
