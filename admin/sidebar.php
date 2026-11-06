@@ -58,7 +58,7 @@ $navItems = [
     <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <link href="<?= BASE_URL ?>/assets/css/admin-pro.css?v=2" rel="stylesheet">
+    <link href="<?= BASE_URL ?>/assets/css/admin-pro.css?v=3" rel="stylesheet">
 </head>
 <body>
 
@@ -122,7 +122,7 @@ $navItems = [
             <button class="topbar-icon-btn d-lg-none" onclick="toggleSidebar()" aria-label="Toggle navigation">
                 <i class="ph-bold ph-list"></i>
             </button>
-            <button class="topbar-icon-btn d-none d-xl-inline-flex" id="adminRailToggle" aria-label="Collapse sidebar">
+            <button class="topbar-icon-btn d-none d-lg-inline-flex" id="adminRailToggle" aria-label="Collapse sidebar">
                 <i class="ph-bold ph-arrow-u-right"></i>
             </button>
             <div class="min-w-0">
@@ -176,5 +176,5 @@ $navItems = [
         <div class="flash-msg flash-error"><i class="ph-bold ph-x-circle"></i> <?= e($flashError) ?> <button type="button" class="flash-close" aria-label="Dismiss"><i class="ph-bold ph-x"></i></button></div>
     <?php endif; ?>
 
-    <script src="<?= BASE_URL ?>/assets/js/admin-app.js?v=2"></script>
+    <script src="<?= BASE_URL ?>/assets/js/admin-app.js?v=3"></script>
 

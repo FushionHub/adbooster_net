@@ -1131,7 +1131,7 @@ ul, ol { padding-left: 1.2rem; }
     .sidebar-nav .nav-link:hover::after { opacity: 1; }
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 991.98px) {
     .admin-sidebar {
         width: min(84vw, 300px);
         transform: translateX(-105%);
@@ -1195,8 +1195,12 @@ ul, ol { padding-left: 1.2rem; }
     .admin-topbar { flex-wrap: wrap; gap: .55rem; min-height: 0; padding: .7rem .85rem; }
     .admin-topbar .topbar-actions { margin-left: auto; }
     .admin-breadcrumb { display: none; }
-    /* KPI tiles: 2-up then 1-up */
-    .col-xl-3.col-md-6 { flex: 0 0 auto; }
+    .admin-main { padding-bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* KPI tiles: 2-up on phones between the 1-up stacking and the desktop grid */
+@media (max-width: 767.98px) {
+    .admin-main .row.g-3.mb-3 > .col-md-6 { flex: 0 0 50%; max-width: 50%; }
 }
 
 @media (min-width: 1400px) {
