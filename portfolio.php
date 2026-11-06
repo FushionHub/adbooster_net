@@ -306,7 +306,7 @@ require_once __DIR__ . '/includes/header.php';
         </div>
         <div class="grow"></div>
         <button type="button" class="pf-btn" id="pfShare"><i class="ph ph-share-network"></i> Share</button>
-        <a href="<?= e($vcfUrl) ?>" class="pf-btn pri"><i class="ph ph-address-book"></i> Save contact</a>
+        <button type="button" class="pf-btn pri" id="pfCopy"><i class="ph ph-copy"></i> Copy profile link</button>
       </div>
     </div>
 
