@@ -39,7 +39,6 @@ $seedTables = [
     'jobs',
     'creator_bounties',
     'user_portfolios',
-    'user_vcards',
     'dating_profiles',
     'ai_media_buyer_rules',
 ];

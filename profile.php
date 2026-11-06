@@ -1,9 +1,9 @@
 <?php declare(strict_types=1);
 require_once __DIR__ . '/config/site_setting_and_config.php';
 
-$pageTitle = 'Edit Profile â€” ' . get_setting('site_name', 'Adsbooster.net');
+$pageTitle = 'Edit Profile — ' . get_setting('site_name', 'Adsbooster.net');
 
-// If viewing another user's public profile or vcard link, delegate to public portfolio
+// If viewing another user's public profile link, delegate to public portfolio
 if (!empty($_GET['u']) || !empty($_GET['id'])) {
     require_once __DIR__ . '/portfolio.php';
     exit;
@@ -146,7 +146,7 @@ require_once __DIR__ . '/includes/app_header.php';
     </div>
     <div class="stat-card">
         <div class="stat-icon" style="background:rgba(168,85,247,.15);color:var(--purple,#a855f7)"><i class="ph ph-share-network"></i></div>
-        <div class="stat-value" style="font-size:18px;font-family:monospace"><?= e($user['referral_code'] ?? 'â€”') ?></div>
+        <div class="stat-value" style="font-size:18px;font-family:monospace"><?= e($user['referral_code'] ?? '—') ?></div>
         <div class="stat-label">Referral Code</div>
     </div>
 </div>
@@ -194,7 +194,7 @@ require_once __DIR__ . '/includes/app_header.php';
             <input type="hidden" name="action" value="password">
             <div style="margin-bottom:16px">
                 <label for="current_password" class="form-label">Current Password</label>
-                <input type="password" id="current_password" name="current_password" class="form-control" required autocomplete="current-password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢">
+                <input type="password" id="current_password" name="current_password" class="form-control" required autocomplete="current-password" placeholder="••••••••">
             </div>
             <div style="margin-bottom:16px">
                 <label for="new_password" class="form-label">New Password</label>

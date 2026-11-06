@@ -109,23 +109,16 @@ v                                                                       v
 - **Dynamic Homepage Showcase**: Top-rated verified reviews dynamically featured on the homepage (`index.php`) displaying user avatars, ratings, review comments, and membership plan badges.
 - **Administrative Review Moderation**: Dedicated admin suite (`admin/reviews.php`) to approve, feature, edit, or reject submitted community feedback.
 
-### 5. 💼 Dedicated Public Portfolios, Dual vCards & AI Resume Analyser (`portfolio.php`, `vcard.php`, `vcard-download.php`, `portfolio-builder.php`, `resume-analyser.php`)
+### 5. 💼 Dedicated Public Portfolios & AI Resume Import (`portfolio.php`, `portfolio-builder.php`)
 - **Dedicated Public Showcase**: Every registered member receives an SEO-indexed, shareable public portfolio link (`/portfolio.php?u=username`) accessible without login.
-- **Dual vCard System (Both vCards)**:
-  - *vCard 1: Downloadable RFC 6350 (.vcf)*: Standards-compliant vCard 3.0 / RFC 6350 contact card saving directly into Apple iOS Contacts, Google Contacts, and Windows address books (`/vcard-download.php?u=...`). Includes photo URI/base64, structured name, job title, company, phone, WhatsApp, email, URL, address, and social profiles (LinkedIn, Twitter/X, Instagram, GitHub).
-  - *vCard 2: Interactive Digital NFC Business Card (`/vcard.php?u=...`)*: Standalone mobile-first virtual smart card featuring realistic 3D perspective tilt on hover, tap-to-flip 180° animation, EMV metallic chip illustration, contactless NFC wave badge, and live scannable QR Code that prompts phone cameras to save contacts instantly. Includes one-click contact action buttons (Save Contact, WhatsApp Chat, Call, Email, Share via Web Share API). Also embedded directly as an interactive widget on `portfolio.php`.
 - **4 Luxury Design Themes**:
   - *Dark Luxury Noir* (Obsidian `#080c14` with lime `#c8ff00` accents)
   - *Creative Cyber Neon* (Vibrant purple & cyan gradient glow)
   - *Executive Titanium* (Corporate slate and titanium elegance)
   - *Minimalist Aurora Glass* (Emerald `#10b981` with frosted blur)
-- **Portfolio Studio (`portfolio-builder.php`)**: Full visual editor with dynamic repeaters for Case Studies & Projects (title, highlight metric, description, link), Service Packages (title, price, scope), Core Skills tag manager, social networks, and live card preview.
-- **AI Resume Analyser & ATS Optimizer (`resume-analyser.php`)**:
-  - Drag-and-drop file uploader supporting `.pdf`, `.docx` (via native `ZipArchive`), and `.txt` files, alongside raw text pasting.
-  - Deep ATS scoring (0-100) with animated circular SVG gauge, grade verdict, and 4 sub-scores (Readability, Keyword Optimization, Impact & Metrics, Layout & Structure).
-  - Automated extraction of executive bio, competencies, and quantified results.
-  - Actionable ATS audit highlighting strengths, missing high-value recruiter keywords, and optimization advice.
-  - **1-Click Sync to Portfolio & vCard**: Automatically syncs ATS-optimized profile, bio, skills, services, and projects into `user_portfolios`, `user_vcards`, and `users` tables.
+- **Portfolio Studio (`portfolio-builder.php`)**: Full visual editor with dynamic repeaters for Case Studies & Projects (title, highlight metric, description, link), Service Packages (title, price, scope), Core Skills tag manager, social networks, WhatsApp button, and a live card preview.
+- **AI Resume Import (Groq-powered)**: Drag-and-drop `.pdf`, `.docx` (native `ZipArchive`) and `.txt` support alongside raw text pasting. Extracts bio, skills, services and quantified case studies, computes an ATS score, and 1-click syncs into `user_portfolios` and `users`.
+- **Public QR Code**: Each portfolio renders a scannable QR code (fullscreen modal) that opens the public portfolio from any phone camera.
 
 ### 6. 💼 Advertising & Creative Talent Marketplace (`jobs.php`, `job-details.php`, `create-job.php`)
 - **Opportunities & Bounties**: Browse and post contracts, retainers, and bounties for media buyers, UGC creators, copywriters, and performance marketers.
@@ -135,7 +128,7 @@ v                                                                       v
 ### 7. 🤝 Enhanced P2P Chat with Contract & Deal Proposals (`p2p-chat.php`)
 - **Real-Time Collaboration**: Connect with clients, freelancers, sellers, and platform administrators.
 - **Deal & Contract Proposal Tool**: Propose structured project contracts with agreed amounts ($ USD), milestones, and deliverables stored in `p2p_deals`.
-- **Public Profile & vCard Links**: View any chat partner's public portfolio and save their contact details directly from the conversation header.
+- **Public Profile Links**: View any chat partner's public portfolio directly from the conversation header.
 - **Safety Tools**: Integrated user reporting, block controls, and 24/7 AI Growth Consultant assistant.
 
 ### 8. 🏢 Verified Business & Product Directory (`marketplace.php`)
@@ -167,7 +160,7 @@ v                                                                       v
   - `analytics.php` — Platform-wide conversion, latency, and revenue metrics.
   - `tickets.php` — Customer support ticket desk and resolution pipeline.
   - `p2p-chat.php` — Escalated dispute review and chat safety monitoring.
-  - `portfolios-vcards.php` — Public showcase and digital vCard moderation.
+  - `blogs.php` moderation covers public portfolio SEO fields.
   - `seo.php` — Meta titles, descriptions, OpenGraph tags, and sitemap settings.
   - `policy-rules.php` — Platform terms, safety guidelines, and advertising policies.
   - `referrals.php` — Affiliate tracking, referral tiers, and payout thresholds.
@@ -295,11 +288,8 @@ seopp/
 ├── calendar.php               # Interactive content calendar with Google Calendar sync
 ├── audience-builder.php       # Demographic cohorts & AI lookalike segment builder
 ├── ab-test.php                # Split testing studio for ad variants
-├── portfolio.php              # Dedicated public showcase with embedded NFC card
+├── portfolio.php              # Dedicated public showcase with QR sharing
 ├── portfolio-builder.php      # Showcase Studio, dynamic repeaters & theme designer
-├── vcard.php                  # Interactive 3D Digital Virtual NFC Business Card
-├── vcard-download.php         # RFC 6350 standards-compliant contact card downloader
-├── resume-analyser.php        # AI ATS Resume Analyser, scoring audit & 1-click sync
 ├── reviews.php                # Community review submission portal
 ├── marketplace.php            # Verified business & product directory
 ├── jobs.php / job-details.php # Advertising talent marketplace

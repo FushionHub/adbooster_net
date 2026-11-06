@@ -368,19 +368,19 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
 
                 <!-- Q6 -->
-                <div class="faq-card-item" data-category="directory" data-keywords="digital vcard portfolio builder resume upload pdf qr code shareable">
+                <div class="faq-card-item" data-category="directory" data-keywords="portfolio builder resume upload pdf shareable public link">
                     <div class="faq-card-header">
                         <button class="faq-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqCol6" aria-expanded="false">
                             <span>
                                 <span class="faq-tag">Portfolio</span>
-                                6. How does the Digital vCard &amp; AI Portfolio Builder work?
+                                6. How does the AI Portfolio Builder work?
                             </span>
                             <span class="faq-icon-indicator"><i class="ph-bold ph-caret-down"></i></span>
                         </button>
                     </div>
                     <div id="faqCol6" class="accordion-collapse collapse" data-bs-parent="#faqAccordionContainer">
                         <div class="faq-body-content">
-                            Every user can generate a personalized public portfolio and vCard. Upload your resume (PDF/DOCX) or paste your experience, and our AI automatically extracts your bio, skills, credentials, and achievements. You can select between Dark Luxury, Cyber Neon, or Executive styles, share your dedicated public link (<code class="text-main-600">/profile.php?u=...</code>), and let prospects download your digital contact card (.vcf) with one click.
+                            Every user can generate a personalized public portfolio. Upload your resume (PDF/DOCX) or paste your experience, and our AI automatically extracts your bio, skills, credentials, and achievements into a polished profile. Choose between Dark Luxury, Cyber Neon, or Executive styles and share your dedicated public link (<code class="text-main-600">/profile.php?u=...</code>) with prospects.
                         </div>
                     </div>
                 </div>
@@ -457,7 +457,7 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
                     <div id="faqCol10" class="accordion-collapse collapse" data-bs-parent="#faqAccordionContainer">
                         <div class="faq-body-content">
-                            Yes! Brands and agency operators can post contract roles, fixed-price bounties, and media buying briefs on our marketplace. Creators and media buyers can submit applications, showcase their verified vCard portfolios, and coordinate deliverables through built-in P2P messaging.
+                            Yes! Brands and agency operators can post contract roles, fixed-price bounties, and media buying briefs on our marketplace. Creators and media buyers can submit applications, showcase their verified portfolios, and coordinate deliverables through built-in P2P messaging.
                         </div>
                     </div>
                 </div>

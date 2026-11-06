@@ -403,7 +403,6 @@ After deployment, test the following endpoints to verify all components:
 | `/admin-login.php`         | Administrative login with TOTP 2FA verification challenge                | HTTP 200         |
 | `/admin/index.php`         | Admin dashboard — 25 modules, user management, maintenance mode          | HTTP 200 (admin) |
 | `/portfolio.php?u=demo`    | Dedicated public portfolio view (accessible without login)               | HTTP 200         |
-| `/vcard-download.php?id=3` | RFC 6350 compliant digital vCard download (.vcf)                         | HTTP 200 (vcard) |
 | `/reviews.php`             | Community review submission portal (Pro vs Free 5-day rule)              | HTTP 200         |
 | `/send-email.php`          | Outbound HTML Email Studio with CKEditor 5                               | HTTP 200         |
 | `/p2p-chat.php`            | P2P Chat with AI Growth Consultant bot & deal proposals                  | HTTP 200         |

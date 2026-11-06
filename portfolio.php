@@ -88,7 +88,6 @@ if (!empty($portfolio['id'])) {
 }
 
 $pUserId = (int)$portfolio['user_id'];
-$vcardRecord = db()->fetchOne("SELECT * FROM user_vcards WHERE user_id = ? LIMIT 1", [$pUserId]);
 
 $isOwner  = $currentUserId > 0 && $pUserId === $currentUserId;
 $template = $portfolio['template_style'] ?? 'dark_luxury';
@@ -98,22 +97,15 @@ $services = json_decode($portfolio['services_json'] ?? '[]', true) ?: [];
 $projects = json_decode($portfolio['portfolio_items_json'] ?? '[]', true) ?: [];
 $socials  = json_decode($portfolio['social_links_json'] ?? '[]', true) ?: [];
 
-// Fallback social profiles from user_vcards
-if (empty($socials['linkedin']) && !empty($vcardRecord['linkedin']))   $socials['linkedin']  = $vcardRecord['linkedin'];
-if (empty($socials['twitter']) && !empty($vcardRecord['twitter']))     $socials['twitter']   = $vcardRecord['twitter'];
-if (empty($socials['github']) && !empty($vcardRecord['github']))       $socials['github']    = $vcardRecord['github'];
-if (empty($socials['instagram']) && !empty($vcardRecord['instagram'])) $socials['instagram'] = $vcardRecord['instagram'];
 
 $usernameSlug = $portfolio['username'] ?: (string)$portfolio['user_id'];
-$vcfUrl       = BASE_URL . '/vcard-download.php?u=' . urlencode($usernameSlug);
-$vcardWebUrl  = BASE_URL . '/vcard.php?u=' . urlencode($usernameSlug);
 $shareUrl     = BASE_URL . '/portfolio.php?u=' . urlencode($usernameSlug);
-$qrCodeUrl    = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=10&data=' . rawurlencode($vcfUrl);
+$qrCodeUrl    = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=10&data=' . rawurlencode($shareUrl);
 
 $avatar = $portfolio['avatar_url'] ?: ($portfolio['user_avatar'] ?? '');
-$cleanPhone = preg_replace('/[^0-9]/', '', (string)($vcardRecord['whatsapp'] ?? $portfolio['phone'] ?? ''));
+$cleanPhone = preg_replace('/[^0-9]/', '', (string)($portfolio['phone'] ?? ''));
 
-$pageTitle = e($portfolio['display_name']) . ' — Portfolio & Digital vCard — ' . get_setting('site_name', 'Adsbooster.net');
+$pageTitle = e($portfolio['display_name']) . ' — Portfolio — ' . get_setting('site_name', 'Adsbooster.net');
 $pageDescription = e($portfolio['headline'] ?? $portfolio['bio'] ?? '');
 
 require_once __DIR__ . '/includes/header.php';
@@ -322,12 +314,11 @@ require_once __DIR__ . '/includes/header.php';
     <?php if ($isOwner): ?>
       <div class="pf-owner">
         <div>
-          <div class="lbl"><i class="ph ph-user-circle" style="color:var(--pf-accent)"></i> This is your public portfolio &amp; digital vCard</div>
+          <div class="lbl"><i class="ph ph-user-circle" style="color:var(--pf-accent)"></i> This is your public portfolio</div>
           <div class="url"><?= e($shareUrl) ?></div>
         </div>
         <div class="pf-pill-row">
           <a href="<?= url('portfolio-builder') ?>" class="pf-btn"><i class="ph ph-paint-brush"></i> Edit portfolio &amp; templates</a>
-          <a href="<?= url('resume-analyser') ?>" class="pf-btn"><i class="ph ph-file-text"></i> ATS analyser</a>
         </div>
       </div>
     <?php endif; ?>
@@ -365,9 +356,7 @@ require_once __DIR__ . '/includes/header.php';
         </div>
 
         <div class="pf-cta">
-          <a href="<?= e($vcfUrl) ?>" class="pf-btn pri"><i class="ph ph-address-book"></i> Download vCard (.vcf)</a>
-          <a href="<?= e($vcardWebUrl) ?>" target="_blank" rel="noopener" class="pf-btn"><i class="ph ph-wifi-high"></i> Virtual NFC card</a>
-          <a href="<?= url('p2p-chat') ?>?user=<?= $portfolio['user_id'] ?>" class="pf-btn"><i class="ph ph-chat-teardrop-dots"></i> Message on platform</a>
+          <a href="<?= url('p2p-chat') ?>?user=<?= $portfolio['user_id'] ?>" class="pf-btn pri"><i class="ph ph-chat-teardrop-dots"></i> Message on platform</a>
           <?php if (!empty($cleanPhone)): ?>
             <a href="https://wa.me/<?= e($cleanPhone) ?>" target="_blank" rel="noopener" class="pf-btn"><i class="ph ph-whatsapp-logo"></i> WhatsApp chat</a>
           <?php endif; ?>
@@ -375,60 +364,24 @@ require_once __DIR__ . '/includes/header.php';
       </div>
     </div>
 
-    <!-- Digital business card + QR -->
-    <div class="pf-sec pf-2">
-      <div class="pf-card">
-        <h2 class="pf-h"><i class="ph ph-credit-card"></i> Interactive virtual business card</h2>
-        <p class="pf-sub">Tap the card to open the full-screen interactive version, or scan the QR code with any phone camera to save the contact instantly.</p>
-
-        <div class="pf-nfc" onclick="window.open('<?= e($vcardWebUrl) ?>', '_blank')" role="button" tabindex="0"
-             onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.open('<?= e($vcardWebUrl) ?>','_blank')}">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-            <div style="display:flex;align-items:center;gap:10px">
-              <div class="pf-chip"></div>
-              <i class="ph-bold ph-wifi-high" style="color:var(--pf-accent);font-size:19px" title="Contactless NFC"></i>
-            </div>
-            <span class="pf-pill acc" style="font-size:10px;letter-spacing:.06em">VERIFIED NFC CARD</span>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:13px;margin:18px 0">
-            <?php if (!empty($avatar)): ?>
-              <img src="<?= e($avatar) ?>" alt="" style="width:54px;height:54px;border-radius:50%;object-fit:cover;border:2px solid var(--pf-accent)">
-            <?php else: ?>
-              <div style="width:54px;height:54px;border-radius:50%;border:2px solid var(--pf-accent);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--pf-accent)">
-                <?= strtoupper(substr($portfolio['display_name'], 0, 2)) ?>
-              </div>
-            <?php endif; ?>
-            <div style="min-width:0">
-              <div style="font-size:16px;font-weight:800"><?= e($portfolio['display_name']) ?></div>
-              <div style="font-size:12.5px;color:var(--pf-accent);font-weight:700"><?= e($portfolio['job_title']) ?></div>
-              <?php if (!empty($portfolio['company'])): ?>
-                <div style="font-size:11px;color:var(--pf-dim-2)"><i class="ph ph-buildings"></i> <?= e($portfolio['company']) ?></div>
-              <?php endif; ?>
-            </div>
-          </div>
-
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:14px;border-top:1px solid var(--pf-border);font-size:11.5px;color:var(--pf-dim-2)">
-            <span><i class="ph ph-map-pin"></i> <?= e($portfolio['location']) ?></span>
-            <span style="color:var(--pf-text);font-weight:700">Tap to open card &rarr;</span>
+    <!-- Public profile QR -->
+    <div class="pf-sec pf-card">
+      <div class="row" style="align-items:center;gap:28px;display:flex;flex-wrap:wrap">
+        <div style="flex:1;min-width:260px">
+          <h2 class="pf-h" style="margin-bottom:8px"><i class="ph ph-qr-code"></i> Share this portfolio</h2>
+          <p class="pf-sub">
+            Every case study, service and credential above is public at this link. Scan the QR code
+            with any phone camera — or copy the link — to open <?= e($portfolio['display_name']) ?>'s portfolio instantly.
+          </p>
+          <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:16px">
+            <button type="button" class="pf-btn" data-bs-toggle="modal" data-bs-target="#qrScanModal"><i class="ph ph-qr-code"></i> Fullscreen QR code</button>
+            <button type="button" class="pf-btn" id="pfCopy"><i class="ph ph-copy"></i> Copy profile link</button>
           </div>
         </div>
 
-        <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:16px">
-          <button type="button" class="pf-btn" data-bs-toggle="modal" data-bs-target="#qrScanModal"><i class="ph ph-qr-code"></i> Fullscreen QR code</button>
-          <button type="button" class="pf-btn" id="pfCopy"><i class="ph ph-copy"></i> Copy profile link</button>
-        </div>
-      </div>
-
-      <div class="pf-qr">
-        <div class="box"><img src="<?= e($qrCodeUrl) ?>" alt="vCard QR code"></div>
-        <div style="font-size:14.5px;font-weight:800;margin-bottom:6px">Scan to save contact</div>
-        <p style="font-size:12.5px;color:var(--pf-dim);line-height:1.6;margin:0 0 14px">
-          Aim your iPhone or Android camera at the code to download <?= e($portfolio['display_name']) ?>'s card straight into your address book.
-        </p>
-        <div style="display:flex;gap:9px;justify-content:center;flex-wrap:wrap">
-          <a href="<?= e($vcfUrl) ?>" class="pf-btn pri"><i class="ph ph-download-simple"></i> Download .vcf</a>
-          <a href="<?= e($vcardWebUrl) ?>" target="_blank" rel="noopener" class="pf-btn"><i class="ph ph-arrows-clockwise"></i> Flip virtual card</a>
+        <div class="pf-qr" style="max-width:250px">
+          <div class="box"><img src="<?= e($qrCodeUrl) ?>" alt="Portfolio QR code"></div>
+          <div style="font-size:14.5px;font-weight:800;margin-bottom:6px">Scan to open portfolio</div>
         </div>
       </div>
     </div>
@@ -527,8 +480,6 @@ require_once __DIR__ . '/includes/header.php';
         <a href="<?= url('p2p-chat') ?>?user=<?= $portfolio['user_id'] ?>" class="pf-btn pri" style="padding:13px 24px;font-size:13.5px">
           <i class="ph ph-chat-teardrop-dots"></i> Start a direct conversation
         </a>
-        <a href="<?= e($vcfUrl) ?>" class="pf-btn" style="padding:13px 22px"><i class="ph ph-download-simple"></i> Save to contacts (.vcf)</a>
-        <a href="<?= e($vcardWebUrl) ?>" target="_blank" rel="noopener" class="pf-btn" style="padding:13px 22px"><i class="ph ph-wifi-high"></i> Virtual NFC card</a>
       </div>
     </div>
 
@@ -541,20 +492,19 @@ require_once __DIR__ . '/includes/header.php';
     <div class="modal-content pf-modal-card p-4 text-center">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px">
         <h5 id="qrScanModalLabel" style="margin:0;font-size:15px;font-weight:800">
-          <i class="ph-bold ph-qr-code" style="color:var(--pf-accent)"></i> Scan digital vCard
+          <i class="ph-bold ph-qr-code" style="color:var(--pf-accent)"></i> Scan to open portfolio
         </h5>
         <button type="button" class="pf-btn" data-bs-dismiss="modal" aria-label="Close" style="padding:6px 10px"><i class="ph ph-x"></i></button>
       </div>
       <div style="background:#fff;padding:14px;border-radius:16px;width:236px;height:236px;margin:0 auto 16px">
-        <img src="<?= e($qrCodeUrl) ?>" alt="vCard QR code" style="width:100%;height:100%;object-fit:contain;display:block">
+        <img src="<?= e($qrCodeUrl) ?>" alt="Portfolio QR code" style="width:100%;height:100%;object-fit:contain;display:block">
       </div>
       <div style="font-size:15px;font-weight:800"><?= e($portfolio['display_name']) ?></div>
       <div style="font-size:12.5px;color:var(--pf-accent);font-weight:700;margin-bottom:10px"><?= e($portfolio['job_title']) ?></div>
       <p style="font-size:12px;color:var(--pf-dim);margin:0 0 16px">
-        Open your camera app on iPhone or Android to instantly save this contact card, or share it over NFC.
+        Open your camera app on iPhone or Android to instantly open this public portfolio.
       </p>
       <div style="display:flex;gap:9px;justify-content:center;flex-wrap:wrap">
-        <a href="<?= e($vcfUrl) ?>" class="pf-btn pri"><i class="ph ph-download-simple"></i> Download .vcf</a>
         <button type="button" class="pf-btn" data-bs-dismiss="modal">Close</button>
       </div>
     </div>

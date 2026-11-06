@@ -7,13 +7,12 @@ require_once __DIR__ . '/modules/ai_engine.php';
 $userId = current_user_id();
 $user   = current_user();
 
-$portfolio   = db()->fetchOne("SELECT * FROM user_portfolios WHERE user_id = ?", [$userId]);
-$vcardRecord = db()->fetchOne("SELECT * FROM user_vcards WHERE user_id = ?", [$userId]);
+$portfolio = db()->fetchOne("SELECT * FROM user_portfolios WHERE user_id = ?", [$userId]);
 
 $errors = [];
 $success = '';
 
-// Handle Actions (AI Parse or Save Full Portfolio & vCard)
+// Handle Actions (AI Parse or Save Portfolio)
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && csrf_verify()) {
     $action = $_POST['action'] ?? '';
 
@@ -78,42 +77,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && csrf_verify()) {
                     db()->insert('user_portfolios', $dataPortfolio);
                 }
 
-                // 2. Update/Insert user_vcards
-                $dataVcard = [
-                    'user_id'          => $userId,
-                    'username'         => $uname,
-                    'headline'         => $cand['headline'] ?: '',
-                    'bio'              => $cand['bio'] ?: '',
-                    'template'         => $tpl,
-                    'phone'            => $cand['phone'] ?: ($user['phone'] ?? '+1 (555) 019-2831'),
-                    'whatsapp'         => $cand['phone'] ?: ($user['phone'] ?? '+1 (555) 019-2831'),
-                    'company'          => $cand['company'] ?: ($user['company'] ?? 'Adsbooster.net'),
-                    'job_title'        => $cand['job_title'] ?: 'Performance Advertiser',
-                    'location'         => $cand['location'] ?: 'Worldwide / Remote',
-                    'website'          => $cand['website'] ?: (BASE_URL . '/portfolio.php?u=' . urlencode($uname)),
-                    'skills_json'      => json_encode(array_values($flatSkills)),
-                    'projects_json'    => json_encode($projects),
-                    'is_public'        => 1,
-                    'updated_at'       => date('Y-m-d H:i:s'),
-                ];
-
-                if ($vcardRecord) {
-                    db()->update('user_vcards', $dataVcard, 'id = ?', [$vcardRecord['id']]);
-                } else {
-                    $dataVcard['created_at'] = date('Y-m-d H:i:s');
-                    db()->insert('user_vcards', $dataVcard);
-                }
-
-                // 3. Update users table headline & company
+                // 2. Update users table headline & company
                 db()->update('users', [
                     'headline' => $cand['headline'] ?: '',
                     'bio'      => $cand['bio'] ?: '',
                     'company'  => $cand['company'] ?: ($user['company'] ?? ''),
                 ], 'id = ?', [$userId]);
 
-                $success = 'AI successfully parsed your resume (ATS Score: ' . ((int)($d['ats_score'] ?? 85)) . '/100) and synced your portfolio & digital vCard!';
-                $portfolio   = db()->fetchOne("SELECT * FROM user_portfolios WHERE user_id = ?", [$userId]);
-                $vcardRecord = db()->fetchOne("SELECT * FROM user_vcards WHERE user_id = ?", [$userId]);
+                $success = 'AI successfully parsed your resume (ATS Score: ' . ((int)($d['ats_score'] ?? 85)) . '/100) and synced your portfolio!';
+                $portfolio = db()->fetchOne("SELECT * FROM user_portfolios WHERE user_id = ?", [$userId]);
             } else {
                 $errors[] = 'AI parsing could not identify resume details. Please try pasting plain text.';
             }
@@ -225,51 +197,20 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && csrf_verify()) {
                 db()->insert('user_portfolios', $dataPortfolio);
             }
 
-            // 2. Sync user_vcards
-            $dataVcard = [
-                'user_id'          => $userId,
-                'username'         => $uname,
-                'headline'         => $headline,
-                'bio'              => $bio,
-                'template'         => $templateStyle,
-                'phone'            => $phone,
-                'whatsapp'         => $whatsapp,
-                'company'          => $company,
-                'job_title'        => $jobTitle,
-                'location'         => $location,
-                'website'          => $website ?: (BASE_URL . '/portfolio.php?u=' . urlencode($uname)),
-                'linkedin'         => $socials['linkedin'] ?? null,
-                'twitter'          => $socials['twitter'] ?? null,
-                'github'           => $socials['github'] ?? null,
-                'instagram'        => $socials['instagram'] ?? null,
-                'skills_json'      => json_encode($skillsArray),
-                'projects_json'    => json_encode($projectsList),
-                'is_public'        => 1,
-                'updated_at'       => date('Y-m-d H:i:s'),
-            ];
-
-            if ($vcardRecord) {
-                db()->update('user_vcards', $dataVcard, 'id = ?', [$vcardRecord['id']]);
-            } else {
-                $dataVcard['created_at'] = date('Y-m-d H:i:s');
-                db()->insert('user_vcards', $dataVcard);
-            }
-
-            // 3. Update users table
+            // 2. Update users table
             db()->update('users', [
                 'company'  => $company,
                 'headline' => $headline,
                 'bio'      => $bio,
             ], 'id = ?', [$userId]);
 
-            $success = '✨ Portfolio, Digital NFC vCard, and Contact settings saved and published successfully!';
-            $portfolio   = db()->fetchOne("SELECT * FROM user_portfolios WHERE user_id = ?", [$userId]);
-            $vcardRecord = db()->fetchOne("SELECT * FROM user_vcards WHERE user_id = ?", [$userId]);
+            $success = '✨ Portfolio saved and published successfully!';
+            $portfolio = db()->fetchOne("SELECT * FROM user_portfolios WHERE user_id = ?", [$userId]);
         }
     }
 }
 
-$pageTitle = 'Portfolio & Digital vCard Studio — ' . get_setting('site_name', 'Adsbooster.net');
+$pageTitle = 'Portfolio Studio — ' . get_setting('site_name', 'Adsbooster.net');
 $_appPage = 'portfolio-builder';
 require_once __DIR__ . '/includes/app_header.php';
 
@@ -284,10 +225,8 @@ $curProjects  = json_decode($portfolio['portfolio_items_json'] ?? '[]', true) ?:
 $curSocials   = json_decode($portfolio['social_links_json'] ?? '[]', true) ?: [];
 $curTemplate  = $portfolio['template_style'] ?? 'dark_luxury';
 
-$usernameSlug = $portfolio['username'] ?? $vcardRecord['username'] ?? (string)$userId;
+$usernameSlug = $portfolio['username'] ?? (string)$userId;
 $shareUrl     = BASE_URL . '/portfolio.php?u=' . urlencode($usernameSlug);
-$vcardWebUrl  = BASE_URL . '/vcard.php?u=' . urlencode($usernameSlug);
-$vcardFileUrl = BASE_URL . '/vcard-download.php?u=' . urlencode($usernameSlug);
 ?>
 
 <div class="content-body">
@@ -298,14 +237,12 @@ $vcardFileUrl = BASE_URL . '/vcard-download.php?u=' . urlencode($usernameSlug);
         <div>
             <div class="pill-row mb-2">
                 <span class="pill on"><i class="ph ph-shield-check"></i> Multi-format showcase studio</span>
-                <span class="pill"><i class="ph ph-address-book"></i> Public portfolio &bull; NFC vCard &bull; RFC 6350 .vcf</span>
+                <span class="pill"><i class="ph ph-address-book"></i> Public portfolio showcase</span>
             </div>
-            <h1 class="h3 fw-bold mb-1">Digital vCard &amp; Portfolio Studio</h1>
-            <p class="text-secondary mb-0" style="max-width:78ch">Design your public showcase, configure the interactive NFC business card, and publish your case studies — every change goes live instantly.</p>
+            <h1 class="h3 fw-bold mb-1">Portfolio Studio</h1>
+            <p class="text-secondary mb-0" style="max-width:78ch">Design your public showcase and publish your case studies — every change goes live instantly.</p>
         </div>
         <div class="pill-row">
-            <a href="<?= e($vcardWebUrl) ?>" target="_blank" rel="noopener" class="fl-act"><i class="ph ph-wifi-high"></i> Virtual NFC card</a>
-            <a href="<?= e($vcardFileUrl) ?>" class="fl-act"><i class="ph ph-download-simple"></i> Download .vcf</a>
             <a href="<?= e($shareUrl) ?>" target="_blank" rel="noopener" class="fl-act pri"><i class="ph ph-arrow-square-out"></i> Live portfolio</a>
         </div>
     </div>
@@ -316,7 +253,6 @@ $vcardFileUrl = BASE_URL . '/vcard-download.php?u=' . urlencode($usernameSlug);
             <div style="flex:1"><?= e($success) ?></div>
             <div class="pill-row" style="flex:0 0 auto">
                 <a href="<?= e($shareUrl) ?>" target="_blank" rel="noopener" class="fl-act" style="padding:5px 12px;font-size:11.5px">View portfolio <i class="ph ph-arrow-square-out"></i></a>
-                <a href="<?= e($vcardWebUrl) ?>" target="_blank" rel="noopener" class="fl-act" style="padding:5px 12px;font-size:11.5px">Open digital vCard</a>
             </div>
         </div>
     <?php endif; ?>
@@ -346,7 +282,6 @@ $vcardFileUrl = BASE_URL . '/vcard-download.php?u=' . urlencode($usernameSlug);
         </div>
         <div class="pill-row">
             <button type="button" class="fl-act" data-copy="<?= e($shareUrl) ?>" data-label="Portfolio link copied"><i class="ph ph-copy"></i> Copy portfolio URL</button>
-            <button type="button" class="fl-act" data-copy="<?= e($vcardWebUrl) ?>" data-label="NFC vCard link copied"><i class="ph ph-share-network"></i> Copy NFC vCard URL</button>
         </div>
     </div>
 
@@ -357,7 +292,6 @@ $vcardFileUrl = BASE_URL . '/vcard-download.php?u=' . urlencode($usernameSlug);
             <div class="fl-panel" style="max-height:none">
                 <div class="fl-stagehead" style="margin-bottom:12px">
                     <span class="pill on" style="font-size:11px"><i class="ph ph-magic-wand"></i> Groq AI powered</span>
-                    <a href="<?= url('resume-analyser') ?>" style="font-size:11.5px;color:var(--fg2,#94a3b8);text-decoration:none">Full ATS tool &rarr;</a>
                 </div>
                 <div style="font-size:15px;font-weight:800;color:var(--fg,#fff);margin-bottom:6px">Instant resume import</div>
                 <p class="fl-help" style="margin:0 0 14px">Upload a resume or paste text — the AI auto-populates your name, headline, skills and case studies below.</p>
@@ -369,14 +303,14 @@ $vcardFileUrl = BASE_URL . '/vcard-download.php?u=' . urlencode($usernameSlug);
                     <input type="file" name="resume_file" id="pbFile" accept=".pdf,.docx,.txt" class="fl-in" style="padding:9px 12px;margin-bottom:12px">
                     <label class="cv-label" for="pbText">Or paste the text</label>
                     <textarea name="resume_text" id="pbText" rows="4" class="fl-in" style="min-height:96px;margin-bottom:12px" placeholder="Paste a resume, LinkedIn summary, or experience…"></textarea>
-                    <button type="submit" class="fl-go" style="margin-top:0"><i class="ph ph-sparkle"></i> Auto-generate portfolio &amp; vCard</button>
+                    <button type="submit" class="fl-go" style="margin-top:0"><i class="ph ph-sparkle"></i> Auto-generate portfolio</button>
                 </form>
             </div>
 
             <div class="fl-panel" style="max-height:none">
                 <div class="fl-stagehead" style="margin-bottom:12px">
-                    <div class="t" style="font-size:13px">Interactive card preview</div>
-                    <a href="<?= e($vcardWebUrl) ?>" target="_blank" rel="noopener" style="font-size:11.5px;color:var(--accent,#c8ff00);text-decoration:none">Open fullscreen <i class="ph ph-arrow-square-out"></i></a>
+                    <div class="t" style="font-size:13px">Live card preview</div>
+                    <a href="<?= e($shareUrl) ?>" target="_blank" rel="noopener" style="font-size:11.5px;color:var(--accent,#c8ff00);text-decoration:none">Open fullscreen <i class="ph ph-arrow-square-out"></i></a>
                 </div>
 
                 <div id="miniNfcCardPreview" style="border-radius:16px;padding:16px;background:linear-gradient(135deg,#131d2e 0%,#080c14 100%);border:1.5px solid rgba(200,255,0,.35);box-shadow:0 14px 34px rgba(0,0,0,.5);transition:all .3s ease">
@@ -395,21 +329,21 @@ $vcardFileUrl = BASE_URL . '/vcard-download.php?u=' . urlencode($usernameSlug);
                     </div>
                     <div style="display:flex;justify-content:space-between;gap:8px;padding-top:11px;border-top:1px solid rgba(255,255,255,.12);font-size:11px;color:var(--fg3,#64748b)">
                         <span><i class="ph ph-map-pin"></i> <?= e($portfolio['location'] ?? 'Remote') ?></span>
-                        <span id="miniNfcBadge" style="color:var(--fg2,#94a3b8);font-weight:700;transition:color .3s ease">NFC active</span>
+                        <span id="miniNfcBadge" style="color:var(--fg2,#94a3b8);font-weight:700;transition:color .3s ease">Published</span>
                     </div>
                 </div>
 
-                <a href="<?= e($vcardWebUrl) ?>" target="_blank" rel="noopener" class="fl-act" style="width:100%;justify-content:center;margin-top:12px"><i class="ph ph-qr-code"></i> Test flip &amp; QR</a>
+                <a href="<?= e($shareUrl) ?>" target="_blank" rel="noopener" class="fl-act" style="width:100%;justify-content:center;margin-top:12px"><i class="ph ph-arrow-square-out"></i> Open live portfolio</a>
             </div>
         </div>
 
         <!-- ── Right: editor form ───────────────────────────── -->
         <div class="fl-panel" style="max-height:none">
             <div class="fl-stagehead">
-                <div class="t"><i class="ph ph-sliders-horizontal" style="color:var(--accent,#c8ff00)"></i> Portfolio &amp; digital vCard settings</div>
+                <div class="t"><i class="ph ph-sliders-horizontal" style="color:var(--accent,#c8ff00)"></i> Portfolio settings</div>
                 <div class="m">applies live</div>
             </div>
-            <p class="fl-help" style="margin:0 0 18px">Pick a theme, set your identity, add case studies and services, then publish. Everything below maps straight to your public portfolio and vCard.</p>
+            <p class="fl-help" style="margin:0 0 18px">Pick a theme, set your identity, add case studies and services, then publish. Everything below maps straight to your public portfolio.</p>
 
             <form method="POST">
                 <?= csrf_field() ?>
@@ -546,27 +480,27 @@ $vcardFileUrl = BASE_URL . '/vcard-download.php?u=' . urlencode($usernameSlug);
                     </div>
                     <div>
                         <label class="cv-label" for="pb_wa">WhatsApp number</label>
-                        <input type="text" name="whatsapp" id="pb_wa" class="fl-in" value="<?= htmlspecialchars($vcardRecord['whatsapp'] ?? $portfolio['phone'] ?? $user['phone'] ?? '') ?>">
+                        <input type="text" name="whatsapp" id="pb_wa" class="fl-in" value="<?= htmlspecialchars($portfolio['phone'] ?? $user['phone'] ?? '') ?>">
                     </div>
                     <div>
                         <label class="cv-label" for="pb_li">LinkedIn</label>
-                        <input type="url" name="social_linkedin" id="pb_li" class="fl-in" placeholder="https://linkedin.com/in/..." value="<?= htmlspecialchars($curSocials['linkedin'] ?? $vcardRecord['linkedin'] ?? '') ?>">
+                        <input type="url" name="social_linkedin" id="pb_li" class="fl-in" placeholder="https://linkedin.com/in/..." value="<?= htmlspecialchars($curSocials['linkedin'] ?? '') ?>">
                     </div>
                     <div>
                         <label class="cv-label" for="pb_tw">Twitter / X</label>
-                        <input type="url" name="social_twitter" id="pb_tw" class="fl-in" placeholder="https://x.com/..." value="<?= htmlspecialchars($curSocials['twitter'] ?? $vcardRecord['twitter'] ?? '') ?>">
+                        <input type="url" name="social_twitter" id="pb_tw" class="fl-in" placeholder="https://x.com/..." value="<?= htmlspecialchars($curSocials['twitter'] ?? '') ?>">
                     </div>
                     <div>
                         <label class="cv-label" for="pb_ig">Instagram</label>
-                        <input type="url" name="social_instagram" id="pb_ig" class="fl-in" placeholder="https://instagram.com/..." value="<?= htmlspecialchars($curSocials['instagram'] ?? $vcardRecord['instagram'] ?? '') ?>">
+                        <input type="url" name="social_instagram" id="pb_ig" class="fl-in" placeholder="https://instagram.com/..." value="<?= htmlspecialchars($curSocials['instagram'] ?? '') ?>">
                     </div>
                     <div>
                         <label class="cv-label" for="pb_gh">GitHub</label>
-                        <input type="url" name="social_github" id="pb_gh" class="fl-in" placeholder="https://github.com/..." value="<?= htmlspecialchars($curSocials['github'] ?? $vcardRecord['github'] ?? '') ?>">
+                        <input type="url" name="social_github" id="pb_gh" class="fl-in" placeholder="https://github.com/..." value="<?= htmlspecialchars($curSocials['github'] ?? '') ?>">
                     </div>
                     <div>
                         <label class="cv-label" for="pb_site">Website / blog</label>
-                        <input type="url" name="website" id="pb_site" class="fl-in" placeholder="https://example.com" value="<?= htmlspecialchars($portfolio['website'] ?? $vcardRecord['website'] ?? '') ?>">
+                        <input type="url" name="website" id="pb_site" class="fl-in" placeholder="https://example.com" value="<?= htmlspecialchars($portfolio['website'] ?? '') ?>">
                     </div>
                     <div>
                         <label class="cv-label" for="pb_yt">YouTube</label>

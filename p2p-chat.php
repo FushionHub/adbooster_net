@@ -188,7 +188,7 @@ function formatChatMessage(string $raw): string {
                 '<div class="d-flex flex-column gap-2">';
         foreach ($steps as $s) {
             $parts = explode(':', trim($s));
-            $num = trim($parts[0] ?? 'â€¢');
+            $num = trim($parts[0] ?? '•');
             $title = trim($parts[1] ?? '');
             $desc = trim($parts[2] ?? '');
             $tool = trim($parts[3] ?? '');
@@ -247,7 +247,7 @@ function formatChatMessage(string $raw): string {
                         continue;
                     }
                     $isTable = true;
-                    $stepNum = $cols[0] ?? 'â€¢';
+                    $stepNum = $cols[0] ?? '•';
                     $stepTitle = $cols[1] ?? '';
                     $stepDesc = $cols[2] ?? '';
                     $stepTool = $cols[3] ?? '';
@@ -295,7 +295,7 @@ function formatChatMessage(string $raw): string {
     $text = preg_replace('/^#{1,3}\s+(.+)$/m', '<div class="fw-bold text-white font-size-14 mt-3 mb-2 pb-1 d-flex align-items-center gap-2" style="border-bottom:1px solid rgba(255,255,255,0.12);"><i class="ph-bold ph-caret-circle-right text-accent font-size-15"></i> $1</div>', $text);
 
     // 6. Clean bullets and numbered lists
-    $text = preg_replace('/^[â€¢\-*]\s+(.+)$/m', '<div class="d-flex align-items-baseline gap-2 my-1" style="padding-left:4px;"><span style="color:#c8ff00;font-size:9px;">â—</span><span style="flex:1;font-size:13px;color:#e2e8f0;">$1</span></div>', $text);
+    $text = preg_replace('/^[•\-*]\s+(.+)$/m', '<div class="d-flex align-items-baseline gap-2 my-1" style="padding-left:4px;"><span style="color:#c8ff00;font-size:9px;">â—</span><span style="flex:1;font-size:13px;color:#e2e8f0;">$1</span></div>', $text);
     $text = preg_replace('/^(\d+)\.\s+(.+)$/m', '<div class="d-flex align-items-baseline gap-2 my-1" style="padding-left:4px;"><span style="color:#c8ff00;font-size:11px;font-weight:700;">$1.</span><span style="flex:1;font-size:13px;color:#e2e8f0;">$2</span></div>', $text);
 
     // 7. Clean bold: **text**
@@ -455,7 +455,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && csrf_verify()) {
                 'created_at'      => date('Y-m-d H:i:s'),
             ]);
 
-            $dealMsg = "ðŸ’¼ CONTRACT & DEAL PROPOSAL:\nâ€¢ Title: {$dealTitle}\nâ€¢ Total Amount: \$" . number_format($dealAmount, 2) . " USD\nâ€¢ Deliverables & Terms: {$dealTerms}\nâ€¢ Status: Proposed (Pending Agreement)";
+            $dealMsg = "ðŸ’¼ CONTRACT & DEAL PROPOSAL:\n• Title: {$dealTitle}\n• Total Amount: \$" . number_format($dealAmount, 2) . " USD\n• Deliverables & Terms: {$dealTerms}\n• Status: Proposed (Pending Agreement)";
             db()->insert('p2p_messages', [
                 'conversation_id' => $convId,
                 'sender_id'       => $userId,
@@ -508,7 +508,7 @@ if ($chatUserId > 0 && $chatUser) {
     }
 }
 
-$pageTitle = 'P2P Real-Time Messenger â€” ' . get_setting('site_name', 'Adsbooster.net');
+$pageTitle = 'P2P Real-Time Messenger — ' . get_setting('site_name', 'Adsbooster.net');
 require_once __DIR__ . '/includes/app_header.php';
 ?>
 <!-- Chart.js 4 for Modern AI Agent Visualizations -->
@@ -796,8 +796,8 @@ require_once __DIR__ . '/includes/app_header.php';
                     </div>
                     <div style="display:flex; align-items:center; gap:8px;">
                         <?php if (!$isAIBot): ?>
-                            <a href="<?= url('portfolio') ?>?id=<?= $chatUserId ?>" target="_blank" class="btn btn-outline-light rounded-pill btn-sm font-size-12 px-3" title="View Public Portfolio & vCard">
-                                <i class="ph ph-address-book me-1"></i> Portfolio &amp; vCard
+                            <a href="<?= url('portfolio') ?>?id=<?= $chatUserId ?>" target="_blank" class="btn btn-outline-light rounded-pill btn-sm font-size-12 px-3" title="View Public Portfolio">
+                                <i class="ph ph-address-book me-1"></i> Portfolio
                             </a>
                             <button type="button" class="btn btn-accent rounded-pill btn-sm font-size-12 fw-bold text-dark px-3" onclick="document.getElementById('dealModal').style.display='flex'">
                                 <i class="ph-bold ph-handshake me-1"></i> Propose Contract
@@ -1208,7 +1208,7 @@ require_once __DIR__ . '/includes/app_header.php';
                 <div class="d-flex flex-column gap-2">`;
             steps.forEach(s => {
                 const parts = s.split(':').map(str => str.trim());
-                const num = parts[0] || 'â€¢';
+                const num = parts[0] || '•';
                 const title = parts[1] || '';
                 const desc = parts[2] || '';
                 const tool = parts[3] || '';
@@ -1267,7 +1267,7 @@ require_once __DIR__ . '/includes/app_header.php';
                             continue;
                         }
                         isTable = true;
-                        const num = cols[0] ? cols[0].replace(/[*#:]/g, '').trim() : 'â€¢';
+                        const num = cols[0] ? cols[0].replace(/[*#:]/g, '').trim() : '•';
                         const title = cols[1] ? cols[1].replace(/[*]/g, '').trim() : '';
                         const desc = cols[2] ? cols[2].replace(/[*]/g, '').trim() : '';
                         const tool = cols[3] ? cols[3].replace(/[*]/g, '').trim() : '';
@@ -1310,7 +1310,7 @@ require_once __DIR__ . '/includes/app_header.php';
         text = text.replace(/^#{1,3}\s+(.+)$/gm, '<div class="fw-bold text-white font-size-14 mt-3 mb-2 pb-1 d-flex align-items-center gap-2" style="border-bottom:1px solid rgba(255,255,255,0.12);"><i class="ph-bold ph-caret-circle-right text-accent font-size-15"></i> $1</div>');
 
         // 6. Clean bullets and numbered lists
-        text = text.replace(/^[â€¢\-*]\s+(.+)$/gm, '<div class="d-flex align-items-baseline gap-2 my-1" style="padding-left:4px;"><span style="color:#c8ff00;font-size:9px;">â—</span><span style="flex:1;font-size:13px;color:#e2e8f0;">$1</span></div>');
+        text = text.replace(/^[•\-*]\s+(.+)$/gm, '<div class="d-flex align-items-baseline gap-2 my-1" style="padding-left:4px;"><span style="color:#c8ff00;font-size:9px;">â—</span><span style="flex:1;font-size:13px;color:#e2e8f0;">$1</span></div>');
         text = text.replace(/^(\d+)\.\s+(.+)$/gm, '<div class="d-flex align-items-baseline gap-2 my-1" style="padding-left:4px;"><span style="color:#c8ff00;font-size:11px;font-weight:700;">$1.</span><span style="flex:1;font-size:13px;color:#e2e8f0;">$2</span></div>');
 
         // 7. Clean bold

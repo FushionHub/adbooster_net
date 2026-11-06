@@ -159,7 +159,7 @@ CREATE TABLE IF NOT EXISTS `agency_portals` (
 
 -- Seed data for `agency_portals` (INSERT IGNORE — existing rows win)
 INSERT IGNORE INTO `agency_portals` (`id`, `agency_user_id`, `custom_subdomain`, `custom_domain`, `portal_name`, `portal_logo_url`, `brand_primary_color`, `brand_secondary_color`, `welcome_headline`, `is_whitelabel_active`, `created_at`) VALUES
-(1, 4, 'agency-4', NULL, 'E2E Check Marketing Agency', 'assets/images/logo/logo.png', '#c8ff00', '#080c14', 'Welcome to Your Client Growth & ROI Dashboard', 1, '2026-11-02 11:29:29');
+(1, 4, 'agency-4', NULL, 'E2E Check Marketing Agency', 'assets/images/logo/logo.png', '#c8ff00', '#080c14', 'Welcome to Your Client Growth & ROI Dashboard', 1, '2026-11-02 07:29:29');
 
 -- -----------------------------------------------------
 -- Table structure for `ai_creatives`
@@ -216,14 +216,14 @@ CREATE TABLE IF NOT EXISTS `ai_media_buyer_rules` (
 
 -- Seed data for `ai_media_buyer_rules` (INSERT IGNORE — existing rows win)
 INSERT IGNORE INTO `ai_media_buyer_rules` (`id`, `user_id`, `campaign_id`, `rule_name`, `condition_metric`, `condition_operator`, `condition_value`, `action_type`, `action_value`, `is_active`, `last_triggered_at`, `created_at`) VALUES
-(1, 4, NULL, 'ðŸš¨ Anti-Burn: Pause if CPA > $30 after spend', 'cpa', '>', '30.00', 'pause_campaign', '0.00', 1, NULL, '2026-11-02 19:40:59'),
-(2, 4, NULL, 'âš¡ Auto-Scale: Boost Winner Budget +20% if ROAS > 3.0', 'roas', '>=', '3.00', 'scale_budget_pct', '20.00', 1, NULL, '2026-11-02 19:40:59'),
-(3, 4, NULL, 'ðŸ“‰ Stop Fatigue: Reduce Budget -25% if CTR < 0.8%', 'ctr', '<', '0.80', 'reduce_budget_pct', '25.00', 1, NULL, '2026-11-02 19:40:59'),
-(4, 4, NULL, 'ðŸ”„ Creative Refresh: Trigger AI Variant if Spend > $50 with 0 Conv', 'spend_without_conv', '>=', '50.00', 'trigger_creative_refresh', '0.00', 1, NULL, '2026-11-02 19:40:59'),
-(5, 3, NULL, 'ðŸš¨ Anti-Burn: Pause if CPA > $30 after spend', 'cpa', '>', '30.00', 'pause_campaign', '0.00', 1, NULL, '2026-11-02 21:54:32'),
-(6, 3, NULL, 'âš¡ Auto-Scale: Boost Winner Budget +20% if ROAS > 3.0', 'roas', '>=', '3.00', 'scale_budget_pct', '20.00', 1, NULL, '2026-11-02 21:54:33'),
-(7, 3, NULL, 'ðŸ“‰ Stop Fatigue: Reduce Budget -25% if CTR < 0.8%', 'ctr', '<', '0.80', 'reduce_budget_pct', '25.00', 1, NULL, '2026-11-02 21:54:33'),
-(8, 3, NULL, 'ðŸ”„ Creative Refresh: Trigger AI Variant if Spend > $50 with 0 Conv', 'spend_without_conv', '>=', '50.00', 'trigger_creative_refresh', '0.00', 1, NULL, '2026-11-02 21:54:33');
+(1, 4, NULL, 'ðŸš¨ Anti-Burn: Pause if CPA > $30 after spend', 'cpa', '>', '30.00', 'pause_campaign', '0.00', 1, NULL, '2026-11-02 15:40:59'),
+(2, 4, NULL, 'âš¡ Auto-Scale: Boost Winner Budget +20% if ROAS > 3.0', 'roas', '>=', '3.00', 'scale_budget_pct', '20.00', 1, NULL, '2026-11-02 15:40:59'),
+(3, 4, NULL, 'ðŸ“‰ Stop Fatigue: Reduce Budget -25% if CTR < 0.8%', 'ctr', '<', '0.80', 'reduce_budget_pct', '25.00', 1, NULL, '2026-11-02 15:40:59'),
+(4, 4, NULL, 'ðŸ”„ Creative Refresh: Trigger AI Variant if Spend > $50 with 0 Conv', 'spend_without_conv', '>=', '50.00', 'trigger_creative_refresh', '0.00', 1, NULL, '2026-11-02 15:40:59'),
+(5, 3, NULL, 'ðŸš¨ Anti-Burn: Pause if CPA > $30 after spend', 'cpa', '>', '30.00', 'pause_campaign', '0.00', 1, NULL, '2026-11-02 17:54:32'),
+(6, 3, NULL, 'âš¡ Auto-Scale: Boost Winner Budget +20% if ROAS > 3.0', 'roas', '>=', '3.00', 'scale_budget_pct', '20.00', 1, NULL, '2026-11-02 17:54:33'),
+(7, 3, NULL, 'ðŸ“‰ Stop Fatigue: Reduce Budget -25% if CTR < 0.8%', 'ctr', '<', '0.80', 'reduce_budget_pct', '25.00', 1, NULL, '2026-11-02 17:54:33'),
+(8, 3, NULL, 'ðŸ”„ Creative Refresh: Trigger AI Variant if Spend > $50 with 0 Conv', 'spend_without_conv', '>=', '50.00', 'trigger_creative_refresh', '0.00', 1, NULL, '2026-11-02 17:54:33');
 
 -- -----------------------------------------------------
 -- Table structure for `ai_video_creatives`
@@ -503,9 +503,10 @@ CREATE TABLE IF NOT EXISTS `creator_bounties` (
 
 -- Seed data for `creator_bounties` (INSERT IGNORE — existing rows win)
 INSERT IGNORE INTO `creator_bounties` (`id`, `brand_user_id`, `title`, `description`, `platform`, `content_type`, `deliverables_req`, `bounty_amount`, `platform_fee_pct`, `total_escrow_held`, `escrow_status`, `claimed_creator_id`, `status`, `submission_deadline`, `created_at`) VALUES
-(1, 3, '15s UGC Talking Head Review for Hydrating Skincare Brand', 'Looking for a female creator (20-35) to test our glow serum and record an authentic selfie-style talking head review.', 'tiktok', 'ugc_talking_head', '1x 9:16 vertical video, 1080p, clear audio, with hook & CTA.', '120.00', '10.00', '120.00', 'funded', NULL, 'open', '2026-11-08 18:45:52', '2026-11-01 19:45:52'),
-(2, 3, 'SaaS Productivity App Unboxing & Workflow Demo', 'Tech creator needed to record a screen-share and face-cam walkthrough of our AI automation tool.', 'instagram_reels', 'tutorial', '1x Reel (30s) highlighting 3 core features.', '200.00', '10.00', '200.00', 'funded', NULL, 'open', '2026-11-08 18:45:52', '2026-11-01 19:45:52'),
-(3, 3, 'Athletic Compression Gym Wear Try-On Haul', 'Fitness influencer needed to showcase workout durability and squat-proof fit.', 'youtube_shorts', 'lifestyle_testimonial', '1x Short with trending audio beat.', '150.00', '10.00', '150.00', 'funded', NULL, 'open', '2026-11-08 18:45:52', '2026-11-01 19:45:52');
+(1, 3, '15s UGC Talking Head Review for Hydrating Skincare Brand', 'Looking for a female creator (20-35) to test our glow serum and record an authentic selfie-style talking head review.', 'tiktok', 'ugc_talking_head', '1x 9:16 vertical video, 1080p, clear audio, with hook & CTA.', '120.00', '10.00', '120.00', 'funded', NULL, 'open', '2026-11-08 18:45:52', '2026-11-01 15:45:52'),
+(2, 3, 'SaaS Productivity App Unboxing & Workflow Demo', 'Tech creator needed to record a screen-share and face-cam walkthrough of our AI automation tool.', 'instagram_reels', 'tutorial', '1x Reel (30s) highlighting 3 core features.', '200.00', '10.00', '200.00', 'funded', NULL, 'open', '2026-11-08 18:45:52', '2026-11-01 15:45:52'),
+(3, 3, 'Athletic Compression Gym Wear Try-On Haul', 'Fitness influencer needed to showcase workout durability and squat-proof fit.', 'youtube_shorts', 'lifestyle_testimonial', '1x Short with trending audio beat.', '150.00', '10.00', '150.00', 'funded', NULL, 'open', '2026-11-08 18:45:52', '2026-11-01 15:45:52'),
+(5, 3, 'js', 'js', 'tiktok', 'ugc_talking_head', 'jhh', '100.00', '10.00', '100.00', 'funded', NULL, 'open', '2026-11-12 20:52:17', '2026-11-05 17:52:17');
 
 -- -----------------------------------------------------
 -- Table structure for `creator_bounty_submissions`
@@ -949,6 +950,15 @@ CREATE TABLE IF NOT EXISTS `pricing_plans` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_general_ci;
 
+-- Seed data for `pricing_plans` (INSERT IGNORE — existing rows win)
+INSERT IGNORE INTO `pricing_plans` (`id`, `name`, `description`, `price`, `billing_cycle`, `ad_credits_included`, `ai_credits_included`, `features_json`, `is_featured`, `status`, `created_at`) VALUES
+(1, 'Starter', 'Everything a solo creator needs to publish consistently and run small paid tests.', '9.00', 'monthly', 5, 900, '[\"2 connected social accounts (Meta, Instagram, TikTok, X, LinkedIn, Pinterest, Snapchat)\", \"5 paid campaigns per month across every ad network\", \"Unlimited scheduled organic posts with the content calendar\", \"Image Studio — 180 AI UGC creatives per month (5 AI credits each)\", \"AI script writer — 900 scripts per month (1 AI credit each)\", \"Conversion tracking with the Server Tracking pixel + CAPI bridge\", \"1 team seat · developer API access at 60 requests/minute\"]', 0, 'active', '2026-11-05 15:54:22'),
+(2, 'Growth', 'For growing brands: more networks, A/B testing, audiences and a bigger creative budget.', '24.00', 'monthly', 15, 2400, '[\"5 connected social accounts across every supported network\", \"25 paid campaigns per month — launch, pause and resume from one dashboard\", \"A/B creative testing with up to 4 variants per campaign\", \"Audience Builder — demographic, geo and interest cohorts\", \"Unlimited scheduled posts + content calendar rescheduling\", \"Image Studio — 480 AI UGC creatives per month\", \"AI storyboard video studio and script writer\", \"Server-side conversion tracking with the CAPI bridge\", \"3 team seats · developer API access at 60 requests/minute\", \"Priority email support\"]', 1, 'active', '2026-11-05 15:54:22'),
+(3, 'Pro', 'For agencies and scaling brands running multi-network funnels every single day.', '59.00', 'monthly', 45, 5900, '[\"15 connected social accounts and unlimited ad accounts\", \"Unlimited paid campaigns with the Campaign Doctor recommendations\", \"A/B creative testing, Audience Builder and advanced targeting\", \"Unlimited scheduled posts across every connected profile\", \"Image Studio — 1,180 AI UGC creatives per month\", \"AI storyboard video studio, script writer and batch generation\", \"Server-side conversion tracking with the CAPI bridge\", \"Marketplace & directory listing + creator bounty participation\", \"10 team seats · developer API access at 60 requests/minute\", \"Webhooks for campaign, post and payment events\", \"Priority support with a 24-hour response target\"]', 0, 'active', '2026-11-05 15:54:23'),
+(4, 'Scale', 'The full platform for high-volume teams, agencies and white-label operations.', '149.00', 'monthly', 120, 14900, '[\"Unlimited connected social accounts, ad accounts and team seats\", \"Unlimited paid campaigns with the Campaign Doctor and auto-optimisation\", \"Full A/B testing matrix, Audience Builder and advanced targeting\", \"Unlimited scheduled posts, bulk actions and content calendar\", \"Image Studio — 2,980 AI UGC creatives per month\", \"AI storyboard video studio, script writer and batch generation\", \"Server-side conversion tracking with the CAPI bridge\", \"Priority marketplace & directory listing + creator bounty management\", \"White-label reports and branded client portals\", \"Developer API access with the highest rate limit and webhooks\", \"Dedicated account manager and 4-hour response target\"]', 0, 'active', '2026-11-05 15:54:23'),
+(5, 'Launch Kit', 'A single payment that unlocks the whole platform for 30 days. No card on file, no renewal.', '9.00', 'pay_as_you_go', 5, 900, '[\"30 days of full platform access — every feature unlocked\", \"2 connected social accounts\", \"5 paid campaigns during the window\", \"Unlimited scheduled organic posts\", \"Image Studio — 180 AI UGC creatives\", \"AI script writer — 900 scripts\", \"Server-side conversion tracking + CAPI bridge\", \"Never renews — you are only charged once\"]', 0, 'active', '2026-11-05 15:54:23'),
+(6, 'Power Pack', 'Our most popular one-off pack: everything unlocked for 30 days with a serious creative budget.', '29.00', 'pay_as_you_go', 20, 2900, '[\"30 days of full platform access — every feature unlocked\", \"5 connected social accounts and 25 paid campaigns\", \"A/B creative testing and Audience Builder included\", \"Unlimited scheduled posts + content calendar\", \"Image Studio — 580 AI UGC creatives\", \"AI storyboard video studio and script writer\", \"Server-side conversion tracking + CAPI bridge\", \"Marketplace & directory listing for the full window\", \"Never renews — you are only charged once\"]', 1, 'active', '2026-11-05 15:54:23');
+
 -- -----------------------------------------------------
 -- Table structure for `referral_rewards`
 -- -----------------------------------------------------
@@ -1126,10 +1136,10 @@ CREATE TABLE IF NOT EXISTS `site_settings` (
 
 -- Seed data for `site_settings` (INSERT IGNORE — existing rows win)
 INSERT IGNORE INTO `site_settings` (`id`, `setting_key`, `setting_value`, `created_at`, `setting_group`) VALUES
-(1, 'bundle_social_api_key', 'YOUR_BUNDLE_SOCIAL_API_KEY', '2026-10-31 07:36:48', 'general'),
-(2, 'bundle_social_base_url', 'https://api.bundle.social/v1', '2026-10-31 07:36:48', 'general'),
-(3, 'zernio_api_key', 'YOUR_ZERNIO_API_KEY', '2026-10-31 07:36:48', 'general'),
-(4, 'zernio_base_url', 'https://api.zernio.com/v1', '2026-10-31 07:36:48', 'general');
+(1, 'bundle_social_api_key', 'YOUR_BUNDLE_SOCIAL_API_KEY', '2026-10-31 03:36:48', 'general'),
+(2, 'bundle_social_base_url', 'https://api.bundle.social/v1', '2026-10-31 03:36:48', 'general'),
+(3, 'zernio_api_key', 'YOUR_ZERNIO_API_KEY', '2026-10-31 03:36:48', 'general'),
+(4, 'zernio_base_url', 'https://api.zernio.com/v1', '2026-10-31 03:36:48', 'general');
 
 -- -----------------------------------------------------
 -- Table structure for `social_inbox_messages`
@@ -1350,33 +1360,6 @@ CREATE TABLE IF NOT EXISTS `user_subscriptions` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_usubs_user` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_general_ci;
-
--- -----------------------------------------------------
--- Table structure for `user_vcards`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `user_vcards` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `user_id` int NOT NULL,
-  `username` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `headline` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `bio` text COLLATE utf8mb4_general_ci,
-  `template` varchar(40) COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'dark_luxury',
-  `phone` varchar(40) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `whatsapp` varchar(40) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `company` varchar(191) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `job_title` varchar(120) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `location` varchar(191) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `website` varchar(500) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `skills_json` mediumtext COLLATE utf8mb4_general_ci,
-  `projects_json` mediumtext COLLATE utf8mb4_general_ci,
-  `is_public` tinyint(1) NOT NULL DEFAULT '1',
-  `created_at` datetime DEFAULT NULL,
-  `updated_at` datetime DEFAULT NULL,
-  `views_count` int NOT NULL DEFAULT '0',
-  PRIMARY KEY (`id`),
-  KEY `idx_user_vcards_user` (`user_id`),
-  KEY `idx_user_vcards_username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_general_ci;
 
 -- -----------------------------------------------------

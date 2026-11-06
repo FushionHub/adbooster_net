@@ -1430,7 +1430,7 @@ body.nav-open { overflow: hidden; touch-action: none; }
       <!-- Search: the fastest way for anyone to find a tool -->
       <div class="nav-search">
         <i class="ph ph-magnifying-glass"></i>
-        <input type="search" id="navSearch" placeholder="Search toolsâ€¦" aria-label="Search tools" autocomplete="off">
+        <input type="search" id="navSearch" placeholder="Search tools…" aria-label="Search tools" autocomplete="off">
       </div>
 
       <!-- â”€â”€ Start here â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
@@ -1530,10 +1530,7 @@ body.nav-open { overflow: hidden; touch-action: none; }
             <i class="ph ph-briefcase"></i> <span>Jobs</span>
           </a>
           <a href="<?= url('portfolio-builder') ?>" class="nav-item <?= $_appPage==='portfolio-builder'?'active':'' ?>">
-            <i class="ph ph-address-book"></i> <span>My portfolio &amp; vCard</span>
-          </a>
-          <a href="<?= url('resume-analyser') ?>" class="nav-item <?= $_appPage==='resume-analyser'?'active':'' ?>">
-            <i class="ph ph-file-text"></i> <span>Resume analyser</span>
+            <i class="ph ph-address-book"></i> <span>My portfolio</span>
           </a>
           <a href="<?= url('blog-manage') ?>" class="nav-item <?= $_appPage==='blog-manage'?'active':'' ?>">
             <i class="ph ph-article"></i> <span>Blog</span>

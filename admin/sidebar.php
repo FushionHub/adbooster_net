@@ -20,7 +20,6 @@ $navItems = [
     ['icon' => 'ph-storefront',       'label' => 'Marketplace',     'file' => 'listings.php',        'section' => 'Content & Marketplace'],
     ['icon' => 'ph-briefcase',        'label' => 'Jobs & Bounties', 'file' => 'jobs.php',            'section' => 'Content & Marketplace'],
     ['icon' => 'ph-star',             'label' => 'Client Reviews',  'file' => 'reviews.php',         'section' => 'Content & Marketplace'],
-    ['icon' => 'ph-id-card',          'label' => 'Portfolios & vCards', 'file' => 'portfolios-vcards.php', 'section' => 'Content & Marketplace'],
     ['icon' => 'ph-note-pencil',      'label' => 'CMS',             'file' => 'cms.php',             'section' => 'Content & Marketplace'],
 
     // Revenue

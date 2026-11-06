@@ -25,7 +25,7 @@ try {
     db()->query("UPDATE jobs SET views_count = views_count + 1 WHERE id = ?", [$jobId]);
 } catch (\Throwable $e) {}
 
-$pageTitle = e($job['title']) . ' â€” Advertising & Growth Jobs â€” ' . get_setting('site_name', 'Adsbooster.net');
+$pageTitle = e($job['title']) . ' — Advertising & Growth Jobs — ' . get_setting('site_name', 'Adsbooster.net');
 $pageDescription = e(mb_substr(strip_tags($job['description']), 0, 160));
 
 $currentUserId = is_logged_in() ? current_user_id() : 0;
@@ -168,7 +168,7 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
                     <div class="d-grid">
                         <a href="<?= url('profile') ?>?u=<?= urlencode($job['author_email']) ?>" class="btn btn-outline-light rounded-pill font-size-13 py-2">
-                            <i class="ph ph-user me-1"></i> View Public Portfolio &amp; vCard
+                            <i class="ph ph-user me-1"></i> View Public Portfolio
                         </a>
                     </div>
                 </div>

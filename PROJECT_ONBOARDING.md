@@ -82,7 +82,7 @@ Schema: `database/async_gateway_migration.sql` (canonical artifact); `database/m
 Billing/checkout creates pending transactions through `PaymentProcessor`; `payment-verify.php` verifies the provider response and `completeTransaction()` updates the appropriate wallet or plan, applies referral rewards, emits notifications, and generates an invoice.
 
 ### Marketplace and collaboration
-The app includes business/product/service listings, jobs, creator bounties, agency client approvals, ecommerce imports/auto-packs, public portfolios/vCards, resume-to-portfolio sync, P2P chat with an AI consultant and deal proposals, support tickets, referrals/payouts, team workspaces, and a dating/connection directory.
+The app includes business/product/service listings, jobs, creator bounties, agency client approvals, ecommerce imports/auto-packs, public portfolios with AI resume import, P2P chat with an AI consultant and deal proposals, support tickets, referrals/payouts, team workspaces, and a dating/connection directory.
 
 ### Admin and developer platform
 The admin area manages users, credits/plans, listings/jobs/reviews/blog/CMS, campaigns, AI/social/tracking, payouts/transactions, tickets/chat, SEO/policies/translations, settings, and operational logs. The developer surface exposes campaign, post, credit, UGC, directory, review, and CAPI endpoints plus API keys, rate limits, webhooks, and a browser/Node UMD SDK.
@@ -95,7 +95,7 @@ The admin area manages users, credits/plans, listings/jobs/reviews/blog/CMS, cam
 - Social/chat: `scheduled_posts`, `p2p_conversations`, `p2p_messages`, `p2p_deals`, social inbox tables.
 - Commerce: `pricing_plans`, `transactions`, `invoices`, `referrals`, `referral_rewards`, `payout_requests`.
 - Marketplace: `marketplace_items`, `jobs`, creator bounty tables, agency tables, ecommerce tables.
-- Public profiles: `user_portfolios`, `user_vcards`, dating profile/pair/block/report tables.
+- Public profiles: `user_portfolios`, dating profile/pair/block/report tables.
 - CMS/ops: `site_settings`, `dynamic_content`, `blog_posts`, `site_reviews`, translations, tickets/messages, fraud/visitor/cookie/cron/email/service logs.
 - Developer/tracking: `api_keys`, `api_rate_limits`, `webhooks`, server tracking tables.
 
