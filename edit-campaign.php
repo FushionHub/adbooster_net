@@ -2,7 +2,7 @@
 require_once __DIR__ . '/config/site_setting_and_config.php';
 require_once __DIR__ . '/modules/ThirdPartyGateway.php';
 
-$pageTitle = 'Edit Campaign â€” ' . get_setting('site_name', 'Adsbooster.net');
+$pageTitle = 'Edit Campaign — ' . get_setting('site_name', 'Adsbooster.net');
 
 $userId = current_user_id();
 $campaignId = (int)($_GET['id'] ?? 0);

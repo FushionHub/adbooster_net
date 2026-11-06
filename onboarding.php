@@ -143,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$pageTitle = 'Getting Started â€” ' . get_setting('site_name', 'Adsbooster.net');
+$pageTitle = 'Getting Started — ' . get_setting('site_name', 'Adsbooster.net');
 require_once __DIR__ . '/includes/header.php';
 
 $socialPlatforms = [

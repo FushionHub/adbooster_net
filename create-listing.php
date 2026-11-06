@@ -128,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$pageTitle = 'Publish Listing or Place â€” ' . get_setting('site_name', 'Adsbooster.net');
+$pageTitle = 'Publish Listing or Place — ' . get_setting('site_name', 'Adsbooster.net');
 require_once __DIR__ . '/includes/app_header.php';
 ?>
 

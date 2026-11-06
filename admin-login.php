@@ -56,7 +56,7 @@ if (!empty($_SESSION['flash_error'])) {
     unset($_SESSION['flash_error']);
 }
 
-$pageTitle = 'Admin Login â€” ' . get_setting('site_name', 'Adsbooster.net');
+$pageTitle = 'Admin Login — ' . get_setting('site_name', 'Adsbooster.net');
 require_once __DIR__ . '/includes/header.php';
 ?>
 

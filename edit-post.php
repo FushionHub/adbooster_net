@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 require_once __DIR__ . '/config/site_setting_and_config.php';
 
-$pageTitle = 'Edit Post â€” ' . get_setting('site_name', 'Adsbooster.net');
+$pageTitle = 'Edit Post — ' . get_setting('site_name', 'Adsbooster.net');
 
 $userId = current_user_id();
 $postId = (int)($_GET['id'] ?? 0);
@@ -234,7 +234,7 @@ $statusBadge = ($post['status'] ?? '') === 'scheduled' ? 'badge-active' : 'badge
         <?php endif; ?>
         <hr class="divider">
         <div style="font-size:13px;color:var(--fg2);display:flex;flex-direction:column;gap:8px">
-            <div style="display:flex;justify-content:space-between"><span>Platform</span><span class="badge-status badge-info"><?= e($post['platform'] ?? 'â€”') ?></span></div>
+            <div style="display:flex;justify-content:space-between"><span>Platform</span><span class="badge-status badge-info"><?= e($post['platform'] ?? '—') ?></span></div>
             <div style="display:flex;justify-content:space-between"><span>Media type</span><span class="badge-status badge-inactive"><?= e($currentMediaSpec) ?></span></div>
         </div>
     </div>

@@ -30,7 +30,7 @@ $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
 $whatsapp = !empty($listing['whatsapp']) ? $listing['whatsapp'] : $phone;
 $cleanWhatsapp = preg_replace('/[^0-9]/', '', $whatsapp);
 
-$pageTitle = e($listing['title']) . ' â€” ' . get_setting('site_name', 'Adsbooster.net');
+$pageTitle = e($listing['title']) . ' — ' . get_setting('site_name', 'Adsbooster.net');
 require_once __DIR__ . '/includes/app_header.php';
 ?>
 
@@ -105,7 +105,7 @@ require_once __DIR__ . '/includes/app_header.php';
 
                     <!-- Embedded Google Maps -->
                     <?php
-                    // Only ever embed a whitelisted Google Maps URL â€” the raw
+                    // Only ever embed a whitelisted Google Maps URL — the raw
                     // column is user-controlled and would otherwise allow an
                         // arbitrary third-party iframe (clickjacking / phishing).
                         $mapSrc = '';

@@ -126,7 +126,7 @@ $latestConsent = !empty($consentHistory) ? $consentHistory[0] : null;
 $hasAnalytics = $latestConsent ? (bool)$latestConsent['analytics'] : true;
 $hasMarketing = $latestConsent ? (bool)$latestConsent['marketing'] : true;
 
-$pageTitle = 'Privacy Center & Data Rights â€” ' . get_setting('site_name', 'Adsbooster.net');
+$pageTitle = 'Privacy Center & Data Rights — ' . get_setting('site_name', 'Adsbooster.net');
 require_once __DIR__ . '/includes/app_header.php';
 ?>
 

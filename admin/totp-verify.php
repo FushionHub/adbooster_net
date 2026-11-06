@@ -107,7 +107,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && csrf_verify()) {
             $backupCodes = json_decode((string)$admin['two_factor_backup'], true) ?: [];
             if (is_array($backupCodes)) {
                 foreach ($backupCodes as &$b) {
-                    // `$b` may be a bare string in the oldest format â€” never
+                    // `$b` may be a bare string in the oldest format — never
                     // index into it without checking, and skip used records.
                     if (!is_array($b) || !empty($b['used'])) {
                         continue;
@@ -152,7 +152,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && csrf_verify()) {
     }
 }
 
-$pageTitle = 'Admin 2FA Security Challenge â€” ' . get_setting('site_name', 'Adsbooster.net');
+$pageTitle = 'Admin 2FA Security Challenge — ' . get_setting('site_name', 'Adsbooster.net');
 ?>
 <!DOCTYPE html>
 <html lang="en">

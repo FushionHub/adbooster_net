@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 require_once __DIR__ . '/config/site_setting_and_config.php';
-$pageTitle = 'Notifications â€” ' . get_setting('site_name', 'Adsbooster.net');
+$pageTitle = 'Notifications — ' . get_setting('site_name', 'Adsbooster.net');
 require_once __DIR__ . '/includes/app_header.php';
 
 $userId = current_user_id();

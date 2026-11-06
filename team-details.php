@@ -51,7 +51,7 @@ $pageTitle = e($member['full_name'] ?? $member['name'] ?? 'Member') . ' - Team D
                     </div>
                     <div class="col-lg-6 align-self-center">
                         <div class="ps-xl-5 ps-lg-4">
-                            <h2 class=""><?= e($member['name']) ?></h2>
+                            <h2 class=""><?= e($member['full_name'] ?? $member['name'] ?? 'Team Member') ?></h2>
                             <p class="text-neutral-600 tw-text-lg tw-mt-6 tw-pb-6 border-bottom border-neutral-200"><?= e($member['bio'] ?? 'Team member at Adsbooster.net') ?></p>
                             <div class="tw-mt-8 d-flex flex-column tw-gap-6">
                                 <div class="d-flex align-items-center tw-gap-4">

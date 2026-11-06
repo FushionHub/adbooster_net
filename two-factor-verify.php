@@ -140,7 +140,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && csrf_verify()) {
     }
 }
 
-$pageTitle = 'Verify Identity (2FA) â€” ' . get_setting('site_name', 'Adsbooster.net');
+$pageTitle = 'Verify Identity (2FA) — ' . get_setting('site_name', 'Adsbooster.net');
 require_once __DIR__ . '/includes/header.php';
 ?>
 

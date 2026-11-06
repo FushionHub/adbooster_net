@@ -24,7 +24,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && csrf_verify()) {
     $canPublish = is_admin() || in_array(current_user_role() ?? '', ['editor', 'author'], true);
     if ($status === 'published' && !$canPublish) {
         $status = 'draft';
-        $notice[] = 'Your article was saved as a draft â€” a reviewer will publish it shortly.';
+        $notice[] = 'Your article was saved as a draft — a reviewer will publish it shortly.';
     }
 
     if ($title === '') {
@@ -98,7 +98,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && csrf_verify()) {
     }
 }
 
-$pageTitle = 'Write New Blog Post â€” ' . get_setting('site_name', 'Adsbooster.net');
+$pageTitle = 'Write New Blog Post — ' . get_setting('site_name', 'Adsbooster.net');
 $_appPage = 'blog-manage';
 require_once __DIR__ . '/includes/app_header.php';
 ?>
@@ -238,7 +238,7 @@ require_once __DIR__ . '/includes/app_header.php';
                     <input type="file" name="image_file" accept="image/*" class="form-control bg-dark border-secondary text-white font-size-13">
                 </div>
 
-                <div class="text-center text-muted font-size-12 my-2">â€” OR Image URL â€”</div>
+                <div class="text-center text-muted font-size-12 my-2">— OR Image URL —</div>
 
                 <div class="mb-2">
                     <input type="url" name="image_url" class="form-control bg-dark border-secondary text-white font-size-13" 

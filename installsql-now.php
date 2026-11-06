@@ -1,6 +1,6 @@
 <?php
 /**
- * Adsbooster.net â€” High-Speed cPanel Shared Hosting Database Installer
+ * Adsbooster.net — High-Speed cPanel Shared Hosting Database Installer
  * File: installsql-now.php
  *
  * One-click installer for deploying the Adsbooster master database schema

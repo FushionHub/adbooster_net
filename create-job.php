@@ -60,7 +60,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && csrf_verify()) {
     }
 }
 
-$pageTitle = 'Post Job, Bounty or Creative Project â€” ' . get_setting('site_name', 'Adsbooster.net');
+$pageTitle = 'Post Job, Bounty or Creative Project — ' . get_setting('site_name', 'Adsbooster.net');
 $_appPage = 'jobs';
 require_once __DIR__ . '/includes/app_header.php';
 ?>
