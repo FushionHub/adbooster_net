@@ -155,6 +155,14 @@ $_siteName = get_setting('site_name', 'Adsbooster.net');
 }
 .text-white-75 { color: #cbd5e1 !important; }
 .text-white-50 { color: #94a3b8 !important; }
+/* Bootstrap's default muted gray (#6c757d) is unreadable on the dark
+   app background — pin both muted classes to the readable slate. */
+.text-muted, .text-secondary {
+  color: #94a3b8 !important;
+}
+[data-theme="light"] .text-muted, [data-theme="light"] .text-secondary {
+  color: #475569 !important;
+}
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html { scroll-behavior: smooth; height: 100%; }

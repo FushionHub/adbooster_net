@@ -155,6 +155,11 @@ function _navSubActive(string $page): string {
     .text-white-50 {
       color: #94a3b8 !important;
     }
+    /* Bootstrap's default muted gray (#6c757d) is unreadable on the dark
+       page background — pin both muted classes to the readable slate. */
+    .text-muted, .text-secondary {
+      color: #94a3b8 !important;
+    }
     /* Light Theme Public Adjustments */
     [data-theme="light"] body {
       background-color: #f8fafc !important;
@@ -178,6 +183,9 @@ function _navSubActive(string $page): string {
       color: #0f172a !important;
     }
     [data-theme="light"] .text-white-75, [data-theme="light"] .text-white-50 {
+      color: #475569 !important;
+    }
+    [data-theme="light"] .text-muted, [data-theme="light"] .text-secondary {
       color: #475569 !important;
     }
     [data-theme="light"] section.section-padding, [data-theme="light"] section.faq {

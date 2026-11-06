@@ -45,33 +45,74 @@ $jobs = db()->fetchAll(
      ORDER BY j.created_at DESC"
 );
 
+$jobStats = [
+    'total'    => count($jobs),
+    'open'     => 0,
+    'closed'   => 0,
+    'featured' => 0,
+];
+foreach ($jobs as $j) {
+    if (($j['status'] ?? '') === 'open') { $jobStats['open']++; }
+    else { $jobStats['closed']++; }
+    if (!empty($j['featured'])) { $jobStats['featured']++; }
+}
+
 require_once __DIR__ . '/sidebar.php';
 ?>
 
-<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
-    <div>
-        <h4 class="text-white fw-bold mb-1"><i class="ph ph-briefcase text-success me-2"></i> Jobs &amp; Opportunities Moderation</h4>
-        <p class="text-muted font-size-13 mb-0">Review, feature, open, or close marketplace opportunities, contracts, and creative bounties.</p>
+<!-- KPI tiles -->
+<div class="row g-3 mb-3">
+    <div class="col-xl-3 col-md-6">
+        <div class="admin-stat">
+            <div class="card-icon cyan"><i class="ph-bold ph-briefcase"></i></div>
+            <div class="stat-meta">
+                <div class="stat-label">Total Jobs</div>
+                <div class="stat-value"><?= number_format($jobStats['total']) ?></div>
+            </div>
+        </div>
     </div>
-    <div>
-        <a href="<?= url('jobs') ?>" target="_blank" class="btn btn-outline-light btn-sm rounded-pill px-3">
-            <i class="ph ph-arrow-square-out me-1"></i> Public Jobs Board
-        </a>
+    <div class="col-xl-3 col-md-6">
+        <div class="admin-stat">
+            <div class="card-icon green"><i class="ph-bold ph-door-open"></i></div>
+            <div class="stat-meta">
+                <div class="stat-label">Open roles</div>
+                <div class="stat-value"><?= number_format($jobStats['open']) ?></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="admin-stat">
+            <div class="card-icon yellow"><i class="ph-bold ph-star"></i></div>
+            <div class="stat-meta">
+                <div class="stat-label">Featured</div>
+                <div class="stat-value"><?= number_format($jobStats['featured']) ?></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="admin-stat">
+            <div class="card-icon red"><i class="ph-bold ph-door-closed"></i></div>
+            <div class="stat-meta">
+                <div class="stat-label">Closed</div>
+                <div class="stat-value"><?= number_format($jobStats['closed']) ?></div>
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="card bg-card border-card rounded-4 p-0 overflow-hidden" style="background:#111827; border:1px solid #1e293b;">
+<!-- Moderation table -->
+<div class="admin-card">
     <div class="table-responsive">
-        <table class="table table-dark table-hover mb-0 align-middle">
-            <thead style="background:#0a0f1a; border-bottom:1px solid #1e293b;">
+        <table class="admin-table">
+            <thead>
                 <tr>
-                    <th class="ps-4">Title</th>
+                    <th>Title</th>
                     <th>Category</th>
                     <th>Employer</th>
                     <th>Budget</th>
                     <th>Status</th>
                     <th>Metrics</th>
-                    <th class="text-end pe-4">Actions</th>
+                    <th class="text-end">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -82,20 +123,16 @@ require_once __DIR__ . '/sidebar.php';
                 <?php else: ?>
                     <?php foreach ($jobs as $j): ?>
                         <tr>
-                            <td class="ps-4">
-                                <a href="<?= url('job-details', ['id' => $j['id']]) ?>" target="_blank" class="text-white fw-bold d-block text-decoration-none hover-text-main-600">
+                            <td>
+                                <a href="<?= url('job-details', ['id' => $j['id']]) ?>" target="_blank" class="text-white fw-bold d-block text-decoration-none">
                                     <?= e($j['title']) ?>
                                 </a>
-                                <span class="text-white-50 font-size-12"><?= ucfirst(str_replace('-', ' ', $j['job_type'])) ?> &bull; <?= e($j['location_type']) ?></span>
+                                <span class="text-muted font-size-12"><?= ucfirst(str_replace('-', ' ', $j['job_type'])) ?> &bull; <?= e($j['location_type']) ?></span>
                             </td>
-                            <td>
-                                <span class="badge bg-dark border border-secondary border-opacity-25 text-white-75 font-size-11">
-                                    <?= e($j['category']) ?>
-                                </span>
-                            </td>
+                            <td><span class="badge-status"><?= e($j['category']) ?></span></td>
                             <td>
                                 <span class="text-white fw-semibold d-block"><?= e($j['author_name']) ?></span>
-                                <span class="text-white-50 font-size-12"><?= e($j['author_email']) ?></span>
+                                <span class="text-muted font-size-12"><?= e($j['author_email']) ?></span>
                             </td>
                             <td>
                                 <span class="text-success fw-bold font-size-13">
@@ -107,30 +144,28 @@ require_once __DIR__ . '/sidebar.php';
                                 </span>
                             </td>
                             <td>
-                                <span class="badge <?= $j['status'] === 'open' ? 'bg-success' : 'bg-secondary' ?> font-size-11">
-                                    <?= ucfirst($j['status']) ?>
-                                </span>
+                                <span class="badge-status <?= $j['status'] ?>"><?= ucfirst($j['status']) ?></span>
                                 <?php if (!empty($j['featured'])): ?>
-                                    <span class="badge bg-warning text-dark font-size-10 ms-1">Featured</span>
+                                    <span class="badge-status pending" style="margin-left:4px;">Featured</span>
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <span class="font-size-12 text-white-50"><i class="ph ph-eye me-1"></i><?= $j['views_count'] ?> views</span>
+                                <span class="text-muted font-size-12"><i class="ph ph-eye me-1"></i><?= (int)$j['views_count'] ?> views</span>
                             </td>
-                            <td class="text-end pe-4">
-                                <form method="POST" class="d-inline-flex gap-1">
+                            <td class="text-end">
+                                <form method="POST" class="d-inline-flex gap-1 justify-content-end">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="job_id" value="<?= $j['id'] ?>">
 
-                                    <button type="submit" name="act" value="toggle_status" class="btn btn-sm <?= $j['status'] === 'open' ? 'btn-outline-warning' : 'btn-outline-success' ?> rounded-pill" title="Toggle Open/Closed">
+                                    <button type="submit" name="act" value="toggle_status" class="btn-admin <?= $j['status'] === 'open' ? 'btn-admin-blue' : 'btn-admin-green' ?>" title="Toggle Open/Closed">
                                         <i class="ph <?= $j['status'] === 'open' ? 'ph-pause' : 'ph-play' ?>"></i>
                                     </button>
 
-                                    <button type="submit" name="act" value="toggle_featured" class="btn btn-sm btn-outline-info rounded-pill" title="Toggle Featured">
+                                    <button type="submit" name="act" value="toggle_featured" class="btn-admin btn-admin-outline" title="Toggle Featured">
                                         <i class="ph ph-star"></i>
                                     </button>
 
-                                    <button type="submit" name="act" value="delete" class="btn btn-sm btn-outline-danger rounded-pill" onclick="return confirm('Delete this job opportunity permanently?')" title="Delete">
+                                    <button type="submit" name="act" value="delete" class="btn-admin btn-admin-red" onclick="return confirm('Delete this job opportunity permanently?')" title="Delete">
                                         <i class="ph ph-trash"></i>
                                     </button>
                                 </form>

@@ -351,7 +351,7 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="text-white fw-bold font-size-14"><?= e($rev['full_name']) ?></div>
                     <div class="text-white-50 font-size-12"><?= e((string)$rev['user_role']) ?></div>
                     <?php if (!empty($rev['created_at'])): ?>
-                      <div class="text-white-50 font-size-11" style="opacity:.75;">
+                      <div class="text-white-50 font-size-11">
                         <?= date('M d, Y', strtotime((string)$rev['created_at'])) ?>
                       </div>
                     <?php endif; ?>
