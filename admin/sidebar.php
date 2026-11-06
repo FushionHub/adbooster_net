@@ -2,6 +2,7 @@
 
 $adminName  = $_SESSION['admin_name'] ?? 'Admin';
 $adminEmail = $_SESSION['admin_email'] ?? '';
+$adminInitials = strtoupper(substr(trim($adminName), 0, 2));
 $currentPage = basename($_SERVER['SCRIPT_NAME'] ?? '');
 
 $navItems = [
@@ -47,15 +48,17 @@ $navItems = [
 ];
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?= $pageTitle ?? 'Admin Panel' ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="<?= BASE_URL ?>/assets/css/admin-pro.css?v=1" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link href="<?= BASE_URL ?>/assets/css/admin-pro.css?v=2" rel="stylesheet">
 </head>
 <body>
 
@@ -66,12 +69,12 @@ $navItems = [
         <div class="brand-icon"><i class="ph-bold ph-lightning"></i></div>
         <div>
             <div class="brand-text">Adsbooster</div>
-            <div class="brand-sub">Admin Panel</div>
+            <div class="brand-sub">Operations Console</div>
         </div>
     </div>
     <div class="sidebar-search">
         <i class="ph ph-magnifying-glass"></i>
-        <input type="search" id="adminNavFilter" placeholder="Filter menu…" autocomplete="off" aria-label="Filter admin menu">
+        <input type="search" id="adminNavFilter" placeholder="Filter menu…  (Ctrl+K)" autocomplete="off" aria-label="Filter admin menu">
     </div>
     <nav class="sidebar-nav">
         <?php
@@ -85,28 +88,42 @@ $navItems = [
         ?>
             <div class="nav-section<?= $extra ?>"><?= e($lastSection) ?></div>
         <?php endif; ?>
-            <a href="<?= BASE_URL ?>/admin/<?= preg_replace('/\.php$/i', '', $item['file']) ?>" class="nav-link<?= $currentPage === $item['file'] ? ' active' : '' ?>">
+            <a href="<?= BASE_URL ?>/admin/<?= preg_replace('/\.php$/i', '', $item['file']) ?>"
+               class="nav-link<?= $currentPage === $item['file'] ? ' active' : '' ?>"
+               data-label="<?= e($item['label']) ?>">
                 <i class="ph-bold <?= $item['icon'] ?>"></i>
-                <?= $item['label'] ?>
+                <span><?= $item['label'] ?></span>
             </a>
         <?php endforeach; ?>
 
-        <div class="nav-section mt-3">Account</div>
-        <a href="<?= url('admin/login') ?>" class="nav-link" onclick="return confirm('Logout from admin panel?')">
-            <i class="ph-bold ph-sign-out"></i> Logout
+        <div class="nav-section mt-3">Platform</div>
+        <a href="<?= BASE_URL ?>/status" target="_blank" rel="noopener" class="nav-link" data-label="Status page">
+            <i class="ph-bold ph-heartbeat"></i> <span>Status Page</span>
+        </a>
+        <a href="<?= BASE_URL ?>/" target="_blank" rel="noopener" class="nav-link" data-label="Public site">
+            <i class="ph-bold ph-arrow-up-right"></i> <span>View Site</span>
         </a>
     </nav>
     <div class="sidebar-user">
-        <div class="user-name"><?= htmlspecialchars($adminName) ?></div>
-        <div class="user-email"><?= htmlspecialchars($adminEmail) ?></div>
+        <div class="user-avatar"><?= e($adminInitials) ?></div>
+        <div class="min-w-0">
+            <div class="user-name"><?= htmlspecialchars($adminName) ?></div>
+            <div class="user-email"><?= htmlspecialchars($adminEmail) ?></div>
+        </div>
+        <a href="<?= url('admin/login') ?>" class="user-logout" onclick="return confirm('Logout from admin panel?')" aria-label="Logout" title="Logout">
+            <i class="ph-bold ph-sign-out"></i>
+        </a>
     </div>
 </aside>
 
 <main class="admin-main">
     <div class="admin-topbar">
-        <div class="d-flex align-items-center gap-3">
-            <button class="btn d-lg-none btn-admin btn-admin-outline" onclick="toggleSidebar()" aria-label="Toggle navigation" style="padding:.4rem .6rem;font-size:1.15rem;">
+        <div class="topbar-left">
+            <button class="topbar-icon-btn d-lg-none" onclick="toggleSidebar()" aria-label="Toggle navigation">
                 <i class="ph-bold ph-list"></i>
+            </button>
+            <button class="topbar-icon-btn d-none d-xl-inline-flex" id="adminRailToggle" aria-label="Collapse sidebar">
+                <i class="ph-bold ph-arrow-u-right"></i>
             </button>
             <div class="min-w-0">
                 <h4><?= $pageTitle ?? 'Admin' ?></h4>
@@ -118,54 +135,46 @@ $navItems = [
             </div>
         </div>
         <div class="topbar-actions">
-            <a href="<?= BASE_URL ?>/status" target="_blank" rel="noopener" class="btn-admin btn-admin-outline" title="Platform status">
-                <i class="ph-bold ph-heartbeat"></i> Status
-            </a>
-            <a href="<?= BASE_URL ?>/" target="_blank" rel="noopener" class="btn-admin btn-admin-outline">
-                <i class="ph-bold ph-arrow-up-right"></i> View Site
-            </a>
+            <div class="topbar-dd position-relative">
+                <button class="topbar-icon-btn" id="adminNotifBtn" aria-label="Notifications">
+                    <i class="ph-bold ph-bell"></i>
+                    <span class="dot"></span>
+                </button>
+                <div class="admin-dropdown">
+                    <div class="dd-header">Notifications <span class="dd-meta">live</span></div>
+                    <a class="dd-item" href="<?= BASE_URL ?>/admin/system-health" target="_self"><i class="ph-bold ph-heartbeat"></i> System health</a>
+                    <a class="dd-item" href="<?= BASE_URL ?>/admin/tickets"><i class="ph-bold ph-ticket"></i> Open tickets</a>
+                    <a class="dd-item" href="<?= BASE_URL ?>/admin/fraud-watch"><i class="ph-bold ph-warning-circle"></i> Fraud flags</a>
+                    <hr class="dd-sep">
+                    <a class="dd-item" href="<?= BASE_URL ?>/status" target="_blank" rel="noopener"><i class="ph-bold ph-arrow-up-right"></i> Public status page</a>
+                </div>
+            </div>
+            <div class="topbar-dd position-relative">
+                <div class="topbar-user" id="adminUserBtn" role="button" aria-label="Account menu">
+                    <div class="chip-avatar"><?= e($adminInitials) ?></div>
+                    <div class="chip-name"><?= htmlspecialchars($adminName) ?></div>
+                    <i class="ph-bold ph-caret-down" style="font-size:.7rem;color:var(--admin-text-muted)"></i>
+                </div>
+                <div class="admin-dropdown">
+                    <div class="dd-header">Account</div>
+                    <div class="dd-item" style="cursor:default">
+                        <i class="ph-bold ph-envelope-simple"></i>
+                        <span style="overflow:hidden;text-overflow:ellipsis" class="min-w-0"><?= htmlspecialchars($adminEmail) ?></span>
+                    </div>
+                    <hr class="dd-sep">
+                    <a class="dd-item" href="<?= BASE_URL ?>/admin/settings"><i class="ph-bold ph-gear"></i> Settings</a>
+                    <a class="dd-item" href="<?= url('admin/login') ?>" onclick="return confirm('Logout from admin panel?')" style="color:var(--admin-red)"><i class="ph-bold ph-sign-out"></i> Logout</a>
+                </div>
+            </div>
         </div>
     </div>
 
     <?php if ($flashSuccess = get_flash('success')): ?>
-        <div class="flash-msg flash-success"><i class="ph-bold ph-check-circle"></i> <?= e($flashSuccess) ?></div>
+        <div class="flash-msg flash-success"><i class="ph-bold ph-check-circle"></i> <?= e($flashSuccess) ?> <button type="button" class="flash-close" aria-label="Dismiss"><i class="ph-bold ph-x"></i></button></div>
     <?php endif; ?>
     <?php if ($flashError = get_flash('error')): ?>
-        <div class="flash-msg flash-error"><i class="ph-bold ph-x-circle"></i> <?= e($flashError) ?></div>
+        <div class="flash-msg flash-error"><i class="ph-bold ph-x-circle"></i> <?= e($flashError) ?> <button type="button" class="flash-close" aria-label="Dismiss"><i class="ph-bold ph-x"></i></button></div>
     <?php endif; ?>
 
-    <script>
-    function toggleSidebar() {
-        document.getElementById('adminSidebar').classList.toggle('show');
-        document.getElementById('sidebarOverlay').classList.toggle('show');
-    }
+    <script src="<?= BASE_URL ?>/assets/js/admin-app.js?v=2"></script>
 
-    // Filter the admin menu by label — long menus stay scannable.
-    (function () {
-        var input = document.getElementById('adminNavFilter');
-        if (!input) return;
-        var links = Array.prototype.slice.call(
-            document.querySelectorAll('.sidebar-nav .nav-link')
-        );
-        var sections = Array.prototype.slice.call(
-            document.querySelectorAll('.sidebar-nav .nav-section')
-        );
-        input.addEventListener('input', function () {
-            var q = input.value.trim().toLowerCase();
-            links.forEach(function (link) {
-                var match = q === '' || link.textContent.toLowerCase().indexOf(q) !== -1;
-                link.classList.toggle('hidden', !match);
-            });
-            // Hide a section heading when every link under it is hidden.
-            sections.forEach(function (section) {
-                var node = section.nextElementSibling;
-                var anyVisible = false;
-                while (node && node.classList.contains('nav-link')) {
-                    if (!node.classList.contains('hidden')) { anyVisible = true; break; }
-                    node = node.nextElementSibling;
-                }
-                section.style.display = anyVisible ? '' : 'none';
-            });
-        });
-    })();
-    </script>
