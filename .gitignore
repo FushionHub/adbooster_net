@@ -1,5 +1,6 @@
 # Local secrets — never commit
 config/keys.local.php
+config/db.local.php
 .env
 .env.*
 
