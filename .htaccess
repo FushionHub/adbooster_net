@@ -53,6 +53,11 @@ RewriteRule ^notifications-poll/?$ modules/notifications_poll.php [QSA,L]
 RewriteRule ^mark-notifications-read/?$ modules/mark_notifications_read.php [QSA,L]
 RewriteRule ^calendar-reschedule/?$ modules/calendar_reschedule.php [QSA,L]
 
+# Payment gateway callbacks — Flutterwave + Paystack hosted checkout
+# redirect the payer back to /payment/callback/<gateway> with
+# ?status=&tx_ref=&transaction_id= (FLW) / ?reference= (Paystack).
+RewriteRule ^payment/callback/(flutterwave|paystack)/?$ payment-verify.php?gateway=$1 [QSA,L]
+
 # -------------------------------------------------------------
 # 2. Redirect explicit .php requests to extensionless clean URLs
 #    (avoids 301 turning POST into GET on the canonical URL)
