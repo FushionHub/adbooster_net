@@ -90,6 +90,7 @@ require_once __DIR__ . '/includes/app_header.php';
                 <a href="#quickstart">Overview &amp; Base URL</a>
                 <a href="#authentication">Unified API Key Auth</a>
                 <a href="#ratelimits">Rate Limits (60 req/min)</a>
+                <a href="#credits">Credits &amp; Billing</a>
                 <a href="#webhooks">Webhooks &amp; Signatures</a>
                 <a href="#gateway-connections">Gateway Connections</a>
                 
@@ -104,6 +105,8 @@ require_once __DIR__ . '/includes/app_header.php';
                                 <a href="#ep-webhooks">7. Webhooks Management</a><a href="#ep-public-analytics">8. Public Analytics Feed</a>
 
                 <div class="text-white-50 font-size-11 fw-bold text-uppercase px-2 mt-3 mb-2">Client SDKs</div>
+                <a href="#guides">Step-by-Step Guides (5)</a>
+                <a href="#errors">Errors &amp; Troubleshooting</a>
                 <a href="#js-sdk">JavaScript SDK (Node & Browser)</a>
                 <a href="#sdks">cURL, JavaScript, Python, PHP</a>
             </div>
@@ -197,6 +200,40 @@ GET <?= BASE_URL ?>/api/v1/credits.php?api_key=adsb_live_your_api_key_here
                 </p>
             </div>
 
+            <!-- Section: Credits & Billing Economics -->
+            <div id="credits" class="card-dark p-4 rounded-4 mb-4" style="background:#0d1524 !important; border:1px solid rgba(255,255,255,0.08) !important;">
+                <h3 class="text-white fw-bold h5 mb-2">
+                    <i class="ph-bold ph-coins text-accent me-1"></i> Credits &amp; Billing Economics
+                </h3>
+                <p class="text-white-50 font-size-14 mb-3" style="color:#cbd5e1 !important;">
+                    Two independent credit wallets power the platform. They never mix and both are visible live on <code>GET /api/v1/credits.php</code>.
+                </p>
+                <div class="table-responsive mb-3">
+                    <table class="table table-dark table-bordered border-secondary border-opacity-15 font-size-13 mb-0">
+                        <thead>
+                            <tr><th>Wallet</th><th>Unit</th><th>Exchange rate</th><th>Consumed by</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>ad_credits</code></td>
+                                <td class="text-accent">USD ad spend</td>
+                                <td><code>1 ad credit = $1.00 USD</code> of delivered media budget</td>
+                                <td>Paid campaigns via the Zernio Ads Engine; campaign launch fees</td>
+                            </tr>
+                            <tr>
+                                <td><code>ai_credits</code></td>
+                                <td class="text-accent">AI operations</td>
+                                <td><code>100 AI credits = $1.00 USD</code></td>
+                                <td>AI UGC image: <code>5 AI credits</code> per image · AI script: <code>1 AI credit</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-white-50 font-size-13 mb-0" style="color:#cbd5e1 !important;">
+                    Top-ups and plans are billed through the configured payment gateways (Flutterwave live on this deployment; Paystack activates automatically once its keys are added). Prices in the pricing table are USD-canonical and converted for display in NGN using the live rate.
+                </p>
+            </div>
+
             <!-- Section: Webhooks -->
             <div id="webhooks" class="card-dark p-4 rounded-4 mb-4" style="background:#0d1524 !important; border:1px solid rgba(255,255,255,0.08) !important;">
                 <h3 class="text-white fw-bold h5 mb-2">
@@ -206,20 +243,62 @@ GET <?= BASE_URL ?>/api/v1/credits.php?api_key=adsb_live_your_api_key_here
                     Adsbooster dispatches real-time webhook events to your server when campaigns are updated, posts are published live, or ad spend milestones are reached. Every webhook contains an <code>X-Adsbooster-Signature</code> header generated using HMAC-SHA256.
                 </p>
 
+                <p class="text-white-50 font-size-13 mb-2">Events currently dispatched: <code>campaign.status_changed</code>, <code>post.published</code>, <code>payment.completed</code>.</p>
+
                 <div class="code-block mb-3">
-                    <button class="copy-btn" onclick="navigator.clipboard.writeText('$computed = hash_hmac(\'sha256\', file_get_contents(\'php://input\'), $webhookSecret);')">Copy</button>
-// PHP Example: Verifying Webhook Signatures
-$payload = file_get_contents('php://input');
-$signature = $_SERVER['HTTP_X_ADSBOOSTER_SIGNATURE'] ?? '';
-$secret = 'whsec_your_webhook_signing_secret';
+// PHP Example: Verifying Webhook Signatures (header format: sha256=<hex>)
+$rawBody      = file_get_contents('php://input');           // RAW body — never $_POST
+$signature    = $_SERVER['HTTP_X_ADSBOOSTER_SIGNATURE'] ?? '';
+$secret       = 'whsec_your_webhook_signing_secret';
 
-$expectedSignature = hash_hmac('sha256', $payload, $secret);
+// Header value is "sha256=<hex>" — strip the prefix before comparing
+$signature = preg_replace('/^sha256=/', '', $signature);
+$expected  = hash_hmac('sha256', $rawBody, $secret);
 
-if (!hash_equals($expectedSignature, $signature)) {
+if (!hash_equals($expected, $signature)) {
     http_response_code(401);
-    die('Invalid Webhook Signature');
+    exit('Invalid Webhook Signature');
 }
-// Proceed to handle payload safely
+$event = json_decode($rawBody, true);
+// switch ($event['event_type']) { case 'post.published': ... }
+                </div>
+
+                <p class="text-white-50 font-size-13 mb-2">Node.js / Express receiver — mount the <code>express.raw()</code> middleware <em>before</em> any JSON body parser so the HMAC is computed over the exact bytes:</p>
+                <div class="code-block mb-0">
+// Express Example: raw-body capture + sha256= HMAC verification
+const express = require('express');
+const crypto  = require('crypto');
+const app     = express();
+
+app.post('/adsbooster/webhook',
+  express.raw({ type: '*/*' }),                       // raw Buffer, NOT json
+  (req, res) => {
+    const header = req.get('X-Adsbooster-Signature') || '';
+    if (!header.startsWith('sha256=')) {
+      return res.status(401).send('Missing signature scheme');
+    }
+
+    const expected = crypto
+      .createHmac('sha256', process.env.ADSBOOSTER_WEBHOOK_SECRET)
+      .update(req.body)                               // Buffer — raw bytes
+      .digest('hex');
+
+    const received = header.slice('sha256='.length);
+    const ok = expected.length === received.length &&
+               crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(received));
+    if (!ok) return res.status(401).send('Invalid signature');
+
+    const event = JSON.parse(req.body.toString('utf8'));
+    switch (event.event_type) {
+      case 'campaign.status_changed': /* ... */ break;
+      case 'post.published':          /* ... */ break;
+      case 'payment.completed':       /* ... */ break;
+    }
+    res.json({ received: true });
+  }
+);
+
+app.listen(3000);
                 </div>
             </div>
 
@@ -883,6 +962,102 @@ media_type=image
                 <p class="text-white-50 font-size-12 mb-2">Connect accounts first under <a href="<?= url('social-connect') ?>" class="text-accent">Social Connect</a> — publishing uses real OAuth tokens, never passwords.</p>
             </div>
 
+            <!-- Section: Step-by-Step Guides -->
+            <div id="guides" class="card-dark p-4 rounded-4 mb-4" style="background:#0d1524 !important; border:1px solid rgba(255,255,255,0.08) !important;">
+                <h3 class="text-white fw-bold h5 mb-3">
+                    <i class="ph-bold ph-map-trifold text-accent me-1"></i> Step-by-Step Guides
+                </h3>
+
+                <!-- Guide 1 -->
+                <div class="mb-4 pb-3" style="border-bottom:1px solid rgba(255,255,255,.08);">
+                    <h4 class="text-white fw-bold h6 mb-2">Guide 1 — Get an API key and make your first call</h4>
+                    <ol class="text-white-50 font-size-13 ps-3" style="color:#cbd5e1 !important; line-height:1.9;">
+                        <li>Create an account and open <a href="<?= url('api-settings') ?>" class="text-accent">API Settings</a>.</li>
+                        <li>Click <strong>Generate Key</strong>. The plain key <code>adsb_live_…</code> is shown once; only its SHA-256 hash is stored.</li>
+                        <li>Test your key immediately (the discovery endpoint is the cheapest round-trip):<br>
+                        <code>curl -H "X-API-Key: adsb_live_your_key" <?= BASE_URL ?>/api/v1/credits.php</code></li>
+                        <li>Check the response headers — <code>X-RateLimit-Remaining</code> tells you how much of your 60 req/min window is left.</li>
+                        <li>If you ever lose the key, revoke and regenerate it from the same page. Old keys stop working instantly.</li>
+                    </ol>
+                </div>
+
+                <!-- Guide 2 -->
+                <div class="mb-4 pb-3" style="border-bottom:1px solid rgba(255,255,255,.08);">
+                    <h4 class="text-white fw-bold h6 mb-2">Guide 2 — Generate AI UGC creatives and publish them</h4>
+                    <ol class="text-white-50 font-size-13 ps-3" style="color:#cbd5e1 !important; line-height:1.9;">
+                        <li><strong>Check your AI balance:</strong> <code>GET /api/v1/credits.php</code> → <code>ai_credits</code> (each image costs 5 AI credits).</li>
+                        <li><strong>Generate:</strong> <code>POST /api/v1/ugc.php</code> with <code>{"product_name": "Cloud-Knit Shoes", "ugc_style": "lifestyle", "aspect_ratio": "9:16"}</code>. The response includes <code>creative.image_url</code>.</li>
+                        <li><strong>Publish:</strong> <code>POST /api/v1/posts.php</code> with <code>platform</code>, <code>caption</code> and the <code>media_url</code> from step 2. The job is queued to Bundle.social asynchronously.</li>
+                        <li><strong>Listen for the result:</strong> register a webhook in <code>GET /webhooks.php?ping=&lt;your https url&gt;</code> and handle <code>post.published</code> — fire-and-remain-informed, no polling loop needed.</li>
+                        <li>AI credits and ad credits deduct independently; failed generations that return <code>success: false</code> are not charged.</li>
+                    </ol>
+                </div>
+
+                <!-- Guide 3 -->
+                <div class="mb-4 pb-3" style="border-bottom:1px solid rgba(255,255,255,.08);">
+                    <h4 class="text-white fw-bold h6 mb-2">Guide 3 — Launch a paid campaign and pause it safely</h4>
+                    <ol class="text-white-50 font-size-13 ps-3" style="color:#cbd5e1 !important; line-height:1.9;">
+                        <li><strong>Fund ad credits</strong> first (billing page or <code>POST /api/v1/capi-bridge.php</code> is for tracking only — top-ups happen in the app).</li>
+                        <li><strong>Launch:</strong> <code>POST /api/v1/campaigns.php</code> with <code>campaign_type: "meta"</code>, <code>objective</code>, <code>budget_amount</code>, <code>headline</code>, <code>destination_url</code>. Adsbooster enqueues <code>zernio_launch_ad</code> and replies instantly.</li>
+                        <li><strong>Wait for the gateway:</strong> the campaign row gains <code>zernio_campaign_id</code> once Zernio confirms the launch (seconds).</li>
+                        <li><strong>Pause:</strong> <code>PUT /api/v1/campaigns.php?id=42</code> with <code>{"status": "paused"}</code>. Pausing is accepted server-side and synced to Zernio out-of-band — budget burn stops at the gateway.</li>
+                        <li><strong>Track conversions server-side</strong> with <code>POST /api/v1/capi-bridge.php</code> events; ROAS then appears in the dashboard and metrics cron.</li>
+                    </ol>
+                </div>
+
+                <!-- Guide 4 -->
+                <div class="mb-4 pb-3" style="border-bottom:1px solid rgba(255,255,255,.08);">
+                    <h4 class="text-white fw-bold h6 mb-2">Guide 4 — Receive verified webhooks in production</h4>
+                    <ol class="text-white-50 font-size-13 ps-3" style="color:#cbd5e1 !important; line-height:1.9;">
+                        <li>Expose an HTTPS endpoint with a URL you control (ngrok for local dev).</li>
+                        <li>Register it: <code>GET <?= BASE_URL ?>/api/v1/webhooks.php</code> lists registered hooks; add one from the in-app integrations screen.</li>
+                        <li>Send a test ping: <code>GET <?= BASE_URL ?>/api/v1/webhooks.php?ping=https://your.app/hook</code> — you receive a signed <code>ping.</code> event.</li>
+                        <li>Verify every delivery with <code>X-Adsbooster-Signature: sha256=&lt;hex&gt;</code> over the RAW body (PHP above, Express receiver below in this page).</li>
+                        <li>Respond <code>200</code> within 5 seconds; non-2xx responses are logged and retried by the platform.</li>
+                    </ol>
+                </div>
+
+                <!-- Guide 5 -->
+                <div class="mb-0">
+                    <h4 class="text-white fw-bold h6 mb-2">Guide 5 — Track server-side conversions with the CAPI bridge</h4>
+                    <ol class="text-white-50 font-size-13 ps-3" style="color:#cbd5e1 !important; line-height:1.9;">
+                        <li>Copy your pixel token from the integrations screen and add the drop-in script: <code>&lt;script src="<?= BASE_URL ?>/api/v1/capi-bridge.php?js=1"&gt;&lt;/script&gt;</code>.</li>
+                        <li>Initialise it: <code>AdsboosterTrack('init-token-here')</code> sets the token (or call <code>window._adsbooster_token = '…'</code>).</li>
+                        <li>Fire events: <code>AdsboosterTrack('Purchase', { value: 59.00, currency: 'USD' }, { email: 'hash-if-you-have-it' })</code>.</li>
+                        <li>The bridge enqueues the event and delivers it to Meta CAPI + TikTok Events through the ads gateway — no platform tokens ever touch your code.</li>
+                        <li>Confirm delivery in the conversion tracking dashboard; every event is logged with its gateway response.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Section: Errors & Troubleshooting -->
+            <div id="errors" class="card-dark p-4 rounded-4 mb-4" style="background:#0d1524 !important; border:1px solid rgba(255,255,255,0.08) !important;">
+                <h3 class="text-white fw-bold h5 mb-2">
+                    <i class="ph-bold ph-warning-circle text-accent me-1"></i> Error Codes &amp; Troubleshooting
+                </h3>
+                <p class="text-white-50 font-size-14 mb-3" style="color:#cbd5e1 !important;">
+                    Every endpoint returns <code>{"success": false, "error": "…"}</code> on failure with a matching HTTP status.
+                </p>
+                <div class="table-responsive mb-3">
+                    <table class="table table-dark table-bordered border-secondary border-opacity-15 font-size-13 mb-0">
+                        <thead><tr><th>HTTP</th><th>Meaning</th><th>Typical causes &amp; fixes</th></tr></thead>
+                        <tbody>
+                            <tr><td><code class="text-danger">401</code></td><td>Missing / invalid API key</td><td>Key revoked, typo, or missing header. Regenerate in API Settings; send <code>X-API-Key</code> or <code>Authorization: Bearer</code>.</td></tr>
+                            <tr><td><code class="text-danger">402</code></td><td>Insufficient credits</td><td><code>ai_credits</code> or <code>ad_credits</code> below the operation cost. Top up or subscribe to a plan.</td></tr>
+                            <tr><td><code class="text-danger">403</code></td><td>Forbidden</td><td>Trying to mutate another user's resource, or directory posting blocked by policy rules. Check ownership and the content policy.</td></tr>
+                            <tr><td><code class="text-danger">404</code></td><td>Resource not found</td><td>Wrong campaign/post/listing id. Re-list with <code>GET ?page=1</code> to confirm ids.</td></tr>
+                            <tr><td><code class="text-danger">422</code></td><td>Validation error</td><td>Missing required fields (<code>product_name</code>, <code>caption</code>, <code>budget_amount</code>…). The <code>error</code> message names the field.</td></tr>
+                            <tr><td><code class="text-warning">429</code></td><td>Rate limit exceeded</td><td>Over 60 req/min. Honour <code>Retry-After</code>; the official SDK auto-retries with backoff.</td></tr>
+                            <tr><td><code class="text-warning">503</code></td><td>Queue / upstream unavailable</td><td>Ad gateway or social gateway momentarily down. The request is queued automatically (<code>async_job_queue</code>) — retry safely, operations are idempotent per reference.</td></tr>
+                            <tr><td><code class="text-danger">500</code></td><td>Server error</td><td>Unexpected failure. Retry with the same payload; if it persists, email <span class="text-accent">jmauricennadi@gmail.com</span> with the request id.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-white-50 font-size-13 mb-0" style="color:#cbd5e1 !important;">
+                    <strong>Troubleshooting checklist:</strong> 1) confirm <code>success</code> flag before reading result objects · 2) treat every launch/PAUSE as <em>queued</em>, not instant — poll <code>GET /campaigns.php?id=N</code> for the gateway id · 3) for scheduled posts, expect delivery a few seconds after <code>scheduled_time</code>, and check the notifications feed when it fires early.
+                </p>
+            </div>
+
             <!-- JavaScript SDK -->
             <div id="js-sdk" class="card-dark p-4 rounded-4 mb-4" style="background:#0d1524 !important; border:1px solid rgba(255,255,255,0.08) !important;">
                 <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
@@ -894,7 +1069,7 @@ media_type=image
                 </div>
                 <p class="text-white-50 font-size-13 mb-3">
                     Zero-dependency JavaScript / TypeScript client for the full REST API — AI UGC creatives, campaigns, multi-network publishing, server-side CAPI tracking, credits and signed webhooks. Works in Node ≥18 and modern browsers, with automatic retries on rate limits and full typings.
-                    <a href="https://github.com/adsbooster-sdks/adsbooster-js-sdk" target="_blank" class="text-accent">SDK repository <i class="ph ph-arrow-square-out"></i></a>
+                    <a href="https://github.com/FushionHub/adsbooster-js-sdk" target="_blank" class="text-accent">SDK repository (github.com/FushionHub/adsbooster-js-sdk) <i class="ph ph-arrow-square-out"></i></a>
                 </p>
 
                 <div class="row g-3 mb-3">

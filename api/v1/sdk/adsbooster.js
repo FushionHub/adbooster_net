@@ -2,7 +2,7 @@
  * Adsbooster JavaScript SDK — official client for the Adsbooster.net REST API v1.
  *
  * Works in Node.js (>=18) and modern browsers. Zero dependencies.
- * Docs: https://github.com/adsbooster-sdks/adsbooster-js-sdk
+ * Docs: https://github.com/FushionHub/adsbooster-js-sdk
  * API reference: /developer-docs on your Adsbooster deployment.
  *
  * Quick start:
