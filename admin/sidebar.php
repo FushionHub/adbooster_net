@@ -58,7 +58,7 @@ $navItems = [
     <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <link href="<?= BASE_URL ?>/assets/css/admin-pro.css?v=3" rel="stylesheet">
+    <link href="<?= BASE_URL ?>/assets/css/admin-pro.css?v=4" rel="stylesheet">
 </head>
 <body>
 
@@ -136,6 +136,28 @@ $navItems = [
         </div>
         <div class="topbar-actions">
             <div class="topbar-dd position-relative">
+                <button class="topbar-icon-btn" id="adminCurrencyBtn" aria-label="Display currency" title="Display currency">
+                    <i class="ph-bold <?= currency_icon(currency_current()) ?>"></i>
+                </button>
+                <div class="admin-dropdown">
+                    <div class="dd-header">Display currency <span class="dd-meta"><?= e(currency_current()) ?></span></div>
+                    <?php foreach (currency_supported() as $__code => $__sym): ?>
+                        <a class="dd-item<?= currency_current() === $__code ? ' on' : '' ?>" href="<?= currency_toggle_url($__code) ?>">
+                            <i class="ph-bold <?= currency_icon($__code) ?>"></i>
+                            <?= e(currency_name($__code)) ?> (<?= e($__sym) ?>)
+                            <?php if (currency_current() === $__code): ?>
+                                <i class="ph-bold ph-check" style="margin-left:auto;color:var(--admin-green)"></i>
+                            <?php endif; ?>
+                        </a>
+                    <?php endforeach; ?>
+                    <hr class="dd-sep">
+                    <div class="dd-item" style="cursor:default" title="Applied to every price in the admin panel">
+                        <i class="ph-bold ph-info"></i>
+                        <span class="dd-meta">$1 = <?= e(currency_supported()['NGN']) ?><?= number_format(exchange_rate_ngn_per_usd(), 0) ?></span>
+                    </div>
+                </div>
+            </div>
+            <div class="topbar-dd position-relative">
                 <button class="topbar-icon-btn" id="adminNotifBtn" aria-label="Notifications">
                     <i class="ph-bold ph-bell"></i>
                     <span class="dot"></span>
@@ -176,5 +198,5 @@ $navItems = [
         <div class="flash-msg flash-error"><i class="ph-bold ph-x-circle"></i> <?= e($flashError) ?> <button type="button" class="flash-close" aria-label="Dismiss"><i class="ph-bold ph-x"></i></button></div>
     <?php endif; ?>
 
-    <script src="<?= BASE_URL ?>/assets/js/admin-app.js?v=3"></script>
+    <script src="<?= BASE_URL ?>/assets/js/admin-app.js?v=4"></script>
 

@@ -68,8 +68,8 @@ require_once __DIR__ . '/sidebar.php';
             <div class="card-icon yellow"><i class="ph-bold ph-currency-dollar"></i></div>
             <div>
                 <div class="card-title">Total Revenue</div>
-                <div class="card-value">$<?= number_format((float)$totalRevenue, 2) ?></div>
-                <div style="font-size:0.72rem;color:var(--admin-text-muted);">$<?= number_format((float)$revenueThisMonth, 2) ?> this month</div>
+                <div class="card-value"><?= price_fmt((float)$totalRevenue) ?></div>
+                <div style="font-size:0.72rem;color:var(--admin-text-muted);"><?= price_fmt((float)$revenueThisMonth) ?> this month</div>
             </div>
         </div>
     </div>
@@ -129,7 +129,7 @@ require_once __DIR__ . '/sidebar.php';
                     <?php foreach ($revenueByMonth as $r): ?>
                         <tr>
                             <td class="text-white"><?= $r['month'] ?></td>
-                            <td class="text-white fw-bold">$<?= number_format((float)$r['total'], 2) ?></td>
+                            <td class="text-white fw-bold"><?= price_fmt((float)$r['total']) ?></td>
                             <td class="text-muted"><?= $r['tx_count'] ?></td>
                         </tr>
                     <?php endforeach; ?>
@@ -146,7 +146,7 @@ require_once __DIR__ . '/sidebar.php';
                     <div class="text-white text-capitalize fw-medium" style="font-size:0.85rem;"><?= $cp['campaign_type'] ?></div>
                     <div class="d-flex align-items-center gap-3">
                         <span class="text-muted" style="font-size:0.78rem;"><?= $cp['count'] ?> campaigns</span>
-                        <span class="text-white fw-bold" style="font-size:0.85rem;">$<?= number_format((float)$cp['total_budget'], 2) ?></span>
+                        <span class="text-white fw-bold" style="font-size:0.85rem;"><?= price_fmt((float)$cp['total_budget']) ?></span>
                     </div>
                 </div>
             <?php endforeach; ?>
@@ -204,7 +204,7 @@ require_once __DIR__ . '/sidebar.php';
                         <div class="text-muted" style="font-size:0.72rem;"><?= htmlspecialchars($tu['email']) ?></div>
                     </td>
                     <td class="text-muted"><?= $tu['campaign_count'] ?></td>
-                    <td class="text-white fw-bold">$<?= number_format((float)$tu['total_spent'], 2) ?></td>
+                    <td class="text-white fw-bold"><?= price_fmt((float)$tu['total_spent']) ?></td>
                     <td class="text-white"><?= number_format((float)$tu['ad_credits']) ?></td>
                 </tr>
             <?php endforeach; ?>

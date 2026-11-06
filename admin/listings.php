@@ -179,7 +179,7 @@ require_once __DIR__ . '/sidebar.php';
                                 <span class="badge bg-secondary text-white font-size-11 text-capitalize"><?= htmlspecialchars($l['item_type'] ?? 'Listing') ?></span>
                             </td>
                             <td class="text-white font-size-13">
-                                $<?= number_format((float)($l['price'] ?? 0), 2) ?>
+                                <?= price_fmt((float)($l['price'] ?? 0)) ?>
                             </td>
                             <td>
                                 <div class="text-white font-size-13"><?= htmlspecialchars($l['owner_name'] ?? 'User #' . $l['user_id']) ?></div>

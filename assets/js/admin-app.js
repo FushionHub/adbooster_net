@@ -115,6 +115,7 @@
                 if (!open) menu.classList.add('show');
             });
         }
+        wireDrop('adminCurrencyBtn');
         wireDrop('adminNotifBtn');
         wireDrop('adminUserBtn');
         document.addEventListener('click', function () {

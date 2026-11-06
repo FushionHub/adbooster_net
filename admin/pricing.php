@@ -148,7 +148,7 @@ require_once __DIR__ . '/sidebar.php';
                     <?php foreach ($plans as $p): ?>
                         <tr>
                             <td class="text-white fw-medium"><?= htmlspecialchars($p['name']) ?></td>
-                            <td class="text-white">$<?= number_format((float)$p['price'], 2) ?></td>
+                            <td class="text-white"><?= price_fmt((float)$p['price']) ?></td>
                             <td class="text-capitalize"><?= str_replace('_',' ',$p['billing_cycle']) ?></td>
                             <td><?= $p['is_featured'] ? '<span class="badge-status active">Yes</span>' : '<span class="badge-status inactive">No</span>' ?></td>
                             <td><span class="badge-status <?= $p['status'] ?>"><?= $p['status'] ?></span></td>

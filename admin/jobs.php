@@ -137,7 +137,7 @@ require_once __DIR__ . '/sidebar.php';
                             <td>
                                 <span class="text-success fw-bold font-size-13">
                                     <?php if (!empty($j['salary_min'])): ?>
-                                        $<?= number_format((float)$j['salary_min']) ?> - $<?= number_format((float)$j['salary_max']) ?>
+                                        <?= price_fmt((float)$j['salary_min']) ?> - <?= price_fmt((float)$j['salary_max']) ?>
                                     <?php else: ?>
                                         Negotiable
                                     <?php endif; ?>

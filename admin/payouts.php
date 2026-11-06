@@ -80,14 +80,14 @@ require_once __DIR__ . '/sidebar.php';
     <div class="col-sm-6 col-xl-4">
         <div class="admin-card p-3">
             <div class="text-muted font-size-12 mb-1">Pending Payout Amount</div>
-            <div class="h3 text-warning fw-bold mb-0">$<?= number_format($totalPending, 2) ?></div>
+            <div class="h3 text-warning fw-bold mb-0"><?= price_fmt((float)$totalPending) ?></div>
             <small class="text-muted"><?= $countPending ?> requests awaiting approval</small>
         </div>
     </div>
     <div class="col-sm-6 col-xl-4">
         <div class="admin-card p-3">
             <div class="text-muted font-size-12 mb-1">Total Disbursed</div>
-            <div class="h3 text-success fw-bold mb-0">$<?= number_format($totalPaid, 2) ?></div>
+            <div class="h3 text-success fw-bold mb-0"><?= price_fmt((float)$totalPaid) ?></div>
             <small class="text-muted">Completed commission payouts</small>
         </div>
     </div>
@@ -126,7 +126,7 @@ require_once __DIR__ . '/sidebar.php';
                                 <div class="text-white fw-medium font-size-13"><?= htmlspecialchars($r['user_name']) ?></div>
                                 <div class="text-muted font-size-11"><?= htmlspecialchars($r['user_email']) ?></div>
                             </td>
-                            <td class="text-white fw-bold">$<?= number_format((float)$r['amount'], 2) ?></td>
+                            <td class="text-white fw-bold"><?= price_fmt((float)$r['amount']) ?></td>
                             <td>
                                 <span class="badge bg-secondary font-size-11 text-uppercase"><?= htmlspecialchars($r['method']) ?></span>
                             </td>

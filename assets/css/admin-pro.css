@@ -367,7 +367,6 @@ html[data-theme="light"] .sidebar-overlay { background: rgba(15,23,42,.42); }
     margin-left: var(--admin-sidebar-w);
     min-height: 100vh;
     padding: 0 2rem 3rem;
-    max-width: 1680px;
     transition: margin-left .28s var(--admin-ease);
 }
 
@@ -510,6 +509,8 @@ html[data-theme="light"] .topbar-user { background: #fff; }
 .admin-dropdown .dd-item i { font-size: 1rem; color: var(--admin-text-muted); width: 18px; text-align: center; }
 .admin-dropdown .dd-item:hover { background: rgba(255,255,255,.05); color: var(--admin-text); }
 html[data-theme="light"] .admin-dropdown .dd-item:hover { background: var(--admin-card-2); }
+.admin-dropdown .dd-item.on { color: var(--admin-green); font-weight: 600; }
+.admin-dropdown .dd-item.on:hover { color: var(--admin-green); }
 .admin-dropdown .dd-item.danger { color: var(--admin-red); }
 .admin-dropdown .dd-item.danger i { color: var(--admin-red); }
 .admin-dropdown .dd-item.danger:hover { background: var(--admin-red-dim); }

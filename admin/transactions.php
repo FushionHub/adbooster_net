@@ -97,7 +97,7 @@ require_once __DIR__ . '/sidebar.php';
                     </td>
                     <td class="text-capitalize"><?= $t['gateway'] ?></td>
                     <td class="text-capitalize" style="font-size:0.8rem;"><?= str_replace('_',' ',$t['type']) ?></td>
-                    <td class="text-white fw-bold">$<?= number_format((float)$t['amount'], 2) ?></td>
+                    <td class="text-white fw-bold"><?= price_fmt((float)$t['amount']) ?></td>
                     <td><span class="badge-status <?= $t['status'] ?>"><?= $t['status'] ?></span></td>
                     <td class="text-muted" style="font-size:0.75rem;"><?= htmlspecialchars($t['gateway_reference'] ?? 'N/A') ?></td>
                     <td class="text-muted" style="font-size:0.78rem;"><?= date('M d, Y H:i', strtotime($t['created_at'])) ?></td>

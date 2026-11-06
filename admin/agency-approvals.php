@@ -116,7 +116,7 @@ require_once __DIR__ . '/sidebar.php';
             <div class="card-icon green"><i class="ph-bold ph-currency-dollar"></i></div>
             <div>
                 <div class="card-title">Monthly Retainers</div>
-                <div class="card-value">$<?= number_format($totalRetainers, 2) ?></div>
+                <div class="card-value"><?= price_fmt((float)$totalRetainers) ?></div>
             </div>
         </div>
     </div>

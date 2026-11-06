@@ -152,7 +152,7 @@ require_once __DIR__ . '/sidebar.php';
             <div class="card-icon yellow"><i class="ph-bold ph-currency-dollar"></i></div>
             <div class="stat-meta">
                 <div class="stat-label">Revenue</div>
-                <div class="stat-value">$<?= number_format($totalRevenue, 2) ?></div>
+                <div class="stat-value"><?= price_fmt((float)$totalRevenue) ?></div>
                 <div class="stat-delta flat">
                     <?= number_format($activeCampaigns) ?> active campaign<?= $activeCampaigns === 1 ? '' : 's' ?>
                 </div>
@@ -245,7 +245,7 @@ require_once __DIR__ . '/sidebar.php';
                         $pct = max($pct, $point['value'] > 0 ? 4 : 1.5);
                         ?>
                         <div class="bar-col">
-                            <div class="bar-value">$<?= number_format($point['value'], 0) ?></div>
+                            <div class="bar-value"><?= price_fmt((float)$point['value']) ?></div>
                             <div class="bar-track">
                                 <div class="bar-fill" style="height:<?= number_format($pct, 1) ?>%;"></div>
                             </div>
@@ -340,7 +340,7 @@ require_once __DIR__ . '/sidebar.php';
                                     </div>
                                 </td>
                                 <td class="text-capitalize"><?= htmlspecialchars((string)$tx['type']) ?></td>
-                                <td class="text-white fw-bold">$<?= number_format((float)$tx['amount'], 2) ?></td>
+                                <td class="text-white fw-bold"><?= price_fmt((float)$tx['amount']) ?></td>
                                 <td class="text-capitalize"><?= htmlspecialchars((string)$tx['gateway']) ?></td>
                                 <td><span class="badge-status <?= htmlspecialchars((string)$tx['status']) ?>"><?= htmlspecialchars((string)$tx['status']) ?></span></td>
                                 <td class="text-muted" style="font-size:.78rem;white-space:nowrap;">
