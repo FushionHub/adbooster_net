@@ -137,9 +137,15 @@ require_once __DIR__ . '/includes/header.php';
 
             <div class="tw-mb-5">
                 <label for="password" class="form-label text-white fw-medium">Password</label>
-                <input type="password" id="password" name="password"
-                    class="form-control tw-p-3 tw-rounded-lg bg-dark-900 text-white border-neutral-700"
-                    required>
+                <div class="pw-reveal-wrap">
+                    <input type="password" id="password" name="password"
+                        class="form-control tw-p-3 tw-rounded-lg bg-dark-900 text-white border-neutral-700"
+                        required>
+                    <button type="button" class="pw-reveal-btn" data-pw-target="password"
+                            aria-label="Show password" tabindex="-1">
+                        <i class="ph ph-eye"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="d-flex align-items-center justify-content-between tw-mb-6">
@@ -181,5 +187,7 @@ require_once __DIR__ . '/includes/header.php';
         </div>
     </div>
 </section>
+
+<script src="<?= BASE_URL ?>/assets/js/password-reveal.js"></script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

@@ -109,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $siteName = get_setting('site_name', 'Adsbooster.net');
             $subject  = "Welcome to {$siteName}!";
-            $body     = "Hi {$fullName},\n\nYour account has been created. Start exploring your dashboard:\n\n" . BASE_URL . "/dashboard.php\n\nâ€“ The {$siteName} Team";
+            $body     = "Hi {$fullName},\n\nYour account has been created. Start exploring your dashboard:\n\n" . BASE_URL . "/dashboard.php\n\n– The {$siteName} Team";
             mail($email, $subject, $body);
 
             // Email-first: the branded transactional email is the account's
@@ -133,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$pageTitle = 'Register â€” ' . get_setting('site_name', 'Adsbooster.net');
+$pageTitle = 'Register — ' . get_setting('site_name', 'Adsbooster.net');
 require_once __DIR__ . '/includes/header.php';
 ?>
 
@@ -203,17 +203,29 @@ require_once __DIR__ . '/includes/header.php';
 
             <div class="tw-mb-5">
                 <label for="password" class="form-label text-white fw-medium">Password</label>
-                <input type="password" id="password" name="password"
-                    class="form-control tw-p-3 tw-rounded-lg bg-dark-900 text-white border-neutral-700"
-                    minlength="8" required>
+                <div class="pw-reveal-wrap">
+                    <input type="password" id="password" name="password"
+                        class="form-control tw-p-3 tw-rounded-lg bg-dark-900 text-white border-neutral-700"
+                        minlength="8" required>
+                    <button type="button" class="pw-reveal-btn" data-pw-target="password"
+                            aria-label="Show password" tabindex="-1">
+                        <i class="ph ph-eye"></i>
+                    </button>
+                </div>
                 <small class="text-white-50">At least 8 characters</small>
             </div>
 
             <div class="tw-mb-5">
                 <label for="confirm_password" class="form-label text-white fw-medium">Confirm Password</label>
-                <input type="password" id="confirm_password" name="confirm_password"
-                    class="form-control tw-p-3 tw-rounded-lg bg-dark-900 text-white border-neutral-700"
-                    minlength="8" required>
+                <div class="pw-reveal-wrap">
+                    <input type="password" id="confirm_password" name="confirm_password"
+                        class="form-control tw-p-3 tw-rounded-lg bg-dark-900 text-white border-neutral-700"
+                        minlength="8" required>
+                    <button type="button" class="pw-reveal-btn" data-pw-target="confirm_password"
+                            aria-label="Show password" tabindex="-1">
+                        <i class="ph ph-eye"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="tw-mb-6">
@@ -258,5 +270,7 @@ require_once __DIR__ . '/includes/header.php';
         <?php endif; ?>
     </div>
 </section>
+
+<script src="<?= BASE_URL ?>/assets/js/password-reveal.js"></script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
