@@ -67,8 +67,16 @@ class ThirdPartyGateway
             $stmt->execute([$provider]);
             $config = $stmt->fetch(PDO::FETCH_ASSOC);
 
+            // A seeded placeholder row (e.g. 'YOUR_ZERNIO_API_KEY') must NOT
+            // shadow a real key: treat placeholders as absent so the
+            // constants / site_settings fallbacks below are consulted.
+            // Otherwise production silently drops into sandbox mode and
+            // Zernio "redirects" to the simulated .local endpoint.
             if ($config && !empty($config['is_active'])) {
-                $apiKey = (string)$config['api_key'];
+                $candidate = (string)$config['api_key'];
+                if ($candidate !== '' && !self::isPlaceholderKey($candidate)) {
+                    $apiKey = $candidate;
+                }
             }
         } catch (\Throwable $e) {
             // Table might not exist yet or DB unreachable — fall through
