@@ -83,7 +83,34 @@ class SchemaGuard
     private static bool $done = false;
 
     /**
-     * Ensure every declared column exists. Safe to call on every request.
+     * Persistent cache: probing information_schema on EVERY request is
+     * brutally slow on shared hosting (each information_schema scan can take
+     * 100ms–seconds on a contended server, and ensure() issues ~2×declared
+     * tables/columns of them per boot). The probe result is therefore cached
+     * on disk, keyed by a fingerprint of the COLUMNS/BACKFILL maps — a new
+     * deployment (any edit to those maps) naturally invalidates the cache
+     * and re-probes exactly once.
+     */
+    private static function cachePath(): string
+    {
+        $dir = __DIR__ . '/../cache';
+        if (!is_dir($dir) || !is_writable($dir)) {
+            $dir = sys_get_temp_dir() . '/adsbooster-cache';
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0775, true);
+            }
+        }
+        return $dir . '/schema_guard.json';
+    }
+
+    private static function fingerprint(): string
+    {
+        return sha1(serialize([self::COLUMNS, self::BACKFILL]));
+    }
+
+    /**
+     * Ensure every declared column exists. Runs the live probe a single time
+     * per deployment; subsequent requests short-circuit to the cached answer.
      *
      * @return array{added:string[], skipped:bool, error:?string}
      */
@@ -93,6 +120,21 @@ class SchemaGuard
             return ['added' => [], 'skipped' => true, 'error' => null];
         }
         self::$done = true;
+
+        // Fast path: a cached verdict for the current fingerprint skips all
+        // information_schema work.
+        $fp = self::fingerprint();
+        $cacheFile = self::cachePath();
+        if (is_readable($cacheFile)) {
+            $cache = @json_decode((string)file_get_contents($cacheFile), true);
+            if (is_array($cache) && ($cache['fp'] ?? '') === $fp) {
+                return [
+                    'added'   => (array)($cache['added'] ?? []),
+                    'skipped' => true,
+                    'error'   => null,
+                ];
+            }
+        }
 
         $added = [];
         try {
@@ -128,6 +170,15 @@ class SchemaGuard
         } catch (\Throwable $e) {
             error_log('SchemaGuard: ' . $e->getMessage());
             return ['added' => $added, 'skipped' => false, 'error' => $e->getMessage()];
+        }
+
+        // Persist the successful verdict (once per deployment).
+        if ($added === []) {
+            @file_put_contents(
+                self::cachePath(),
+                json_encode(['fp' => $fp, 'added' => [], 'ts' => time()]),
+                LOCK_EX
+            );
         }
 
         return ['added' => $added, 'skipped' => false, 'error' => null];
