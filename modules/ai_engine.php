@@ -634,16 +634,24 @@ class AIEngine
 
     private static function callImageAPI(string $prompt, ?string $forceProvider): array
     {
-        $apiKey = self::resolveKey('gemini');
-        if (!empty($apiKey)) {
-            try {
-                return self::geminiImage($prompt, $apiKey);
-            } catch (\Throwable $e) {
-                error_log("Gemini image error: " . $e->getMessage());
+        // Real image generation: Gemini (Nano Banana) when a key exists,
+        // otherwise the free keyless Pollinations route — both return a
+        // stored same-origin image URL.
+        try {
+            require_once __DIR__ . '/gemini_engine.php';
+            $generated = GeminiEngine::generateImage($prompt, 1024, 1024);
+            if ($generated !== null) {
+                return [
+                    'output'   => $generated['url'],
+                    'provider' => str_starts_with($generated['model'], 'pollinations') ? 'pollinations-free' : 'gemini-image',
+                    'model'    => $generated['model'],
+                ];
             }
+        } catch (\Throwable $e) {
+            error_log('Image generation error: ' . $e->getMessage());
         }
 
-        // Return a dynamic high-res marketing creative SVG or unsplash reference
+        // Last resort: curated reference creative (generation unavailable).
         $encodedPrompt = urlencode($prompt);
         return [
             'output'   => "https://images.unsplash.com/photo-1557838923-2985c318be48?auto=format&fit=crop&w=1200&q=80",
@@ -751,39 +759,6 @@ class AIEngine
         }
 
         throw new \RuntimeException("NVIDIA NIM API failed on all models. Last response: {$lastErr}");
-    }
-
-    private static function geminiImage(string $prompt, string $apiKey): array
-    {
-        $model = self::IMAGE_MODELS['gemini'];
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
-
-        $payload = json_encode([
-            'contents' => [['parts' => [['text' => 'Generate a high-converting digital advertising image prompt and visual direction for: ' . $prompt]]]],
-        ]);
-
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => $payload,
-            CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-            CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT        => 20,
-                CURLOPT_SSL_VERIFYPEER => true,
-                CURLOPT_SSL_VERIFYHOST => 2,
-            ]);
-            ca_curl_setopt($ch);
-            $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($httpCode === 200 && $response) {
-            $data = json_decode($response, true);
-            $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? '';
-            return ['output' => $text, 'provider' => 'gemini', 'model' => $model];
-        }
-
-        throw new \RuntimeException("Gemini API returned HTTP {$httpCode}");
     }
 
     private static function fallbackText(string $prompt): string

@@ -716,7 +716,12 @@ class AIVideoEngine
                 }
             }
 
-            if ($generated === null && GeminiEngine::hasKey()) {
+            // Gemini first when a key exists. Without a key, GeminiEngine
+            // falls back to the free keyless Pollinations route itself, so
+            // the built-in Storyboard route still renders real photoreal
+            // stills. (The `pollinations` route already tried Pollinations
+            // directly above — do not duplicate the attempt here.)
+            if ($generated === null && $route !== 'pollinations') {
                 try {
                     $generated = GeminiEngine::generateImage(
                         $sc['visual_prompt'],

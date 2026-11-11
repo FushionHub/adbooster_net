@@ -25,6 +25,9 @@ class GeminiEngine
 {
     private const API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
+    /** Pollinations anonymous free tier exhausted for this PHP request (skip remaining). */
+    private static bool $pollinationsExhausted = false;
+
     /** Image model priority: newest/most capable first. */
     private const IMAGE_MODELS = [
         'gemini-3-pro-image-preview',                     // Nano Banana 2
@@ -64,15 +67,19 @@ class GeminiEngine
     public static function generateImage(string $prompt, int $width = 1024, int $height = 1024, ?string $saveAs = null): ?array
     {
         $key = self::key();
-        if ($key === '') {
-            return null;
-        }
 
-        $aspect = self::aspectFor($width, $height);
         $prompt = trim($prompt);
         if ($prompt === '') {
             return null;
         }
+
+        if ($key === '') {
+            // No Gemini key configured: use the free keyless Pollinations
+            // image API so callers still get a real generated image.
+            return self::pollinationsImage($prompt, $width, $height, $saveAs);
+        }
+
+        $aspect = self::aspectFor($width, $height);
 
         foreach (self::IMAGE_MODELS as $model) {
             $bytes = self::requestImage($model, $key, $prompt, $aspect);
@@ -91,7 +98,9 @@ class GeminiEngine
             ];
         }
 
-        return null;
+        // Every Gemini model failed (quota/region/revision): free keyless
+        // Pollinations route keeps generation working without a dead end.
+        return self::pollinationsImage($prompt, $width, $height, $saveAs);
     }
 
     /**
@@ -101,6 +110,92 @@ class GeminiEngine
     public static function ready(): bool
     {
         return self::hasKey();
+    }
+
+    /**
+     * FREE, keyless image via the Pollinations API (image.pollinations.ai).
+     * Used when no Gemini key is configured or every Gemini model failed so
+     * callers always get a real generated image instead of null. Bytes are
+     * stored same-origin under assets/uploads/ai/pollinations/ (no script
+     * execution) — provenance is reported via the 'pollinations-flux' model.
+     */
+    private static function pollinationsImage(string $prompt, int $width, int $height, ?string $saveAs): ?array
+    {
+        if (self::$pollinationsExhausted) {
+            return null;
+        }
+
+        $width  = max(256, min(1536, $width));
+        $height = max(256, min(1536, $height));
+
+        $url = 'https://image.pollinations.ai/prompt/' . rawurlencode($prompt)
+            . '?width=' . $width . '&height=' . $height . '&nologo=true&safe=true';
+
+        $resp = self::pollinationsFetch($url);
+
+        // Anonymous free tier is rate-limited (~1 image / 45s per IP): wait
+        // out an advertised short window and retry once before giving up.
+        if ($resp['code'] === 402 || $resp['code'] === 429) {
+            $wait = 0;
+            if (preg_match('/Retry after (\d+)s/i', (string)$resp['body'], $m)) {
+                $wait = (int)$m[1];
+            }
+            if ($wait > 0 && $wait <= 20) {
+                sleep(min($wait, 20) + 1);
+                $resp = self::pollinationsFetch($url);
+            }
+        }
+        if ($resp['code'] === 402 || $resp['code'] === 429) {
+            // Window exhausted — stop burning attempts for this request.
+            self::$pollinationsExhausted = true;
+            error_log('Pollinations free-tier limit reached; skipping for the rest of this request.');
+            return null;
+        }
+        if ($resp['code'] < 200 || $resp['code'] >= 300) {
+            return null;
+        }
+
+        $bytes = (string)$resp['body'];
+        if (strlen($bytes) < 128 || !function_exists('getimagesizefromstring')) {
+            return null;
+        }
+        $info = @getimagesizefromstring($bytes);
+        if ($info === false || empty($info['mime']) || !str_starts_with((string)$info['mime'], 'image/')) {
+            return null;
+        }
+        $mime = (string)$info['mime'];
+
+        $saved = self::storeImage($bytes, $mime, $saveAs);
+        if ($saved === null) {
+            return null;
+        }
+        return [
+            'path'  => $saved,
+            'url'   => BASE_URL . '/' . $saved,
+            'model' => 'pollinations-flux',
+            'mime'  => $mime,
+        ];
+    }
+
+    private static function pollinationsFetch(string $url): array
+    {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT        => 120,
+            CURLOPT_CONNECTTIMEOUT => 20,
+            CURLOPT_HTTPHEADER     => ['Accept: image/*'],
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+        ]);
+        if (function_exists('ca_curl_setopt')) {
+            ca_curl_setopt($ch);
+        }
+        $bytes = curl_exec($ch);
+        $code  = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        return ['code' => $code, 'body' => (string)$bytes];
     }
 
     // ─── internals ───────────────────────────────────────────────
