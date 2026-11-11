@@ -171,9 +171,14 @@ class PaymentProcessor
     }
 
     /**
-     * Verify a Flutterwave transaction by transaction ID.
+     * Verify a Flutterwave transaction by transaction ID or reference.
      *
-     * @param string $transactionId Flutterwave transaction ID
+     * Numeric refs hit /transactions/{id}/verify; anything else (tx_ref
+     * strings like ABTX-...) is verified by reference via
+     * /transactions/verify_by_reference?tx_ref= — the documented endpoint
+     * for refs that never received a Flutterwave transaction id.
+     *
+     * @param string $transactionId Flutterwave transaction ID or tx_ref
      * @return array ['success' => bool, 'data' => array|null, 'message' => string]
      */
     public static function verifyFlutterwave(string $transactionId): array
@@ -183,7 +188,11 @@ class PaymentProcessor
             return ['success' => false, 'data' => null, 'message' => 'Flutterwave secret key not configured.'];
         }
 
-        $url = self::FLUTTERWAVE_BASE . '/transactions/' . urlencode($transactionId) . '/verify';
+        if (ctype_digit($transactionId)) {
+            $url = self::FLUTTERWAVE_BASE . '/transactions/' . urlencode($transactionId) . '/verify';
+        } else {
+            $url = self::FLUTTERWAVE_BASE . '/transactions/verify_by_reference?tx_ref=' . urlencode($transactionId);
+        }
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -287,7 +296,7 @@ class PaymentProcessor
                     "UPDATE users SET ad_credits = COALESCE(ad_credits, 0) + ? WHERE id = ?",
                     [$usdAmount, $userId]
                 );
-                $creditNote = '$' . number_format($usdAmount, 2) . ' in ad credits';
+                $creditNote = price_fmt($usdAmount) . ' in ad credits';
             } elseif ($transaction['type'] === 'ai_credit_topup') {
                 $granted = (int) round($usdAmount * $aiCreditsPerUsd);
                 db()->query(
@@ -316,7 +325,7 @@ class PaymentProcessor
                          WHERE id = ?",
                         [(int) $plan['id'], $cycle, $adCredits, $aiCredits, $userId]
                     );
-                    $creditNote = 'plan "' . ($plan['name'] ?? 'Subscription') . '" activated with $' . number_format($adCredits, 2) . ' Ad Credits & ' . $aiCredits . ' AI Credits included';
+                    $creditNote = 'plan "' . ($plan['name'] ?? 'Subscription') . '" activated with ' . price_fmt($adCredits) . ' Ad Credits & ' . $aiCredits . ' AI Credits included';
                 }
             }
 
@@ -353,7 +362,7 @@ class PaymentProcessor
                             $referrerId,
                             'referral_reward',
                             'Referral Bonus Earned! 🎉',
-                            'Your referral made their first payment! You received $' . number_format($rewardCredits, 2) . ' in ad credits.',
+                            'Your referral made their first payment! You received ' . number_format((float)$rewardCredits, 2) . ' ad credits.',
                             '/referrals.php'
                         );
                     }
@@ -373,7 +382,7 @@ class PaymentProcessor
                     $userId,
                     'payment',
                     'Payment Successful',
-                    'Your payment of $' . number_format($amount, 2) . ' was verified'
+                    'Your payment of ' . txn_money($amount, (string)($transaction['currency'] ?? null)) . ' was verified'
                         . ($creditNote !== '' ? ' and ' . $creditNote . ' credited to your account.' : '.')
                 );
             } catch (\Throwable $e) {

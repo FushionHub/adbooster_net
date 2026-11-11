@@ -64,6 +64,22 @@ try {
             } else {
                 $message = 'Payment verified but crediting failed. Contact support.';
             }
+        } elseif ($result['success']) {
+            // verify_by_reference responses may omit meta.transaction_id —
+            // fall back to the local row keyed by gateway_reference (tx_ref).
+            $txnRef = (string)($result['data']['tx_ref'] ?? $transactionIdParam);
+            $transaction = db()->fetchOne("SELECT id FROM transactions WHERE gateway_reference = ? AND status = 'pending'", [$txnRef]);
+            if ($transaction) {
+                $completed = PaymentProcessor::completeTransaction((int)$transaction['id']);
+                if ($completed) {
+                    $verified = true;
+                    $message = 'Payment verified and wallet credited successfully!';
+                } else {
+                    $message = 'Payment verified but crediting failed. Contact support.';
+                }
+            } else {
+                $message = 'Payment verified at Flutterwave but no matching pending transaction was found.';
+            }
         } else {
             $message = $result['message'] ?? 'Payment verification failed.';
         }
