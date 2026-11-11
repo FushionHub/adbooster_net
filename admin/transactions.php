@@ -85,7 +85,7 @@ require_once __DIR__ . '/sidebar.php';
     <div class="table-responsive">
         <table class="admin-table">
             <thead>
-                <tr><th>ID</th><th>User</th><th>Gateway</th><th>Type</th><th>Amount</th><th>Status</th><th>Reference</th><th>Date</th></tr>
+                <tr><th>ID</th><th>User</th><th>Gateway</th><th>Type</th><th>Amount</th><th>Status</th><th>Reference</th><th>Date</th><th></th></tr>
             </thead>
             <tbody>
             <?php foreach ($transactions as $t): ?>
@@ -97,14 +97,22 @@ require_once __DIR__ . '/sidebar.php';
                     </td>
                     <td class="text-capitalize"><?= $t['gateway'] ?></td>
                     <td class="text-capitalize" style="font-size:0.8rem;"><?= str_replace('_',' ',$t['type']) ?></td>
-                    <td class="text-white fw-bold"><?= price_fmt((float)$t['amount']) ?></td>
+                    <td class="text-white fw-bold"><?= txn_money((float)$t['amount'], $t['currency'] ?? null) ?></td>
                     <td><span class="badge-status <?= $t['status'] ?>"><?= $t['status'] ?></span></td>
                     <td class="text-muted" style="font-size:0.75rem;"><?= htmlspecialchars($t['gateway_reference'] ?? 'N/A') ?></td>
                     <td class="text-muted" style="font-size:0.78rem;"><?= date('M d, Y H:i', strtotime($t['created_at'])) ?></td>
+                    <td>
+                        <?php if (($t['status'] ?? '') === 'pending' && in_array($t['gateway'] ?? '', ['flutterwave', 'paystack'], true)): ?>
+                            <a href="<?= url('payment-verify') ?>?<?= $t['gateway'] === 'paystack' ? 'reference' : 'tx_ref' ?>=<?= urlencode((string)($t['gateway_reference'] ?? $t['id'])) ?>&gateway=<?= $t['gateway'] ?>"
+                               class="btn-admin btn-admin-blue" title="Re-check with the gateway and credit the user if it succeeded" onclick="return confirm('Verify this payment with <?= ucfirst($t['gateway']) ?> and credit the user?')">
+                                <i class="ph-bold ph-arrows-clockwise"></i> Verify
+                            </a>
+                        <?php endif; ?>
+                    </td>
                 </tr>
             <?php endforeach; ?>
             <?php if (empty($transactions)): ?>
-                <tr><td colspan="8" class="text-muted text-center py-4">No transactions found.</td></tr>
+                <tr><td colspan="9" class="text-muted text-center py-4">No transactions found.</td></tr>
             <?php endif; ?>
             </tbody>
         </table>

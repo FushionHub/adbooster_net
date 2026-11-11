@@ -84,7 +84,7 @@ require_once __DIR__ . '/sidebar.php';
                 </div>
                 <div class="row g-2 mb-3">
                     <div class="col">
-                        <label class="form-label-admin">Price ($)</label>
+                        <label class="form-label-admin">Price (USD canonical — shown as <?= e(price_fmt((float)($editPlan['price'] ?? 0))) ?>)</label>
                         <input type="number" name="price" class="form-control-admin" step="0.01" min="0"
                                value="<?= $editPlan['price'] ?? '0.00' ?>">
                     </div>
@@ -99,7 +99,7 @@ require_once __DIR__ . '/sidebar.php';
                 </div>
                 <div class="row g-2 mb-3">
                     <div class="col">
-                        <label class="form-label-admin">Ad Credits ($)</label>
+                        <label class="form-label-admin">Ad Credits (USD credits)</label>
                         <input type="number" step="0.01" name="ad_credits_included" class="form-control-admin" placeholder="0.00"
                                value="<?= htmlspecialchars((string)($editPlan['ad_credits_included'] ?? '0.00')) ?>">
                     </div>

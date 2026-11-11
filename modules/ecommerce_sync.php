@@ -235,7 +235,7 @@ class EcommerceSyncEngine
         }
 
         $pName = $product['product_title'];
-        $pPrice = '$' . number_format((float)$product['price'], 2);
+        $pPrice = price_fmt((float)$product['price']);
 
         // 1. 3 AI UGC Images
         $ugcImages = [

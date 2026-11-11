@@ -397,7 +397,7 @@ $featuredListings = db()->fetchAll(
                                 <!-- Price overlay bottom right -->
                                 <?php if ((float)$item['price'] > 0): ?>
                                     <span class="badge bg-dark text-white border border-secondary position-absolute bottom-0 end-0 m-3 font-size-13 fw-bold px-3 py-1 rounded-pill">
-                                        $<?= number_format((float)$item['price'], 2) ?>
+                                        <?= price_fmt((float)$item['price']) ?>
                                     </span>
                                 <?php else: ?>
                                     <span class="badge bg-dark text-main-600 border border-secondary position-absolute bottom-0 end-0 m-3 font-size-12 fw-bold px-3 py-1 rounded-pill">
@@ -1083,7 +1083,7 @@ $featuredListings = db()->fetchAll(
                             <?php endif; ?>
                             <?php if ((float)($item['price'] ?? 0) > 0): ?>
                                 <span class="position-absolute bottom-0 end-0 m-3 badge bg-black bg-opacity-90 text-main-600 font-size-13 px-3 py-1 rounded-3 fw-bold border border-main-600 border-opacity-40">
-                                    $<?= number_format((float)$item['price'], 2) ?>
+                                    <?= price_fmt((float)$item['price']) ?>
                                 </span>
                             <?php endif; ?>
                         </div>

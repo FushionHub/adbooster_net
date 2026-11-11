@@ -186,7 +186,7 @@ if ($userId) {
 
                             <?php if (!empty($listing['price']) && (float)$listing['price'] > 0): ?>
                                 <div style="position:absolute;bottom:12px;right:12px;background:rgba(8,12,20,0.9);color:var(--accent);font-weight:700;font-size:13px;padding:4px 10px;border-radius:8px;backdrop-filter:blur(4px);border:1px solid rgba(200,255,0,0.3);">
-                                    $<?= number_format((float)$listing['price'], 2) ?>
+                                    <?= price_fmt((float)$listing['price']) ?>
                                 </div>
                             <?php endif; ?>
                         </div>

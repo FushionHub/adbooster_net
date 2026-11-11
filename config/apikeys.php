@@ -13,7 +13,7 @@
  *   3. `site_settings` DB row (editable from Admin CMS)
  *
  * To go live: fill the empty '' values below OR set env vars
- * OR update the matching site_settings rows from admin/cms.php.
+ * OR update the matching site_settings rows from Admin → Settings.
  */
 
 // ── Unified Third-Party Gateways (Bundle.social & Zernio) ──

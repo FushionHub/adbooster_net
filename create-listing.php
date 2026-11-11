@@ -165,15 +165,15 @@ require_once __DIR__ . '/includes/app_header.php';
                 <h6 style="color:#fff;font-weight:700;margin:0 0 2px;">Listing Fee &amp; Membership Perks</h6>
                 <p style="color:var(--fg2);font-size:13px;margin:0;">
                     <?php if ($isPlanSubscribed): ?>
-                        <span class="text-success fw-bold"><i class="ph ph-check-circle me-1"></i>Included in your <?= htmlspecialchars($userPlan['name']) ?> subscription! Fee: $0.00</span>
+                        <span class="text-success fw-bold"><i class="ph ph-check-circle me-1"></i>Included in your <?= htmlspecialchars($userPlan['name']) ?> subscription! Fee: waived</span>
                     <?php else: ?>
-                        Standard fee: <b>$<?= number_format($standardListingFee, 2) ?></b> (or <a href="<?= url('pricing-plan') ?>" style="color:var(--accent);text-decoration:underline;">upgrade to a plan</a> to list for free). Balance: $<?= number_format($adCredits, 2) ?>.
+                        Standard fee: <b><?= price_fmt($standardListingFee) ?></b> (or <a href="<?= url('pricing-plan') ?>" style="color:var(--accent);text-decoration:underline;">upgrade to a plan</a> to list for free). Balance: <?= price_fmt($adCredits) ?>.
                     <?php endif; ?>
                 </p>
             </div>
         </div>
         <span class="badge-status badge-active" style="font-size:12px;padding:6px 14px;">
-            <?= $isPlanSubscribed ? 'Fee Waived ($0.00)' : '$' . number_format($standardListingFee, 2) . ' per listing' ?>
+            <?= $isPlanSubscribed ? 'Fee waived' : e(price_fmt($standardListingFee)) . ' per listing' ?>
         </span>
     </div>
 

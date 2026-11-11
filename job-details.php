@@ -128,7 +128,7 @@ require_once __DIR__ . '/includes/header.php';
                     <span class="text-muted font-size-12 text-uppercase fw-bold d-block mb-1">Target Compensation</span>
                     <div class="h2 text-main-600 fw-bold mb-2">
                         <?php if (!empty($job['salary_min'])): ?>
-                            $<?= number_format((float)$job['salary_min']) ?>
+                            <?= price_fmt((float)$job['salary_min']) ?>
                             <?= !empty($job['salary_max']) ? ' - $' . number_format((float)$job['salary_max']) : '' ?>
                         <?php else: ?>
                             Negotiable Bounty
@@ -186,7 +186,7 @@ require_once __DIR__ . '/includes/header.php';
                                     <div class="d-flex align-items-center justify-content-between font-size-11 text-white-50">
                                         <span><?= e($rel['category']) ?></span>
                                         <span class="text-main-600 fw-bold">
-                                            <?= !empty($rel['salary_min']) ? '$' . number_format((float)$rel['salary_min']) : 'Negotiable' ?>
+                                            <?= !empty($rel['salary_min']) ? e(price_fmt((float)$rel['salary_min'])) : 'Negotiable' ?>
                                         </span>
                                     </div>
                                 </div>

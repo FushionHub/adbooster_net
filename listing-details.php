@@ -85,7 +85,7 @@ require_once __DIR__ . '/includes/app_header.php';
 
                     <?php if (!empty($listing['price']) && (float)$listing['price'] > 0): ?>
                         <div style="color:var(--accent);font-size:24px;font-weight:800;margin-bottom:20px;">
-                            $<?= number_format((float)$listing['price'], 2) ?>
+                            <?= price_fmt((float)$listing['price']) ?>
                         </div>
                     <?php endif; ?>
 

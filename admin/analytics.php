@@ -9,9 +9,9 @@ $newUsersWeek     = db()->count('users', "created_at >= DATE_SUB(NOW(), INTERVAL
 $newUsersMonth    = db()->count('users', "created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
 $totalCampaigns   = db()->count('ad_campaigns');
 $activeCampaigns  = db()->count('ad_campaigns', "status='active'");
-$totalRevenue     = db()->fetchOne("SELECT COALESCE(SUM(amount),0) as t FROM transactions WHERE status='successful'")['t'] ?? 0;
-$revenueThisMonth = db()->fetchOne("SELECT COALESCE(SUM(amount),0) as t FROM transactions WHERE status='successful' AND created_at >= DATE_FORMAT(NOW(),'%Y-%m-01')")['t'] ?? 0;
-$revenueLastMonth = db()->fetchOne("SELECT COALESCE(SUM(amount),0) as t FROM transactions WHERE status='successful' AND created_at >= DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 1 MONTH),'%Y-%m-01') AND created_at < DATE_FORMAT(NOW(),'%Y-%m-01')")['t'] ?? 0;
+$totalRevenue     = db()->fetchOne("SELECT COALESCE(SUM(" . txn_amount_usd_sql() . "),0) as t FROM transactions WHERE status='successful'")['t'] ?? 0;
+$revenueThisMonth = db()->fetchOne("SELECT COALESCE(SUM(" . txn_amount_usd_sql() . "),0) as t FROM transactions WHERE status='successful' AND created_at >= DATE_FORMAT(NOW(),'%Y-%m-01')")['t'] ?? 0;
+$revenueLastMonth = db()->fetchOne("SELECT COALESCE(SUM(" . txn_amount_usd_sql() . "),0) as t FROM transactions WHERE status='successful' AND created_at >= DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 1 MONTH),'%Y-%m-01') AND created_at < DATE_FORMAT(NOW(),'%Y-%m-01')")['t'] ?? 0;
 $totalTickets     = db()->count('support_tickets');
 $openTickets      = db()->count('support_tickets', "status IN ('open','in_progress')");
 $totalFraudFlags  = db()->count('fraud_flags', "status='flagged'");
@@ -24,8 +24,8 @@ $userGrowth = db()->fetchAll(
 );
 
 $revenueByMonth = db()->fetchAll(
-    "SELECT DATE_FORMAT(created_at, '%Y-%m') as month, SUM(amount) as total, COUNT(*) as tx_count
-     FROM transactions WHERE status='successful' 
+    "SELECT DATE_FORMAT(created_at, '%Y-%m') as month, SUM(" . txn_amount_usd_sql() . ") as total, COUNT(*) as tx_count
+     FROM transactions WHERE status='successful'
      GROUP BY DATE_FORMAT(created_at, '%Y-%m') ORDER BY month DESC LIMIT 12"
 );
 
@@ -41,13 +41,14 @@ $campaignByStatus = db()->fetchAll(
 $topUsers = db()->fetchAll(
     "SELECT u.id, u.full_name, u.email, u.ad_credits, 
             COUNT(DISTINCT c.id) as campaign_count,
-            COALESCE(SUM(t.amount),0) as total_spent
+            COALESCE(SUM(" . txn_amount_usd_sql('t.amount', 't.currency') . "),0) as total_spent
      FROM users u
      LEFT JOIN ad_campaigns c ON c.user_id = u.id
      LEFT JOIN transactions t ON t.user_id = u.id AND t.status='successful'
      WHERE u.role='user'
      GROUP BY u.id ORDER BY total_spent DESC LIMIT 10"
 );
+
 
 require_once __DIR__ . '/sidebar.php';
 ?>
@@ -205,7 +206,7 @@ require_once __DIR__ . '/sidebar.php';
                     </td>
                     <td class="text-muted"><?= $tu['campaign_count'] ?></td>
                     <td class="text-white fw-bold"><?= price_fmt((float)$tu['total_spent']) ?></td>
-                    <td class="text-white"><?= number_format((float)$tu['ad_credits']) ?></td>
+                    <td class="text-white"><?= e(price_fmt((float)$tu['ad_credits'])) ?></td>
                 </tr>
             <?php endforeach; ?>
             <?php if (empty($topUsers)): ?>

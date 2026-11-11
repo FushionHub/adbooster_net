@@ -138,6 +138,20 @@ set_exception_handler(static function (\Throwable $e): void {
               . 'Import <code>database/adsbooster_complete.sql</code> via phpMyAdmin '
               . '(or verify <code>config/db.php</code> credentials), then reload this page.</p>';
     }
+    if (headers_sent()) {
+        // Output already streamed (e.g. mid-render inside a table cell).
+        // NEVER emit a second HTML document here — the browser would nest
+        // the whole error page inside the current markup. Show a compact
+        // inline alert instead so the page stays structurally intact.
+        echo '<div style="max-width:560px;margin:14px auto;padding:14px 18px;'
+           . 'background:#1b0f12;border:1px solid rgba(239,68,68,.35);border-radius:10px;'
+           . 'color:#fca5a5;font:13px/1.5 system-ui,sans-serif;text-align:center;">'
+           . '<strong style="display:block;margin-bottom:4px;">A section on this page failed to load.</strong>'
+           . 'The team has been notified automatically. Please try again in a moment.'
+           . '<br><span style="color:#8b93a7;">Reference: <code style="color:#c8ff00;">' . $ref . '</code></span>'
+           . '</div>';
+        exit;
+    }
     echo '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
        . '<title>Temporary error &mdash; Adsbooster.net</title><style>'
        . 'body{margin:0;background:#070b12;color:#e5e9f0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center}'
@@ -758,13 +772,16 @@ function check_remember_login(): void
 check_remember_login();
 
 // ============================================================
-// Currency engine — USD / NGN dual pricing with a session switcher
+// Currency engine — NGN-only. Every price, payment and admin
+// money display is charged and shown in Nigerian Naira (₦).
+// Canonical plan prices stay defined in USD and are converted
+// once (rounded to the nearest ₦25) via the admin-tunable rate.
 // ============================================================
 
-/** All user-selectable display currencies. */
+/** All user-selectable display currencies (NGN only — no switcher). */
 function currency_supported(): array
 {
-    return ['USD' => '$', 'NGN' => '₦'];
+    return ['NGN' => '₦'];
 }
 
 /** Phosphor icon for a display currency (pickers/buttons). */
@@ -787,11 +804,10 @@ function currency_name(string $code): string
     };
 }
 
-/** The active display currency (session → cookie → USD). */
+/** The active display currency — always NGN. */
 function currency_current(): string
 {
-    $code = strtoupper((string)($_SESSION['currency'] ?? ($_COOKIE['ab_currency'] ?? '')));
-    return isset(currency_supported()[$code]) ? $code : 'USD';
+    return 'NGN';
 }
 
 /** Switch the active currency for this session (and remember it for 90 days). */
@@ -837,10 +853,31 @@ function price_fmt(float $usd, ?string $cur = null): string
     return $symbols[$cur] . number_format(price_convert($usd, $cur), $cur === 'NGN' ? 0 : 2);
 }
 
-/** Both currencies side by side, e.g. "$18.99 / ₦29,400". */
+/** Display price in NGN (canonical USD converted at the admin rate). */
 function price_dual(float $usd): string
 {
-    return '$' . number_format($usd, 2) . ' / ' . '₦' . number_format(price_convert($usd, 'NGN'), 0);
+    return '₦' . number_format(price_convert($usd, 'NGN'), 0);
+}
+
+/**
+ * Format a transaction amount that is ALREADY stored in its charged
+ * currency (transactions.amount + transactions.currency). Do NOT run
+ * these through price_fmt() — that would convert an already-NGN amount
+ * a second time (×1550 error).
+ */
+function txn_money(float $amount, ?string $currency = null): string
+{
+    return strtoupper((string)($currency ?? 'NGN')) === 'NGN'
+        ? '₦' . number_format($amount, 0)
+        : '$' . number_format($amount, 2);
+}
+
+/** SQL fragment: normalize a stored transaction amount to USD credits. */
+function txn_amount_usd_sql(string $col = 'amount', string $currencyCol = 'currency'): string
+{
+    $rate = exchange_rate_ngn_per_usd();
+    return "CASE WHEN UPPER(COALESCE({$currencyCol}, 'USD')) = 'NGN' THEN {$col} / " . sprintf('%.4F', $rate)
+         . " ELSE {$col} END";
 }
 
 /** URL for switching currency on the current page, preserving other params. */

@@ -146,7 +146,7 @@ $connectedAdPlatforms = array_column($adAccounts, 'platform_name');
 $connectedPlatforms = array_merge($connectedOrganicPlatforms, $connectedAdPlatforms);
 
 $recentCampaigns = db()->fetchAll("SELECT id, campaign_name, campaign_type, status, budget_amount, zernio_campaign_id, created_at FROM ad_campaigns WHERE user_id = ? ORDER BY created_at DESC LIMIT 6", [$userId]);
-$recentTransactions = db()->fetchAll("SELECT id, type, amount, currency, status, created_at FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 6", [$userId]);
+$recentTransactions = db()->fetchAll("SELECT id, type, amount, currency, gateway, gateway_reference, status, created_at FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 6", [$userId]);
 
 $hour = (int)date('H');
 $timeGreeting = match (true) {
@@ -234,7 +234,7 @@ if (time() > $promptDismissed) {
             </a>
         </div>
         <div>
-            <div class="stat-value">$<?= number_format($adCredits, 2) ?></div>
+            <div class="stat-value"><?= price_fmt($adCredits) ?></div>
             <div class="stat-label">Ad Wallet Credits</div>
         </div>
     </div>
@@ -550,7 +550,7 @@ if (time() > $promptDismissed) {
                                     </td>
                                     <td><span class="badge-platform"><?= e(ucfirst($c['campaign_type'])) ?></span></td>
                                     <td><span class="badge-status badge-<?= $sc ?>"><?= e(ucfirst($c['status'] ?? 'draft')) ?></span></td>
-                                    <td style="font-weight:700;font-family:'JetBrains Mono',monospace">$<?= number_format((float)$c['budget_amount'], 2) ?></td>
+                                    <td style="font-weight:700;font-family:'JetBrains Mono',monospace"><?= price_fmt((float)$c['budget_amount']) ?></td>
                                     <td style="text-align:right;white-space:nowrap">
                                         <!-- Instant Pause / Resume Toggle -->
                                         <form method="POST" style="display:inline-block;margin-right:4px;">
@@ -599,6 +599,7 @@ if (time() > $promptDismissed) {
                                 <th>Amount</th>
                                 <th>Status</th>
                                 <th style="text-align:right">Date</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -609,9 +610,20 @@ if (time() > $promptDismissed) {
                                     <td style="text-transform:capitalize;font-weight:500">
                                         <?= e(str_replace('_', ' ', $t['type'])) ?>
                                     </td>
-                                    <td style="font-weight:700;font-family:'JetBrains Mono',monospace">$<?= number_format((float)$t['amount'], 2) ?></td>
+                                    <td style="font-weight:700;font-family:'JetBrains Mono',monospace"><?= txn_money((float)$t['amount'], $t['currency'] ?? null) ?></td>
                                     <td><span class="badge-status badge-<?= $tsc ?>"><?= e(ucfirst($t['status'])) ?></span></td>
                                     <td style="text-align:right;color:var(--fg3);font-size:12.5px"><?= date('M d, Y', strtotime($t['created_at'])) ?></td>
+                                    <td style="text-align:right">
+                                        <?php if (($t['status'] ?? '') === 'pending' && in_array($t['gateway'] ?? '', ['flutterwave', 'paystack'], true)):
+                                            $verifyUrl = $t['gateway'] === 'paystack'
+                                                ? url('payment-verify') . '?gateway=paystack&reference=' . urlencode((string)($t['gateway_reference'] ?? ''))
+                                                : url('payment-verify') . '?gateway=flutterwave&tx_ref=' . urlencode((string)($t['gateway_reference'] ?? $t['id']));
+                                        ?>
+                                            <a href="<?= $verifyUrl ?>" class="btn-accent btn-sm" style="white-space:nowrap" title="Re-check this payment with the gateway and credit your wallet if it succeeded">
+                                                <i class="ph ph-arrows-clockwise"></i> Verify payment
+                                            </a>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -632,7 +644,7 @@ if (time() > $promptDismissed) {
                 </div>
                 <div>
                     <h6 style="margin:0;font-size:16px;font-weight:700">Referral Partner Program</h6>
-                    <p style="margin:2px 0 0;font-size:13px;color:var(--fg2)">Earn $5.00 for every client who signs up and funds their campaigns.</p>
+                    <p style="margin:2px 0 0;font-size:13px;color:var(--fg2)">Earn 10 ad credits for every client who signs up with your link.</p>
                 </div>
             </div>
             <div style="display:flex;align-items:center;gap:24px">
@@ -642,8 +654,8 @@ if (time() > $promptDismissed) {
                 </div>
                 <div style="width:1px;height:32px;background:var(--border)"></div>
                 <div>
-                    <div style="font-size:24px;font-weight:800;color:var(--accent);line-height:1">$<?= number_format($referralCount * 5, 2) ?></div>
-                    <div style="font-size:12px;color:var(--fg3);margin-top:2px">Earned</div>
+                    <div style="font-size:24px;font-weight:800;color:var(--accent);line-height:1"><?= number_format($referralCount * 10) ?></div>
+                    <div style="font-size:12px;color:var(--fg3);margin-top:2px">Ad Credits Earned</div>
                 </div>
             </div>
         </div>

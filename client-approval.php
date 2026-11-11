@@ -105,7 +105,7 @@ $primaryColor = $portal['brand_primary_color'] ?? '#c8ff00';
       <ul class="text-secondary small mb-0 ps-3">
         <li>3x Photorealistic AI UGC Video Creatives (9:16 Vertical format)</li>
         <li>14x Scheduled Multi-Network Organic Posts</li>
-        <li>Autonomous 24/7 Anti-Burn CPA Protection armed at $25.00</li>
+        <li>Autonomous 24/7 Anti-Burn CPA Protection armed at <?= price_fmt(25.00) ?></li>
       </ul>
     </div>
 

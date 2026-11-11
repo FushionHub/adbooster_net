@@ -23,19 +23,23 @@ if ($planId > 0) {
 
 $isCredits = false;
 $usdAmount = 0.0;
+// What the user actually pays: USD-canonical price converted to NGN.
+$displayCharge = 0.0;
 if ($planDetails) {
     $isOneOff = ($planDetails['billing_cycle'] ?? '') === 'pay_as_you_go';
     $usdAmount = (float)($planDetails['price'] ?? 0);
     if ($cycle === 'yearly' && !$isOneOff) {
         $usdAmount = round($usdAmount * 12 * 0.75, 2);   // 25% yearly discount
     }
+    $displayCharge = price_convert($usdAmount, $currency);
 } elseif ($creditUsd > 0) {
     $creditUsd = max(2.5, $creditUsd);               // platform minimum top-up
     $isCredits = true;
     $usdAmount = $creditUsd;
+    $displayCharge = price_convert($usdAmount, $currency);
     $planDetails = [
         'name'        => number_format($creditUsd * 100) . ' AI Credits',
-        'description' => 'AI credit top-up (100 credits per $1)',
+        'description' => 'AI credit top-up — charged in ₦ NGN',
         'price'       => $creditUsd,
     ];
 }
@@ -130,12 +134,12 @@ require_once __DIR__ . '/includes/app_header.php';
                         <?php endif; ?>
                     </div>
                     <div class="text-end">
-                        <span class="text-main-600 fw-bold h4 mb-0"><?= e($currency) ?> <?= number_format((float)$planDetails['price'], 2) ?></span>
+                        <span class="text-main-600 fw-bold h4 mb-0"><?= e(price_fmt($displayCharge)) ?></span>
                     </div>
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
                     <span class="text-white fw-semibold">Total</span>
-                    <span class="text-main-600 fw-bold h4 mb-0"><?= e($currency) ?> <?= number_format((float)$planDetails['price'], 2) ?></span>
+                    <span class="text-main-600 fw-bold h4 mb-0"><?= e(price_fmt($displayCharge)) ?></span>
                 </div>
             </div>
 
@@ -181,7 +185,7 @@ require_once __DIR__ . '/includes/app_header.php';
                     <span class="button__flair"></span>
                     <span class="button__label">
                         <i class="ph-bold ph-lock me-1"></i>
-                        Pay <?= e($currency) ?> <?= number_format((float)$planDetails['price'], 2) ?>
+                        Pay <?= e(price_fmt($displayCharge)) ?>
                     </span>
                 </button>
 

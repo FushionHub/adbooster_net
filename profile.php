@@ -141,7 +141,7 @@ require_once __DIR__ . '/includes/app_header.php';
     </div>
     <div class="stat-card">
         <div class="stat-icon" style="background:rgba(34,197,94,.1);color:var(--green)"><i class="ph ph-wallet"></i></div>
-        <div class="stat-value">$<?= number_format((float)($user['ad_credits'] ?? 0), 2) ?></div>
+        <div class="stat-value"><?= price_fmt((float)($user['ad_credits'] ?? 0)) ?></div>
         <div class="stat-label">Ad Credits</div>
     </div>
     <div class="stat-card">

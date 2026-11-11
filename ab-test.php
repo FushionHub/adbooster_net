@@ -298,7 +298,7 @@ $platformBadges = [
                             <option value="">Select a live or paused campaign...</option>
                             <?php foreach ($campaigns as $c): ?>
                                 <option value="<?= $c['id'] ?>">
-                                    <?= htmlspecialchars($c['campaign_name']) ?> — <?= ucfirst($c['campaign_type']) ?> ($<?= number_format((float)$c['budget_amount'], 2) ?> Budget)
+                                    <?= htmlspecialchars($c['campaign_name']) ?> — <?= ucfirst($c['campaign_type']) ?> (<?= price_fmt((float)$c['budget_amount']) ?> Budget)
                                 </option>
                             <?php endforeach; ?>
                         </select>

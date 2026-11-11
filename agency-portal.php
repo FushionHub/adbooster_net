@@ -99,7 +99,7 @@ require_once __DIR__ . '/includes/app_header.php';
             <span class="text-secondary small fw-semibold">Monthly Managed Retainers</span>
             <i class="ph ph-currency-dollar text-warning fs-5"></i>
           </div>
-          <h3 class="fw-bold text-white mb-0">$<?= number_format($totalRetainer, 2) ?></h3>
+          <h3 class="fw-bold text-white mb-0"><?= price_fmt($totalRetainer) ?></h3>
           <small class="text-secondary">Recurring monthly MRR</small>
         </div>
       </div>
@@ -150,7 +150,7 @@ require_once __DIR__ . '/includes/app_header.php';
                 <small class="text-secondary"><?= e($cl['client_company'] ?: 'Individual') ?></small>
               </td>
               <td class="text-secondary small"><?= e($cl['client_email']) ?></td>
-              <td class="fw-bold text-white">$<?= number_format((float)$cl['monthly_retainer'], 2) ?></td>
+              <td class="fw-bold text-white"><?= price_fmt((float)$cl['monthly_retainer']) ?></td>
               <td><span class="badge bg-success-subtle text-success">Active</span></td>
               <td>
                 <div class="input-group input-group-sm" style="max-width: 320px;">

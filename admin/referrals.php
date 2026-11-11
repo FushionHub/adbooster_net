@@ -76,7 +76,7 @@ require_once __DIR__ . '/sidebar.php';
     <div class="table-responsive">
         <table class="admin-table">
             <thead>
-                <tr><th>ID</th><th>Referrer</th><th>Referred</th><th>Status</th><th>Reward</th><th>Date</th><th>Actions</th></tr>
+                <tr><th>ID</th><th>Referrer</th><th>Referred</th><th>Status</th><th>Reward (Ad Credits)</th><th>Date</th><th>Actions</th></tr>
             </thead>
             <tbody>
             <?php foreach ($referrals as $r): ?>
@@ -91,7 +91,7 @@ require_once __DIR__ . '/sidebar.php';
                         <div class="text-muted" style="font-size:0.72rem;"><?= htmlspecialchars($r['referred_email'] ?? '') ?></div>
                     </td>
                     <td><span class="badge-status <?= $r['status'] ?>"><?= $r['status'] ?></span></td>
-                    <td class="text-white fw-bold"><?= number_format((float)$r['reward_credits']) ?></td>
+                    <td class="text-white fw-bold"><?= number_format((float)$r['reward_credits']) ?> credits</td>
                     <td class="text-muted" style="font-size:0.78rem;"><?= date('M d, Y', strtotime($r['created_at'])) ?></td>
                     <td>
                         <div class="d-flex gap-1">

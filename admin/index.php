@@ -8,7 +8,7 @@ $pageTitle = 'Admin Dashboard';
 $totalUsers      = db()->count('users');
 $totalCampaigns  = db()->count('ad_campaigns');
 $activeCampaigns = db()->count('ad_campaigns', "status='active'");
-$totalRevenue    = (float)(db()->fetchOne("SELECT COALESCE(SUM(amount),0) as total FROM transactions WHERE status='successful'")['total'] ?? 0);
+$totalRevenue    = (float)(db()->fetchOne("SELECT COALESCE(SUM(" . txn_amount_usd_sql() . "),0) as total FROM transactions WHERE status='successful'")['total'] ?? 0);
 $openTickets     = db()->count('support_tickets', "status IN ('open','in_progress')");
 $pendingTx       = db()->count('transactions', "status='pending'");
 $totalFlagged    = db()->count('fraud_flags', "status='flagged'");
@@ -61,7 +61,7 @@ $campTrend   = trend($camp30, $campPrev30);
 
 // ── lists ────────────────────────────────────────────────────────────────
 $recentTransactions = db()->fetchAll(
-    "SELECT t.id, t.user_id, t.type, t.amount, t.gateway, t.status, t.created_at, u.full_name
+    "SELECT t.id, t.user_id, t.type, t.amount, t.currency, t.gateway, t.status, t.created_at, u.full_name
      FROM transactions t
      LEFT JOIN users u ON u.id = t.user_id
      ORDER BY t.created_at DESC
@@ -76,7 +76,7 @@ $recentUsers = db()->fetchAll(
 );
 
 $monthlyRevenue = db()->fetchAll(
-    "SELECT DATE_FORMAT(created_at, '%Y-%m') AS month, SUM(amount) AS total
+    "SELECT DATE_FORMAT(created_at, '%Y-%m') AS month, SUM(" . txn_amount_usd_sql() . ") AS total
      FROM transactions
      WHERE status='successful'
      GROUP BY DATE_FORMAT(created_at, '%Y-%m')
@@ -340,7 +340,7 @@ require_once __DIR__ . '/sidebar.php';
                                     </div>
                                 </td>
                                 <td class="text-capitalize"><?= htmlspecialchars((string)$tx['type']) ?></td>
-                                <td class="text-white fw-bold"><?= price_fmt((float)$tx['amount']) ?></td>
+                                <td class="text-white fw-bold"><?= txn_money((float)$tx['amount'], $tx['currency'] ?? null) ?></td>
                                 <td class="text-capitalize"><?= htmlspecialchars((string)$tx['gateway']) ?></td>
                                 <td><span class="badge-status <?= htmlspecialchars((string)$tx['status']) ?>"><?= htmlspecialchars((string)$tx['status']) ?></span></td>
                                 <td class="text-muted" style="font-size:.78rem;white-space:nowrap;">

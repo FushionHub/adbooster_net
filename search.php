@@ -113,7 +113,7 @@ require_once __DIR__ . '/includes/header.php';
                                 <div class="d-flex align-items-center justify-content-between">
                                     <span class="badge bg-white-06 text-white rounded-pill tw-px-3 tw-py-1 tw-text-xs text-capitalize"><?= e($item['item_type'] ?? '') ?></span>
                                     <?php if (!empty($item['price'])): ?>
-                                        <span class="text-main-600 fw-bold">$<?= number_format((float)$item['price'], 2) ?></span>
+                                        <span class="text-main-600 fw-bold"><?= price_fmt((float)$item['price']) ?></span>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -139,9 +139,9 @@ require_once __DIR__ . '/includes/header.php';
                             <h5 class="text-white fw-bold tw-mb-2"><?= e($job['title']) ?></h5>
                             <?php if ($job['salary_min'] !== null || $job['salary_max'] !== null): ?>
                                 <span class="text-main-600 fw-bold tw-text-sm">
-                                    $<?= number_format((float)($job['salary_min'] ?? 0)) ?>
+                                    <?= price_fmt((float)($job['salary_min'] ?? 0)) ?>
                                     <?php if ($job['salary_max'] !== null && (float)$job['salary_max'] > (float)$job['salary_min']): ?>
-                                        – $<?= number_format((float)$job['salary_max']) ?>
+                                        – <?= price_fmt((float)$job['salary_max']) ?>
                                     <?php endif; ?>
                                     / <?= e($job['salary_period'] ?? 'month') ?>
                                 </span>
@@ -167,7 +167,7 @@ require_once __DIR__ . '/includes/header.php';
                             </div>
                             <h5 class="text-white fw-bold tw-mb-2"><?= e($bounty['title']) ?></h5>
                             <span class="text-main-600 fw-bold tw-text-sm">
-                                $<?= number_format((float)$bounty['bounty_amount'], 2) ?>
+                                <?= price_fmt((float)$bounty['bounty_amount']) ?>
                                 <small class="text-white-50 fw-normal">escrowed</small>
                             </span>
                         </a>

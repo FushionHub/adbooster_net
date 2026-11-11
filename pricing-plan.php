@@ -43,9 +43,7 @@ function plan_money(float $usd, string $cur, string $symbol): string
  */
 function plan_alt_hint(float $usd, string $cur): string
 {
-    return $cur === 'NGN'
-        ? '(≈ $' . number_format($usd, 2) . ' USD)'
-        : '(≈ ' . price_convert($usd, 'NGN') . ' NGN)';
+    return '(charged in ₦ NGN)';
 }
 
 /**
@@ -184,17 +182,9 @@ function one_off_card(array $plan, string $cur, string $symbol): void
     <div class="page-header" style="margin-bottom:20px">
         <div>
             <h1 class="page-title">Pricing Plans</h1>
-            <p class="page-subtitle">Pay in your currency, switch anytime. Every plan includes direct-API publishing to all connected networks.</p>
+            <p class="page-subtitle">All prices in Nigerian Naira (₦). Every plan includes direct-API publishing to all connected networks.</p>
         </div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-            <!-- Currency switcher -->
-            <div style="display:flex;border:1px solid var(--border);border-radius:999px;overflow:hidden;">
-                <?php foreach (currency_supported() as $code => $sym): ?>
-                    <a href="<?= currency_toggle_url($code) ?>" style="padding:7px 16px;font-size:13px;font-weight:700;text-decoration:none;<?= $cur === $code ? 'background:var(--accent);color:#0a0f1a;' : 'color:var(--fg2);' ?>">
-                        <?= $sym ?> <?= $code ?>
-                    </a>
-                <?php endforeach; ?>
-            </div>
             <a href="<?= url('billing') ?>" class="btn-outline-dark btn-sm">
                 <i class="ph ph-arrow-left"></i> Manage Billing
             </a>

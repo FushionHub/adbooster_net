@@ -221,7 +221,7 @@ require_once __DIR__ . '/includes/header.php';
                                     <span class="text-muted font-size-11 d-block text-uppercase fw-semibold">Estimated Budget</span>
                                     <span class="text-main-600 fw-bold font-size-16">
                                         <?php if (!empty($job['salary_min'])): ?>
-                                            $<?= number_format((float)$job['salary_min']) ?>
+                                            <?= price_fmt((float)$job['salary_min']) ?>
                                             <?= !empty($job['salary_max']) ? ' - $' . number_format((float)$job['salary_max']) : '' ?>
                                             <span class="text-white-50 font-size-12 fw-normal">/ <?= e($job['salary_period'] ?? 'project') ?></span>
                                         <?php else: ?>

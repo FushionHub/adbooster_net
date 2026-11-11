@@ -129,15 +129,8 @@ require_once __DIR__ . '/includes/app_header.php';
 
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <div>
-            <h1 class="page-title">Billing & Wallet</h1>
-            <p class="page-subtitle">Top up credits, upgrade your plan, and track every transaction.</p>
-        </div>
-        <div style="display:flex;border:1px solid var(--border);border-radius:999px;overflow:hidden;">
-            <?php foreach (currency_supported() as $code => $sym): ?>
-                <a href="<?= currency_toggle_url($code) ?>" style="padding:7px 16px;font-size:13px;font-weight:700;text-decoration:none;<?= $cur === $code ? 'background:var(--accent);color:#0a0f1a;' : 'color:var(--fg2);' ?>">
-                    <?= $sym ?> <?= $code ?>
-                </a>
-            <?php endforeach; ?>
+            <h1 class="page-title">Billing &amp; Wallet</h1>
+            <p class="page-subtitle">Top up credits, upgrade your plan, and track every transaction. All amounts in Nigerian Naira (₦).</p>
         </div>
     </div>
 
@@ -233,7 +226,7 @@ require_once __DIR__ . '/includes/app_header.php';
                 </div>
                 <div>
                     <p class="stat-label" style="margin:0;">Ad Credits</p>
-                    <h3 class="stat-value" style="margin:0;">$<?= number_format((float)($user['ad_credits'] ?? 0), 2) ?></h3>
+                    <h3 class="stat-value" style="margin:0;"><?= e(price_fmt((float)($user['ad_credits'] ?? 0))) ?></h3>
                 </div>
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
@@ -248,7 +241,7 @@ require_once __DIR__ . '/includes/app_header.php';
                 <input type="number" id="adAmount" name="amount" class="form-control" placeholder="Amount (<?= e($cur) ?>)" min="<?= e((string)$minLocal) ?>" step="0.01" required style="flex:1;">
                 <button type="submit" class="btn-accent btn-sm"><i class="ph ph-plus"></i> Top Up</button>
             </form>
-            <p style="font-size:11px;color:var(--fg3);margin:8px 0 0;">Min <?= e(price_fmt($minUsd, $cur)) ?> · 100 AI credits per $1</p>
+            <p style="font-size:11px;color:var(--fg3);margin:8px 0 0;">Min <?= e(price_fmt($minUsd, $cur)) ?> · 100 AI credits per <?= e(price_fmt(1, $cur)) ?></p>
         </div>
         <!-- AI Credits -->
         <div class="card-dark stat-card" style="padding:22px;">
@@ -315,7 +308,7 @@ require_once __DIR__ . '/includes/app_header.php';
                             <strong style="font-size:24px;font-weight:800;color:var(--fg);"><?= e(price_fmt((float)($plan['price'] ?? 0), $cur)) ?></strong>
                             <span style="font-size:12px;color:var(--fg3);"> / <?= $isOneOffPlan ? 'one-time' : e((string)($plan['billing_cycle'] ?? 'month')) ?></span>
                         </p>
-                        <p style="margin:0 0 10px;font-size:11.5px;color:var(--fg3);">(≈ <?= $cur === 'NGN' ? '$' . number_format((float)($plan['price'] ?? 0), 2) . ' USD' : '₦' . number_format(price_convert((float)($plan['price'] ?? 0), 'NGN'), 0) . ' NGN' ?>)</p>
+                        <p style="margin:0 0 10px;font-size:11.5px;color:var(--fg3);">(charged in ₦ NGN)</p>
 
                         <!-- Bundled Credits Pill -->
                         <div style="background:rgba(200,255,0,0.08);border:1px solid rgba(200,255,0,0.25);border-radius:8px;padding:8px 10px;margin-bottom:12px;font-size:12px;">
@@ -398,7 +391,7 @@ require_once __DIR__ . '/includes/app_header.php';
                             <tr>
                                 <td style="font-size:13px;color:var(--fg);text-transform:capitalize;padding:10px 12px;"><?= e(str_replace('_', ' ', (string)($t['type'] ?? ''))) ?></td>
                                 <td style="font-size:13px;color:var(--fg);text-transform:capitalize;padding:10px 12px;"><?= e((string)($t['gateway'] ?? '—')) ?></td>
-                                <td style="font-weight:600;color:var(--fg);padding:10px 12px;">$<?= number_format((float)($t['amount'] ?? 0), 2) ?></td>
+                                <td style="font-weight:600;color:var(--fg);padding:10px 12px;"><?= txn_money((float)($t['amount'] ?? 0), $t['currency'] ?? null) ?></td>
                                 <td style="padding:10px 12px;">
                                     <span class="<?= $sClass ?>" style="text-transform:capitalize;"><?= e((string)($t['status'] ?? 'unknown')) ?></span>
                                 </td>

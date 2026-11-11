@@ -214,9 +214,9 @@ require_once __DIR__ . '/includes/app_header.php';
               </div>
 
               <div class="pill-row" style="margin-top:11px">
-                <span class="pill" style="font-size:10.5px;font-family:'JetBrains Mono',monospace">$<?= number_format((float)$camp['budget_amount'], 2) ?> budget</span>
+                <span class="pill" style="font-size:10.5px;font-family:'JetBrains Mono',monospace"><?= price_fmt((float)$camp['budget_amount']) ?> budget</span>
                 <span class="pill info" style="font-size:10.5px;font-family:'JetBrains Mono',monospace"><?= $metrics['ctr'] ?>% CTR</span>
-                <span class="pill warn" style="font-size:10.5px;font-family:'JetBrains Mono',monospace">$<?= $metrics['cpa'] ?> CPA</span>
+                <span class="pill warn" style="font-size:10.5px;font-family:'JetBrains Mono',monospace"><?= price_fmt((float)$metrics['cpa']) ?> CPA</span>
               </div>
               <div class="fl-help" style="margin-top:8px"><i class="ph ph-info"></i> <?= e($fatigue['recommendation']) ?></div>
             </div>

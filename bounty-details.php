@@ -79,7 +79,7 @@ require_once __DIR__ . '/includes/app_header.php';
       </div>
       <div class="text-end">
         <span class="text-secondary small d-block">Bounty Reward:</span>
-        <h3 class="fw-bold text-success mb-0">$<?= number_format((float)$bounty['bounty_amount'], 2) ?> USD</h3>
+        <h3 class="fw-bold text-success mb-0"><?= price_fmt((float)$bounty['bounty_amount']) ?></h3>
       </div>
     </div>
 
@@ -151,7 +151,7 @@ require_once __DIR__ . '/includes/app_header.php';
                   <input type="hidden" name="action" value="approve_release">
                   <input type="hidden" name="submission_id" value="<?= $sub['id'] ?>">
                   <button type="submit" class="btn btn-sm btn-success fw-bold px-3">
-                    <i class="ph ph-check-circle me-1"></i> Approve Draft & Release $<?= number_format((float)$bounty['bounty_amount'], 2) ?> Escrow
+                    <i class="ph ph-check-circle me-1"></i> Approve Draft & Release <?= price_fmt((float)$bounty['bounty_amount']) ?> Escrow
                   </button>
                 </form>
                 <?php else: ?>
@@ -183,7 +183,7 @@ require_once __DIR__ . '/includes/app_header.php';
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="claim_bounty">
             <button type="submit" class="btn btn-primary w-100 py-3 fw-bold">
-              <i class="ph ph-hand-pointing me-1"></i> Claim This Bounty ($<?= number_format((float)$bounty['bounty_amount'], 2) ?>)
+              <i class="ph ph-hand-pointing me-1"></i> Claim This Bounty (<?= price_fmt((float)$bounty['bounty_amount']) ?>)
             </button>
           </form>
           <?php else: ?>

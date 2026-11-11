@@ -291,7 +291,7 @@ switch ($action) {
                 );
             } catch (\Throwable $e) {}
 
-            set_flash('success', 'Account created successfully with Google! $5.00 Ad Credits and 25 AI Credits added.');
+            set_flash('success', 'Account created successfully with Google! 5 Ad Credits and 25 AI Credits added.');
             redirect(BASE_URL . '/dashboard.php');
         }
         break;

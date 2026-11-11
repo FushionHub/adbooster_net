@@ -1720,33 +1720,6 @@ body.nav-open { overflow: hidden; touch-action: none; }
           <span class="wallet-ai"><?= number_format($_aiCredits) ?></span>
         </a>
 
-        <!-- Currency Switcher Dropdown (USD / NGN) -->
-        <div class="currency-wrap" id="currencyWrap">
-          <button class="currency-btn" id="currencyBtn" title="Switch currency" aria-label="Switch currency">
-            <i class="ph <?= currency_icon(currency_current()) ?>" style="color:var(--accent)"></i>
-            <span class="currency-btn-code"><?= e(currency_current()) ?></span>
-            <i class="ph ph-caret-down currency-caret"></i>
-          </button>
-          <div class="currency-dropdown" id="currencyDropdown">
-            <div class="currency-header">
-              <h6>Currency</h6>
-              <span>Applies instantly</span>
-            </div>
-            <?php foreach (currency_supported() as $__code => $__sym): ?>
-              <a href="<?= currency_toggle_url($__code) ?>" class="currency-item <?= currency_current() === $__code ? 'active' : '' ?>">
-                <span class="currency-item-icon"><i class="ph <?= currency_icon($__code) ?>"></i></span>
-                <span class="currency-item-body">
-                  <strong><?= $__sym ?> <?= e($__code) ?></strong>
-                  <small><?= e(currency_name($__code)) ?></small>
-                </span>
-                <?php if (currency_current() === $__code): ?>
-                  <i class="ph ph-check-circle currency-check"></i>
-                <?php endif; ?>
-              </a>
-            <?php endforeach; ?>
-          </div>
-        </div>
-
         <!-- Fullscreen Mode Toggle -->
         <button class="topbar-btn" id="fullscreenBtn" onclick="toggleFullScreen()" title="Toggle Fullscreen" aria-label="Toggle Fullscreen">
           <i class="ph ph-arrows-out"></i>

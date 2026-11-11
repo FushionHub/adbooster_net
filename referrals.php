@@ -40,7 +40,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $availableCommission = max(0.0, $totalEarned - $totalRequested);
 
         if ($action === 'request_payout') {
-            $amount = (float)($_POST['amount'] ?? 0);
+            // Payout amounts are entered in ₦ (NGN-only workspace); the
+            // referral ledger is stored in USD-denominated credit units,
+            // so convert at the admin-tunable rate before any check/store.
+            $amountNgn = (float)($_POST['amount'] ?? 0);
+            $amount = round($amountNgn / max(1.0, exchange_rate_ngn_per_usd()), 2);
             $payoutMethod = trim($_POST['payout_method'] ?? 'bank');
             $details = [
                 'method'         => $payoutMethod,
@@ -52,9 +56,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             ];
 
             if ($amount < 20.00) {
-                $errors[] = 'Minimum withdrawal request is $20.00.';
+                $errors[] = 'Minimum withdrawal request is ' . price_fmt(20.00) . '.';
             } elseif ($amount > $availableCommission) {
-                $errors[] = 'Insufficient commission balance. Available: $' . number_format($availableCommission, 2);
+                $errors[] = 'Insufficient commission balance. Available: ' . price_fmt($availableCommission);
             } else {
                 db()->insert('payout_requests', [
                     'user_id'      => $userId,
@@ -63,18 +67,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     'details_json' => json_encode($details),
                     'status'       => 'pending',
                 ]);
-                NotificationService::create($userId, 'payout_requested', 'Payout Request Submitted', 'Your withdrawal request for $' . number_format($amount, 2) . ' via ' . ucfirst($payoutMethod) . ' has been received and is being processed.', '/referrals.php');
-                $success = 'Payout request for $' . number_format($amount, 2) . ' submitted successfully! Payouts are processed within 24-48 hours.';
+                NotificationService::create($userId, 'payout_requested', 'Payout Request Submitted', 'Your withdrawal request for ' . price_fmt($amount) . ' via ' . ucfirst($payoutMethod) . ' has been received and is being processed.', '/referrals.php');
+                $success = 'Payout request for ' . price_fmt($amount) . ' submitted successfully! Payouts are processed within 24-48 hours.';
             }
 
         } elseif ($action === 'convert_to_credits') {
-            $amount = (float)($_POST['convert_amount'] ?? 0);
+            // ₦ input → USD-denominated credit units
+            $amountNgn = (float)($_POST['convert_amount'] ?? 0);
+            $amount = round($amountNgn / max(1.0, exchange_rate_ngn_per_usd()), 2);
             $creditType = trim($_POST['credit_type'] ?? 'ad_credits');
 
             if ($amount <= 0) {
                 $errors[] = 'Please specify a valid conversion amount.';
             } elseif ($amount > $availableCommission) {
-                $errors[] = 'Insufficient commission balance. Available: $' . number_format($availableCommission, 2);
+                $errors[] = 'Insufficient commission balance. Available: ' . price_fmt($availableCommission);
             } else {
                 // Record payout conversion
                 db()->insert('payout_requests', [
@@ -89,12 +95,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     // 10% bonus on ad credits conversion
                     $adBonus = round($amount * 1.10, 2);
                     db()->query("UPDATE users SET ad_credits = COALESCE(ad_credits, 0) + ? WHERE id = ?", [$adBonus, $userId]);
-                    $msg = 'Successfully converted $' . number_format($amount, 2) . ' into $' . number_format($adBonus, 2) . ' in Ad Credits (including 10% bonus)!';
+                    $msg = 'Successfully converted ' . price_fmt($amount) . ' into ' . price_fmt($adBonus) . ' in Ad Credits (including 10% bonus)!';
                 } else {
                     // Convert into AI credits: 1 USD = 20 AI Credits
                     $aiCount = (int)($amount * 20);
                     db()->query("UPDATE users SET ai_credits = COALESCE(ai_credits, 0) + ? WHERE id = ?", [$aiCount, $userId]);
-                    $msg = 'Successfully converted $' . number_format($amount, 2) . ' into ' . number_format($aiCount) . ' AI Credits!';
+                    $msg = 'Successfully converted ' . price_fmt($amount) . ' into ' . number_format($aiCount) . ' AI Credits!';
                 }
                 $success = $msg;
             }
@@ -141,7 +147,7 @@ require_once __DIR__ . '/includes/app_header.php';
     <div class="page-header" style="margin-bottom:28px">
         <div>
             <h1 class="page-title">Referral Partner Program</h1>
-            <p class="page-subtitle">Earn $10.00 for every business or creator you refer who subscribes or tops up. Withdraw to bank or convert to ad credits with a bonus.</p>
+            <p class="page-subtitle">Earn 10 ad credits for every business or creator you refer who subscribes or tops up. Withdraw to bank or convert to ad credits with a bonus.</p>
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
             <button class="btn-accent btn-sm" data-bs-toggle="modal" data-bs-target="#convertCreditsModal" style="display:inline-flex;align-items:center;gap:6px;">
@@ -178,21 +184,21 @@ require_once __DIR__ . '/includes/app_header.php';
         <div class="col-sm-6 col-xl-3">
             <div class="card-dark" style="padding:18px 20px;">
                 <div style="font-size:12px;font-weight:600;color:var(--fg3);text-transform:uppercase;">Available Commission</div>
-                <div style="font-size:26px;font-weight:800;color:var(--green);margin-top:4px;">$<?= number_format($availableBalance, 2) ?></div>
+                <div style="font-size:26px;font-weight:800;color:var(--green);margin-top:4px;"><?= price_fmt($availableBalance) ?></div>
                 <div style="font-size:12px;color:var(--fg2);margin-top:2px;">Ready to withdraw or convert</div>
             </div>
         </div>
         <div class="col-sm-6 col-xl-3">
             <div class="card-dark" style="padding:18px 20px;">
                 <div style="font-size:12px;font-weight:600;color:var(--fg3);text-transform:uppercase;">Pending Rewards</div>
-                <div style="font-size:26px;font-weight:800;color:var(--orange);margin-top:4px;">$<?= number_format((float)$pendingRewards['total'], 2) ?></div>
+                <div style="font-size:26px;font-weight:800;color:var(--orange);margin-top:4px;"><?= number_format((float)$pendingRewards['total']) ?> credits</div>
                 <div style="font-size:12px;color:var(--fg2);margin-top:2px;">Awaiting first checkout</div>
             </div>
         </div>
         <div class="col-sm-6 col-xl-3">
             <div class="card-dark" style="padding:18px 20px;">
                 <div style="font-size:12px;font-weight:600;color:var(--fg3);text-transform:uppercase;">Total Lifetime Earned</div>
-                <div style="font-size:26px;font-weight:800;color:var(--blue);margin-top:4px;">$<?= number_format((float)$earnedRewards['total'], 2) ?></div>
+                <div style="font-size:26px;font-weight:800;color:var(--blue);margin-top:4px;"><?= number_format((float)$earnedRewards['total']) ?> credits</div>
                 <div style="font-size:12px;color:var(--fg2);margin-top:2px;">All-time affiliate earnings</div>
             </div>
         </div>
@@ -212,7 +218,7 @@ require_once __DIR__ . '/includes/app_header.php';
 
         <div style="font-size:13px;font-weight:600;color:var(--fg);margin-bottom:10px;">Share Instantly Across Social Networks</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <a href="https://wa.me/?text=<?= urlencode('Scale your business with Adsbooster multi-network advertising! Use my invite link to get $5.00 in ad credits: ' . $referralLink) ?>" target="_blank" rel="noopener" class="btn-outline-dark btn-sm" style="color:#25D366;border-color:rgba(37,211,102,0.3);">
+            <a href="https://wa.me/?text=<?= urlencode('Scale your business with Adsbooster multi-network advertising! Use my invite link to get 5 ad credits: ' . $referralLink) ?>" target="_blank" rel="noopener" class="btn-outline-dark btn-sm" style="color:#25D366;border-color:rgba(37,211,102,0.3);">
                 <i class="ph ph-whatsapp-logo"></i> WhatsApp
             </a>
             <a href="https://twitter.com/intent/tweet?url=<?= urlencode($referralLink) ?>&text=<?= urlencode('Launch Meta, TikTok, Google and Snapchat ads from one dashboard with Adsbooster! Sign up with my link for bonus ad credits:') ?>" target="_blank" rel="noopener" class="btn-outline-dark btn-sm">
@@ -243,7 +249,7 @@ require_once __DIR__ . '/includes/app_header.php';
             <div style="padding:36px;text-align:center;border:1px dashed var(--border);border-radius:12px;">
                 <i class="ph ph-user-plus" style="font-size:36px;color:var(--fg3);margin-bottom:8px;display:block;"></i>
                 <div style="color:#fff;font-weight:600;margin-bottom:4px;">No referrals yet</div>
-                <p style="color:var(--fg2);font-size:13px;margin:0 0 16px;">Share your personal link to earn $10.00 for every account that makes a payment.</p>
+                <p style="color:var(--fg2);font-size:13px;margin:0 0 16px;">Share your personal link to earn 10 ad credits for every account that makes a payment.</p>
                 <button type="button" class="btn-accent btn-sm" onclick="copyReferralLink()">Copy Your Referral Link</button>
             </div>
         <?php else: ?>
@@ -279,7 +285,7 @@ require_once __DIR__ . '/includes/app_header.php';
                                     <?php endif; ?>
                                 </td>
                                 <td style="font-weight:700;color:<?= $ref['status'] === 'rewarded' ? 'var(--green)' : 'var(--orange)' ?>;font-size:13px;">
-                                    $<?= number_format((float)($ref['reward_credits'] ?? 10.00), 2) ?>
+                                    <?= number_format((float)($ref['reward_credits'] ?? 10.00)) ?> credits
                                 </td>
                                 <td style="color:var(--fg2);font-size:13px;">
                                     <?= date('M d, Y', strtotime($ref['created_at'])) ?>
@@ -317,7 +323,7 @@ require_once __DIR__ . '/includes/app_header.php';
                                         <?= str_replace('_', ' ', $ph['method']) ?>
                                     </span>
                                 </td>
-                                <td style="color:#fff;font-weight:700;font-size:14px;">$<?= number_format((float)$ph['amount'], 2) ?></td>
+                                <td style="color:#fff;font-weight:700;font-size:14px;"><?= price_fmt((float)$ph['amount']) ?></td>
                                 <td>
                                     <?php if ($ph['status'] === 'paid'): ?>
                                         <span class="badge-status badge-active">Completed</span>
@@ -362,19 +368,19 @@ require_once __DIR__ . '/includes/app_header.php';
                 <div class="modal-body" style="padding:24px;">
                     <div style="background:#141f33;border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;">
                         <span style="font-size:12px;color:var(--fg3);">Available to Convert:</span>
-                        <div style="font-size:20px;font-weight:800;color:var(--green);">$<?= number_format($availableBalance, 2) ?></div>
+                        <div style="font-size:20px;font-weight:800;color:var(--green);"><?= price_fmt($availableBalance) ?></div>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label" style="font-size:13px;font-weight:600;color:#fff;">Amount to Convert ($)</label>
-                        <input type="number" name="convert_amount" class="form-control" style="background:#141f33;border:1px solid rgba(255,255,255,0.12);color:#fff;" min="1" max="<?= max(1, (int)$availableBalance) ?>" step="0.01" value="<?= min(50, (int)$availableBalance) ?>" required>
+                        <input type="number" name="convert_amount" class="form-control" style="background:#141f33;border:1px solid rgba(255,255,255,0.12);color:#fff;" min="1" max="<?= max(1, (int)round($availableBalance * exchange_rate_ngn_per_usd())) ?>" step="1" value="<?= min(5000, (int)round($availableBalance * exchange_rate_ngn_per_usd())) ?>" required placeholder="Amount in ₦">
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label" style="font-size:13px;font-weight:600;color:#fff;">Destination Balance</label>
                         <select name="credit_type" class="form-select" style="background:#141f33;border:1px solid rgba(255,255,255,0.12);color:#fff;">
                             <option value="ad_credits">Ad Credits (+10% Bonus added to balance!)</option>
-                            <option value="ai_credits">AI Credits ($1.00 = 20 AI Generations)</option>
+                            <option value="ai_credits">AI Credits (<?= price_fmt(1.00) ?> = 20 AI Generations)</option>
                         </select>
                     </div>
                 </div>
@@ -414,13 +420,13 @@ require_once __DIR__ . '/includes/app_header.php';
                 <div class="modal-body" style="padding:24px;">
                     <div style="background:#141f33;border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;">
                         <span style="font-size:12px;color:var(--fg3);">Available for Withdrawal:</span>
-                        <div style="font-size:20px;font-weight:800;color:var(--green);">$<?= number_format($availableBalance, 2) ?></div>
-                        <span style="font-size:11px;color:var(--fg3);">Minimum threshold: $20.00</span>
+                        <div style="font-size:20px;font-weight:800;color:var(--green);"><?= price_fmt($availableBalance) ?></div>
+                        <span style="font-size:11px;color:var(--fg3);">Minimum threshold: <?= price_fmt(20.00) ?></span>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label" style="font-size:13px;font-weight:600;color:#fff;">Withdrawal Amount ($)</label>
-                        <input type="number" name="amount" class="form-control" style="background:#141f33;border:1px solid rgba(255,255,255,0.12);color:#fff;" min="20" max="<?= max(20, (int)$availableBalance) ?>" step="0.01" value="<?= max(20, (int)$availableBalance) ?>" required>
+                        <input type="number" name="amount" class="form-control" style="background:#141f33;border:1px solid rgba(255,255,255,0.12);color:#fff;" min="<?= (int)round(20 * exchange_rate_ngn_per_usd()) ?>" max="<?= max((int)round(20 * exchange_rate_ngn_per_usd()), (int)round($availableBalance * exchange_rate_ngn_per_usd())) ?>" step="1" value="<?= max((int)round(20 * exchange_rate_ngn_per_usd()), (int)round($availableBalance * exchange_rate_ngn_per_usd())) ?>" required placeholder="Amount in ₦">
                     </div>
 
                     <div class="mb-3">

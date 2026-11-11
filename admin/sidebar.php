@@ -21,7 +21,6 @@ $navItems = [
     ['icon' => 'ph-storefront',       'label' => 'Marketplace',     'file' => 'listings.php',        'section' => 'Content & Marketplace'],
     ['icon' => 'ph-briefcase',        'label' => 'Jobs & Bounties', 'file' => 'jobs.php',            'section' => 'Content & Marketplace'],
     ['icon' => 'ph-star',             'label' => 'Client Reviews',  'file' => 'reviews.php',         'section' => 'Content & Marketplace'],
-    ['icon' => 'ph-note-pencil',      'label' => 'CMS',             'file' => 'cms.php',             'section' => 'Content & Marketplace'],
 
     // Revenue
     ['icon' => 'ph-currency-dollar',  'label' => 'Pricing Plans',   'file' => 'pricing.php',         'section' => 'Revenue'],
@@ -43,7 +42,6 @@ $navItems = [
     ['icon' => 'ph-shield-check',     'label' => 'Policy Rules',    'file' => 'policy-rules.php',    'section' => 'Safety & Config'],
     ['icon' => 'ph-warning-circle',   'label' => 'Fraud Watch',     'file' => 'fraud-watch.php',     'section' => 'Safety & Config'],
     ['icon' => 'ph-magnifying-glass', 'label' => 'SEO',             'file' => 'seo.php',             'section' => 'Safety & Config'],
-    ['icon' => 'ph-translate',        'label' => 'Translations',    'file' => 'translations.php',    'section' => 'Safety & Config'],
     ['icon' => 'ph-gear',             'label' => 'Settings',        'file' => 'settings.php',        'section' => 'Safety & Config'],
 ];
 ?>
@@ -58,7 +56,7 @@ $navItems = [
     <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <link href="<?= BASE_URL ?>/assets/css/admin-pro.css?v=4" rel="stylesheet">
+    <link href="<?= BASE_URL ?>/assets/css/admin-pro.css?v=5" rel="stylesheet">
 </head>
 <body>
 
@@ -136,28 +134,6 @@ $navItems = [
         </div>
         <div class="topbar-actions">
             <div class="topbar-dd position-relative">
-                <button class="topbar-icon-btn" id="adminCurrencyBtn" aria-label="Display currency" title="Display currency">
-                    <i class="ph-bold <?= currency_icon(currency_current()) ?>"></i>
-                </button>
-                <div class="admin-dropdown">
-                    <div class="dd-header">Display currency <span class="dd-meta"><?= e(currency_current()) ?></span></div>
-                    <?php foreach (currency_supported() as $__code => $__sym): ?>
-                        <a class="dd-item<?= currency_current() === $__code ? ' on' : '' ?>" href="<?= currency_toggle_url($__code) ?>">
-                            <i class="ph-bold <?= currency_icon($__code) ?>"></i>
-                            <?= e(currency_name($__code)) ?> (<?= e($__sym) ?>)
-                            <?php if (currency_current() === $__code): ?>
-                                <i class="ph-bold ph-check" style="margin-left:auto;color:var(--admin-green)"></i>
-                            <?php endif; ?>
-                        </a>
-                    <?php endforeach; ?>
-                    <hr class="dd-sep">
-                    <div class="dd-item" style="cursor:default" title="Applied to every price in the admin panel">
-                        <i class="ph-bold ph-info"></i>
-                        <span class="dd-meta">$1 = <?= e(currency_supported()['NGN']) ?><?= number_format(exchange_rate_ngn_per_usd(), 0) ?></span>
-                    </div>
-                </div>
-            </div>
-            <div class="topbar-dd position-relative">
                 <button class="topbar-icon-btn" id="adminNotifBtn" aria-label="Notifications">
                     <i class="ph-bold ph-bell"></i>
                     <span class="dot"></span>
@@ -198,5 +174,5 @@ $navItems = [
         <div class="flash-msg flash-error"><i class="ph-bold ph-x-circle"></i> <?= e($flashError) ?> <button type="button" class="flash-close" aria-label="Dismiss"><i class="ph-bold ph-x"></i></button></div>
     <?php endif; ?>
 
-    <script src="<?= BASE_URL ?>/assets/js/admin-app.js?v=4"></script>
+    <script src="<?= BASE_URL ?>/assets/js/admin-app.js?v=5"></script>
 

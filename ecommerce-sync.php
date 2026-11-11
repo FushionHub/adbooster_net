@@ -142,7 +142,7 @@ require_once __DIR__ . '/includes/app_header.php';
             <i class="ph ph-storefront"></i> <?= e($prod['store_name']) ?>
           </span>
           <span class="pill on" style="position:absolute;top:9px;right:9px;font-size:11px;font-family:'JetBrains Mono',monospace">
-            $<?= number_format((float)$prod['price'], 2) ?>
+            <?= price_fmt((float)$prod['price']) ?>
           </span>
         </div>
         <div class="bd">

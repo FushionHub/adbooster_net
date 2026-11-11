@@ -154,8 +154,8 @@ require_once __DIR__ . '/includes/app_header.php';
       <?php
       $statCards = [
           ['label' => 'Open Bounties',   'value' => number_format($openBounties),   'icon' => 'ph-megaphone',        'tone' => 'var(--accent)'],
-          ['label' => 'Held In Escrow',  'value' => '$' . number_format($escrowHeld, 2), 'icon' => 'ph-shield-check', 'tone' => 'var(--green)'],
-          ['label' => 'Paid To Creators','value' => '$' . number_format($totalPayout, 2), 'icon' => 'ph-money',         'tone' => 'var(--blue)'],
+          ['label' => 'Held In Escrow',  'value' => price_fmt($escrowHeld), 'icon' => 'ph-shield-check', 'tone' => 'var(--green)'],
+          ['label' => 'Paid To Creators','value' => price_fmt($totalPayout), 'icon' => 'ph-money',         'tone' => 'var(--blue)'],
           ['label' => 'Submissions',     'value' => number_format($totalSubmissions), 'icon' => 'ph-paper-plane-tilt','tone' => 'var(--orange)'],
       ];
       foreach ($statCards as $sc): ?>
@@ -241,7 +241,7 @@ require_once __DIR__ . '/includes/app_header.php';
                 </span>
                 <span class="badge bg-main-600 bg-opacity-15 text-main-600 border border-main-600 border-opacity-30 px-3 py-1 rounded-pill fw-bold"
                       style="font-size:13px;">
-                  $<?= number_format((float)$b['bounty_amount'], 2) ?>
+                  <?= price_fmt((float)$b['bounty_amount']) ?>
                 </span>
               </div>
 

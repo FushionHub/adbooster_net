@@ -194,12 +194,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($old['primary_text'] === '') $errors[] = 'Primary text is required.';
         if (!filter_var($old['destination_url'], FILTER_VALIDATE_URL)) $errors[] = 'Please enter a valid destination URL.';
 
-        $budgetAmount = (float)($old['budget_amount'] ?? 0);
+        // Budget is entered in ₦; ledger + wallet are USD-denominated credits.
+        $budgetNgn = (float)($old['budget_amount'] ?? 0);
+        $budgetAmount = round($budgetNgn / max(1.0, exchange_rate_ngn_per_usd()), 2);
         $estimatedCost = ($old['budget_type'] === 'lifetime') ? $budgetAmount : $budgetAmount * 30;
 
         if (empty($errors)) {
             if ($adCredits < $estimatedCost) {
-                $errors[] = 'Insufficient ad credits. You need $' . number_format($estimatedCost, 2) . ' but have $' . number_format($adCredits, 2) . '. Please top up your wallet.';
+                $errors[] = 'Insufficient ad credits. You need ' . price_fmt($estimatedCost) . ' but have ' . price_fmt($adCredits) . '. Please top up your wallet.';
             } else {
                 $creativePath = $old['media_url'] ?: null;
 
@@ -415,8 +417,8 @@ require_once __DIR__ . '/includes/app_header.php';
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label for="budget_amount" class="form-label" style="font-weight:600;color:var(--fg);font-size:13px;">Budget Amount ($ USD)</label>
-                            <input type="number" id="budget_amount" name="budget_amount" step="0.01" min="1" class="form-control" value="<?= e($old['budget_amount']) ?>" required placeholder="10.00" oninput="updateEstimate()" style="background:#080c14;border:1px solid rgba(255,255,255,0.12);color:#fff;padding:10px 14px;">
+                            <label for="budget_amount" class="form-label" style="font-weight:600;color:var(--fg);font-size:13px;">Budget Amount (₦ NGN)</label>
+                            <input type="number" id="budget_amount" name="budget_amount" step="1" min="250" class="form-control" value="<?= e($old['budget_amount']) ?>" required placeholder="1550" oninput="updateEstimate()" style="background:#080c14;border:1px solid rgba(255,255,255,0.12);color:#fff;padding:10px 14px;">
                         </div>
                     </div>
 
@@ -527,11 +529,11 @@ require_once __DIR__ . '/includes/app_header.php';
                     <div style="background:rgba(200,255,0,0.06);border:1px solid rgba(200,255,0,0.25);border-radius:12px;padding:18px 24px;margin-bottom:24px;">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
                             <span style="color:var(--fg2);font-size:13px;">Available Ad Credits:</span>
-                            <span style="color:#fff;font-weight:700;font-size:15px;">$<?= number_format($adCredits, 2) ?></span>
+                            <span style="color:#fff;font-weight:700;font-size:15px;"><?= price_fmt($adCredits) ?></span>
                         </div>
                         <div style="display:flex;align-items:center;justify-content:space-between;">
                             <span style="color:var(--fg2);font-size:13px;">Estimated Campaign Cost:</span>
-                            <span style="color:var(--accent);font-weight:700;font-size:17px;" id="estCost">$<?= number_format($estimatedCost, 2) ?></span>
+                            <span style="color:var(--accent);font-weight:700;font-size:17px;" id="estCost"><?= price_fmt($estimatedCost) ?></span>
                         </div>
                     </div>
 
@@ -788,10 +790,12 @@ function toastMsg(msg, sub) {
 }
 
 function updateEstimate() {
+    const NGN_RATE = <?= (float) exchange_rate_ngn_per_usd() ?>;
     const type = document.getElementById('budget_type').value;
     const amount = parseFloat(document.getElementById('budget_amount').value) || 0;
     const total = (type === 'lifetime') ? amount : amount * 30;
-    document.getElementById('estCost').textContent = '$' + total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const ngn = Math.round(total * NGN_RATE / 25) * 25;
+    document.getElementById('estCost').textContent = '₦' + ngn.toLocaleString('en-US', { maximumFractionDigits: 0 });
 }
 
 function updateLivePreview() {
