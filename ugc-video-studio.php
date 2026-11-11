@@ -724,7 +724,7 @@ require_once __DIR__ . '/includes/app_header.php';
       </div>
       <div class="f">
         <b><?= e($vid['hook_text']) ?></b>
-        <small><?= e($meta['provider_label'] ?? 'Storyboard Studio') ?> · <?= date('M d, Y · H:i', strtotime($vid['created_at'])) ?></small>
+        <small><?= e($meta['provider_label'] ?? 'Storyboard Studio') ?> · <?= dt($vid['created_at'], 'M d, Y · H:i') ?></small>
         <div class="acts">
           <button type="button" class="vs-btn" onclick="editCreative(<?= (int)$vid['id'] ?>)" title="Edit this video — opens its script and scenes back in the composer"><i class="ph ph-pencil-simple"></i></button>
           <button type="button" class="vs-btn" onclick="regenerateCreative(<?= (int)$vid['id'] ?>)" title="Regenerate — same script, brand-new AI scene stills"><i class="ph ph-arrows-clockwise"></i></button>

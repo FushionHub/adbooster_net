@@ -190,7 +190,7 @@ require_once __DIR__ . '/includes/app_header.php';
                         </div>
                         <div>
                             <div style="font-weight:700;color:#fff;font-size:14px;"><?= htmlspecialchars($listing['seller_name'] ?? 'Community Member') ?></div>
-                            <span style="font-size:11px;color:var(--fg3);">Member since <?= date('Y', strtotime($listing['created_at'])) ?></span>
+                            <span style="font-size:11px;color:var(--fg3);">Member since <?= dt($listing['created_at'], 'Y') ?></span>
                         </div>
                     </div>
                 </div>

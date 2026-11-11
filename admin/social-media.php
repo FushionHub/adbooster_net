@@ -277,7 +277,7 @@ require_once __DIR__ . '/sidebar.php';
                                     <div class="text-muted small"><?= htmlspecialchars($p['email'] ?? '') ?></div>
                                 </td>
                                 <td class="text-muted small">
-                                    <?= date('M j, Y H:i', strtotime($p['scheduled_time'])) ?>
+                                    <?= dt($p['scheduled_time'], 'M j, Y H:i') ?>
                                 </td>
                                 <td>
                                     <?php
@@ -493,7 +493,7 @@ require_once __DIR__ . '/sidebar.php';
                                     <?= htmlspecialchars($extId) ?>
                                 </td>
                                 <td class="text-muted small">
-                                    <?= date('M j, Y', strtotime($a['created_at'])) ?>
+                                    <?= dt($a['created_at'], 'M j, Y') ?>
                                 </td>
                                 <td>
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Revoke and unlink this social account?');">

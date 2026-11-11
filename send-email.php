@@ -191,7 +191,7 @@ require_once __DIR__ . '/includes/app_header.php';
                                     <?= htmlspecialchars($log['subject']) ?>
                                 </div>
                                 <span style="font-size:10.5px;color:var(--fg3);display:block;margin-top:4px;">
-                                    <?= date('M d, Y g:i A', strtotime($log['sent_at'])) ?>
+                                    <?= dt($log['sent_at'], 'M d, Y g:i A') ?>
                                 </span>
                             </div>
                         <?php endforeach; ?>

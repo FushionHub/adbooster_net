@@ -288,7 +288,7 @@ require_once __DIR__ . '/includes/app_header.php';
                                     <?= number_format((float)($ref['reward_credits'] ?? 10.00)) ?> credits
                                 </td>
                                 <td style="color:var(--fg2);font-size:13px;">
-                                    <?= date('M d, Y', strtotime($ref['created_at'])) ?>
+                                    <?= dt($ref['created_at'], 'M d, Y') ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -317,7 +317,7 @@ require_once __DIR__ . '/includes/app_header.php';
                     <tbody>
                         <?php foreach ($payoutHistory as $ph): ?>
                             <tr>
-                                <td style="color:var(--fg2);font-size:13px;"><?= date('M d, Y H:i', strtotime($ph['created_at'])) ?></td>
+                                <td style="color:var(--fg2);font-size:13px;"><?= dt($ph['created_at'], 'M d, Y H:i') ?></td>
                                 <td>
                                     <span class="badge-status badge-info" style="text-transform:capitalize;">
                                         <?= str_replace('_', ' ', $ph['method']) ?>

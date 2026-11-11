@@ -182,7 +182,7 @@ require_once __DIR__ . '/includes/app_header.php';
                                     </a>
                                 </div>
                             <?php endif; ?>
-                            <div class="small mt-1" style="opacity:.5;"><?= date('M d, Y g:i A', strtotime($msg['created_at'])) ?></div>
+                            <div class="small mt-1" style="opacity:.5;"><?= dt($msg['created_at'], 'M d, Y g:i A') ?></div>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -279,7 +279,7 @@ require_once __DIR__ . '/includes/app_header.php';
                                             <span class="text-white-50 small"><?= $t['message_count'] ?? 0 ?> message(s)</span>
                                         </div>
                                     </div>
-                                    <span class="text-white-50 small"><?= date('M d', strtotime($t['created_at'])) ?></span>
+                                    <span class="text-white-50 small"><?= dt($t['created_at'], 'M d') ?></span>
                                 </div>
                             </div>
                         </a>

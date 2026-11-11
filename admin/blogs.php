@@ -171,7 +171,7 @@ require_once __DIR__ . '/sidebar.php';
                             </td>
                             <td class="text-white"><?= number_format((int)($p['views_count'] ?? 0)) ?></td>
                             <td class="text-muted font-size-12">
-                                <?= $p['published_at'] ? date('M d, Y', strtotime($p['published_at'])) : 'Not published' ?>
+                                <?= $p['published_at'] ? dt($p['published_at'], 'M d, Y') : 'Not published' ?>
                             </td>
                             <td class="text-end">
                                 <div class="d-inline-flex gap-1">

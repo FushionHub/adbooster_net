@@ -100,7 +100,7 @@ require_once __DIR__ . '/sidebar.php';
                     <td class="text-white fw-bold"><?= txn_money((float)$t['amount'], $t['currency'] ?? null) ?></td>
                     <td><span class="badge-status <?= $t['status'] ?>"><?= $t['status'] ?></span></td>
                     <td class="text-muted" style="font-size:0.75rem;"><?= htmlspecialchars($t['gateway_reference'] ?? 'N/A') ?></td>
-                    <td class="text-muted" style="font-size:0.78rem;"><?= date('M d, Y H:i', strtotime($t['created_at'])) ?></td>
+                    <td class="text-muted" style="font-size:0.78rem;"><?= dt($t['created_at'], 'M d, Y H:i') ?></td>
                     <td>
                         <?php if (($t['status'] ?? '') === 'pending' && in_array($t['gateway'] ?? '', ['flutterwave', 'paystack'], true)): ?>
                             <a href="<?= url('payment-verify') ?>?<?= $t['gateway'] === 'paystack' ? 'reference' : 'tx_ref' ?>=<?= urlencode((string)($t['gateway_reference'] ?? $t['id'])) ?>&gateway=<?= $t['gateway'] ?>"

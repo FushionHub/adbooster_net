@@ -55,7 +55,7 @@ try {
     <?php foreach ($notifs as $i => $n):
         $_nType = match($n['type'] ?? 'info') { 'success' => 'success', 'warning' => 'warning', 'error' => 'danger', 'payment' => 'success', 'campaign' => 'info', 'referral' => 'purple', default => 'info' };
         $_nIcon = match($n['type'] ?? 'info') { 'success' => 'ph-check-circle', 'warning' => 'ph-warning', 'error' => 'ph-x-circle', 'payment' => 'ph-currency-dollar', 'campaign' => 'ph-megaphone', 'referral' => 'ph-share-network', default => 'ph-bell' };
-        $_timeAgo = (function_exists('time_ago')) ? time_ago($n['created_at']) : date('M d, Y \a\t g:i A', strtotime($n['created_at']));
+        $_timeAgo = (function_exists('time_ago')) ? time_ago($n['created_at']) : dt($n['created_at'], 'M d, Y \a\t g:i A');
         $isLast = ($i === count($notifs) - 1);
     ?>
     <div class="notif-item <?= $n['is_read'] ? '' : 'unread' ?>" data-id="<?= $n['id'] ?>" onclick="markNotifReadPage(<?= $n['id'] ?>, this)" style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;gap:14px;cursor:pointer;transition:background .15s;<?= $n['is_read'] ? '' : 'background:rgba(200,255,0,.03);' ?><?= $isLast ? 'border-bottom:none;' : '' ?>">

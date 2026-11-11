@@ -180,7 +180,7 @@ require_once __DIR__ . '/sidebar.php';
                                     <?= $v['duration_seconds'] ? "{$v['duration_seconds']}s" : 'N/A' ?>
                                 </td>
                                 <td class="text-muted small">
-                                    <?= date('M j, Y', strtotime($v['created_at'])) ?>
+                                    <?= dt($v['created_at'], 'M j, Y') ?>
                                 </td>
                                 <td>
                                     <div class="d-flex gap-2">
@@ -251,7 +251,7 @@ require_once __DIR__ . '/sidebar.php';
                                     <?= $c['credits_used'] ?? 1 ?> cr
                                 </td>
                                 <td class="text-muted small">
-                                    <?= date('M j, Y', strtotime($c['created_at'])) ?>
+                                    <?= dt($c['created_at'], 'M j, Y') ?>
                                 </td>
                                 <td>
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this creative?');">

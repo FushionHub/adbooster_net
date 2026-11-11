@@ -224,7 +224,7 @@ require_once __DIR__ . '/includes/app_header.php';
 
                 <div class="text-muted font-size-12 mb-3">
                     <div><b>Views:</b> <?= number_format((int)($post['views_count'] ?? 0)) ?></div>
-                    <div><b>Created:</b> <?= date('M d, Y H:i', strtotime($post['created_at'])) ?></div>
+                    <div><b>Created:</b> <?= dt($post['created_at'], 'M d, Y H:i') ?></div>
                 </div>
 
                 <hr class="border-secondary my-4">

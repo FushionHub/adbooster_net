@@ -612,7 +612,7 @@ if (time() > $promptDismissed) {
                                     </td>
                                     <td style="font-weight:700;font-family:'JetBrains Mono',monospace"><?= txn_money((float)$t['amount'], $t['currency'] ?? null) ?></td>
                                     <td><span class="badge-status badge-<?= $tsc ?>"><?= e(ucfirst($t['status'])) ?></span></td>
-                                    <td style="text-align:right;color:var(--fg3);font-size:12.5px"><?= date('M d, Y', strtotime($t['created_at'])) ?></td>
+                                    <td style="text-align:right;color:var(--fg3);font-size:12.5px"><?= dt($t['created_at'] ?? null) ?></td>
                                     <td style="text-align:right">
                                         <?php if (($t['status'] ?? '') === 'pending' && in_array($t['gateway'] ?? '', ['flutterwave', 'paystack'], true)):
                                             $verifyUrl = $t['gateway'] === 'paystack'

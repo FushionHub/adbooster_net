@@ -202,7 +202,7 @@ require_once __DIR__ . '/includes/app_header.php';
               <td class="text-truncate text-secondary" style="max-width: 250px;"><?= e($ev['event_source_url']) ?></td>
               <td><?= $statusBadge($ev['meta_capi_status'] ?? null) ?></td>
               <td><?= $statusBadge($ev['tiktok_events_status'] ?? null) ?></td>
-              <td class="text-secondary"><?= date('M d, H:i:s', strtotime($ev['created_at'])) ?></td>
+              <td class="text-secondary"><?= dt($ev['created_at'], 'M d, H:i:s') ?></td>
             </tr>
             <?php endforeach; ?>
           </tbody>

@@ -203,7 +203,7 @@ require_once __DIR__ . '/includes/app_header.php';
                                     <?= number_format((int)($p['views_count'] ?? 0)) ?>
                                 </td>
                                 <td class="text-muted font-size-13">
-                                    <?= date('M d, Y', strtotime($p['created_at'])) ?>
+                                    <?= dt($p['created_at'], 'M d, Y') ?>
                                 </td>
                                 <td class="text-end pe-4">
                                     <div class="d-inline-flex gap-1">

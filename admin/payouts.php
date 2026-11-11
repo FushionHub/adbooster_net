@@ -139,7 +139,7 @@ require_once __DIR__ . '/sidebar.php';
                                 </span>
                             </td>
                             <td class="text-muted font-size-12">
-                                <?= date('M d, Y H:i', strtotime($r['created_at'])) ?>
+                                <?= dt($r['created_at'], 'M d, Y H:i') ?>
                             </td>
                             <td class="text-end">
                                 <?php if ($r['status'] === 'pending' || $r['status'] === 'approved'): ?>

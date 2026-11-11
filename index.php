@@ -1263,7 +1263,7 @@ $latestPosts = db()->fetchAll("SELECT id, title, slug, excerpt, featured_image, 
                         <div class="tw-mt-8">
                             <div class="d-flex align-items-center tw-gap-4">
                                 <span class="tw-w-10 tw-h-px bg-white"></span>
-                                <span class="tw-text-base fw-medium text-white"><?= date('d M, Y', strtotime($post['published_at'])) ?></span>
+                                <span class="tw-text-base fw-medium text-white"><?= dt($post['published_at'], 'd M, Y') ?></span>
                             </div>
                             <h2 class="h4 tw-my-6">
                                 <a href="<?= url('blog-details', ['slug' => $post['slug']]) ?>" class="text-white hover-text-main-600 line-clamp-3"><?= htmlspecialchars($post['title']) ?></a>

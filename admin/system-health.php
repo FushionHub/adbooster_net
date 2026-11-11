@@ -229,10 +229,10 @@ require_once __DIR__ . '/sidebar.php';
                                     </div>
                                 </td>
                                 <td class="text-muted small">
-                                    <?= date('M j, Y H:i:s', strtotime($cl['started_at'])) ?>
+                                    <?= dt($cl['started_at'], 'M j, Y H:i:s') ?>
                                 </td>
                                 <td class="text-muted small">
-                                    <?= $cl['finished_at'] ? date('M j, Y H:i:s', strtotime($cl['finished_at'])) : 'Running...' ?>
+                                    <?= $cl['finished_at'] ? dt($cl['finished_at'], 'M j, Y H:i:s') : 'Running...' ?>
                                 </td>
                                 <td>
                                     <span class="badge-status <?= $cl['status'] === 'success' ? 'active' : ($cl['status'] === 'running' ? 'in_progress' : 'rejected') ?>">
@@ -299,7 +299,7 @@ require_once __DIR__ . '/sidebar.php';
                                     </span>
                                 </td>
                                 <td class="text-muted small">
-                                    <?= date('M j, Y H:i:s', strtotime($el['sent_at'])) ?>
+                                    <?= dt($el['sent_at'], 'M j, Y H:i:s') ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

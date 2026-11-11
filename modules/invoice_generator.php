@@ -64,7 +64,7 @@ class InvoiceGenerator
         }
 
         $invoiceNumber = $transaction['invoice_number'] ?? self::generateInvoiceNumber();
-        $date = date('F j, Y', strtotime($transaction['created_at']));
+        $date = dt($transaction['created_at'], 'F j, Y');
         $dueDate = 'Immediate';
 
         $items = self::buildInvoiceItems($transaction);

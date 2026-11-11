@@ -135,7 +135,7 @@ require_once __DIR__ . '/sidebar.php';
                     <td><span class="badge-status"><?= $c['campaign_type'] ?></span></td>
                     <td class="text-white"><?= price_fmt((float)$c['budget_amount']) ?></td>
                     <td><span class="badge-status <?= $c['status'] ?>"><?= $c['status'] ?></span></td>
-                    <td class="text-muted" style="font-size:0.78rem;"><?= date('M d, Y', strtotime($c['created_at'])) ?></td>
+                    <td class="text-muted" style="font-size:0.78rem;"><?= dt($c['created_at'], 'M d, Y') ?></td>
                     <td>
                         <div class="d-flex gap-1 flex-wrap">
                             <?php if ($c['status'] === 'pending'): ?>

@@ -227,7 +227,7 @@ require_once __DIR__ . '/includes/app_header.php';
             <div class="tl-item">
               <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
                 <span class="tl-h"><?= e($cal['day']) ?></span>
-                <span class="pill" style="font-size:10.5px;font-family:'JetBrains Mono',monospace"><?= date('M d, H:i', strtotime($cal['date'])) ?></span>
+                <span class="pill" style="font-size:10.5px;font-family:'JetBrains Mono',monospace"><?= dt($cal['date'], 'M d, H:i') ?></span>
                 <span class="pill info" style="font-size:10.5px;text-transform:capitalize"><?= e($cal['platform']) ?></span>
                 <span class="pill" style="font-size:10.5px"><?= e($cal['post_type']) ?></span>
                 <a href="<?= url('post-creator', ['caption' => $cal['caption'], 'platform' => $cal['platform']]) ?>" class="fl-act" style="margin-left:auto;padding:4px 11px;font-size:11px"><i class="ph ph-pencil-simple"></i> Queue in Studio</a>

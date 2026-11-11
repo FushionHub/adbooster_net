@@ -63,7 +63,7 @@ require_once __DIR__ . '/sidebar.php';
                     <div class="avatar"><?= strtoupper(substr($cu['full_name']??'U',0,1)) ?></div>
                     <div style="flex:1;min-width:0;">
                         <div class="text-white fw-medium" style="font-size:0.85rem;"><?= htmlspecialchars($cu['full_name']) ?></div>
-                        <div class="text-muted" style="font-size:0.7rem;"><?= $cu['last_msg_at'] ? date('M d, H:i', strtotime($cu['last_msg_at'])) : 'No messages' ?></div>
+                        <div class="text-muted" style="font-size:0.7rem;"><?= $cu['last_msg_at'] ? dt($cu['last_msg_at'], 'M d, H:i') : 'No messages' ?></div>
                     </div>
                     <?php if ($cu['unread_count'] > 0): ?>
                         <span class="badge rounded-pill" style="background:var(--admin-green);color:#000;font-size:0.7rem;padding:2px 8px;"><?= $cu['unread_count'] ?></span>
@@ -93,7 +93,7 @@ require_once __DIR__ . '/sidebar.php';
                             <div class="d-flex mb-2 <?= $msg['sender_id'] == $adminId ? 'justify-content-end' : 'justify-content-start' ?>">
                                 <div class="px-3 py-2 rounded-3" style="max-width:70%;background:<?= $msg['sender_id'] == $adminId ? 'var(--admin-green-dim)' : 'var(--admin-hover)' ?>;color:var(--admin-text);font-size:0.85rem;">
                                     <?= nl2br(htmlspecialchars($msg['message'])) ?>
-                                    <div class="text-muted mt-1" style="font-size:0.65rem;"><?= date('M d, H:i', strtotime($msg['created_at'])) ?></div>
+                                    <div class="text-muted mt-1" style="font-size:0.65rem;"><?= dt($msg['created_at'], 'M d, H:i') ?></div>
                                 </div>
                             </div>
                         <?php endforeach; ?>

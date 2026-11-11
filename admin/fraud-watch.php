@@ -92,7 +92,7 @@ require_once __DIR__ . '/sidebar.php';
                         <span class="badge-status <?= $sevClass ?>"><?= $f['severity'] ?></span>
                     </td>
                     <td><span class="badge-status <?= $f['status'] ?>"><?= $f['status'] ?></span></td>
-                    <td class="text-muted" style="font-size:0.78rem;"><?= date('M d, Y', strtotime($f['created_at'])) ?></td>
+                    <td class="text-muted" style="font-size:0.78rem;"><?= dt($f['created_at'], 'M d, Y') ?></td>
                     <td>
                         <?php if ($f['status'] === 'flagged'): ?>
                             <div class="d-flex gap-1 flex-wrap">
@@ -116,7 +116,7 @@ require_once __DIR__ . '/sidebar.php';
                                 </form>
                             </div>
                         <?php else: ?>
-                            <span class="text-muted" style="font-size:0.78rem;"><?= $f['reviewed_at'] ? date('M d, H:i', strtotime($f['reviewed_at'])) : '-' ?></span>
+                            <span class="text-muted" style="font-size:0.78rem;"><?= $f['reviewed_at'] ? dt($f['reviewed_at'], 'M d, H:i') : '-' ?></span>
                         <?php endif; ?>
                     </td>
                 </tr>

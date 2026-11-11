@@ -92,7 +92,7 @@ require_once __DIR__ . '/sidebar.php';
                     </td>
                     <td><span class="badge-status <?= $r['status'] ?>"><?= $r['status'] ?></span></td>
                     <td class="text-white fw-bold"><?= number_format((float)$r['reward_credits']) ?> credits</td>
-                    <td class="text-muted" style="font-size:0.78rem;"><?= date('M d, Y', strtotime($r['created_at'])) ?></td>
+                    <td class="text-muted" style="font-size:0.78rem;"><?= dt($r['created_at'] ?? null) ?></td>
                     <td>
                         <div class="d-flex gap-1">
                             <form method="POST" class="d-flex gap-1 align-items-center">

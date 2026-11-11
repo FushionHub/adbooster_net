@@ -618,7 +618,7 @@ require_once __DIR__ . '/includes/app_header.php';
                                     </span>
                                 </td>
                                 <td style="font-size:13px;color:var(--fg2);">
-                                    <?= date('M d, Y \a\t g:i A', strtotime($p['scheduled_time'])) ?>
+                                    <?= dt($p['scheduled_time'], 'M d, Y \a\t g:i A') ?>
                                 </td>
                                 <td>
                                     <span class="badge bg-success bg-opacity-25 text-success" style="text-transform:capitalize;">

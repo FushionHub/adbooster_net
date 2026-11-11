@@ -157,7 +157,7 @@ require_once __DIR__ . '/includes/app_header.php';
               </div>
               <div style="text-align:right;flex:0 0 auto">
                 <div style="font-size:11px;color:var(--fg3,#64748b);margin-bottom:6px">
-                  <?= !empty($r['last_triggered_at']) ? 'Fired ' . date('M d, H:i', strtotime($r['last_triggered_at'])) : 'Never fired' ?>
+                  <?= !empty($r['last_triggered_at']) ? 'Fired ' . dt($r['last_triggered_at'], 'M d, H:i') : 'Never fired' ?>
                 </div>
                 <form method="POST" class="d-inline" onsubmit="return confirm('Delete this rule?');">
                   <?= csrf_field() ?>
@@ -245,7 +245,7 @@ require_once __DIR__ . '/includes/app_header.php';
           <div class="tl-item">
             <div class="tl-h"><?= ucwords(str_replace('_', ' ', e($lg['action_taken']))) ?></div>
             <div class="tl-b"><?= e($lg['details']) ?></div>
-            <div style="font-size:11px;color:var(--fg3,#64748b);margin-top:5px;font-family:'JetBrains Mono',monospace"><?= date('M d, H:i', strtotime($lg['created_at'])) ?></div>
+            <div style="font-size:11px;color:var(--fg3,#64748b);margin-top:5px;font-family:'JetBrains Mono',monospace"><?= dt($lg['created_at'], 'M d, H:i') ?></div>
           </div>
           <?php endforeach; ?>
         </div>

@@ -201,7 +201,7 @@ require_once __DIR__ . '/sidebar.php';
                                     </span>
                                 </td>
                                 <td class="text-muted small">
-                                    <?= $r['last_triggered_at'] ? date('M j, Y H:i', strtotime($r['last_triggered_at'])) : 'Never' ?>
+                                    <?= $r['last_triggered_at'] ? dt($r['last_triggered_at'], 'M j, Y H:i') : 'Never' ?>
                                 </td>
                                 <td>
                                     <div class="d-flex gap-2">
@@ -251,7 +251,7 @@ require_once __DIR__ . '/sidebar.php';
                         <?php foreach ($logs as $l): ?>
                             <tr>
                                 <td class="text-nowrap small text-muted">
-                                    <i class="ph-bold ph-clock"></i> <?= date('M j, Y H:i:s', strtotime($l['created_at'])) ?>
+                                    <i class="ph-bold ph-clock"></i> <?= dt($l['created_at'], 'M j, Y H:i:s') ?>
                                 </td>
                                 <td>
                                     <div class="text-white fw-semibold"><?= htmlspecialchars($l['campaign_name'] ?? "Campaign #{$l['campaign_id']}") ?></div>

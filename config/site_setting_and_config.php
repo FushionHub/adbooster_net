@@ -516,11 +516,27 @@ function redirect(string $url): void
 }
 
 /**
- * Sanitize output
+ * Sanitize output. Accepts NULL (legacy rows with NULL columns) and
+ * renders an empty string instead of throwing a TypeError mid-render.
  */
-function e(string $value): string
+function e(?string $value): string
 {
-    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+    return htmlspecialchars((string)($value ?? ''), ENT_QUOTES, 'UTF-8');
+}
+
+/**
+ * Null-safe date display: NULL/zero-date columns render as a dash
+ * instead of crashing (strtotime(null) is a TypeError under
+ * strict_types — this crashed the production admin Users monitor).
+ */
+function dt(?string $value, string $format = 'M d, Y'): string
+{
+    $value = trim((string)($value ?? ''));
+    if ($value === '' || in_array($value, ['0000-00-00', '0000-00-00 00:00:00'], true)) {
+        return '—';
+    }
+    $ts = strtotime($value);
+    return $ts ? date($format, $ts) : '—';
 }
 
 /**

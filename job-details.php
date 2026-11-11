@@ -80,7 +80,7 @@ require_once __DIR__ . '/includes/header.php';
                     </h1>
 
                     <div class="d-flex align-items-center gap-4 text-white-50 font-size-13 pb-4 mb-4 border-bottom border-secondary border-opacity-10 flex-wrap">
-                        <div><i class="ph ph-calendar-blank text-main-600 me-1"></i> Posted <?= date('M d, Y', strtotime($job['created_at'])) ?></div>
+                        <div><i class="ph ph-calendar-blank text-main-600 me-1"></i> Posted <?= dt($job['created_at'], 'M d, Y') ?></div>
                         <div><i class="ph ph-eye text-main-600 me-1"></i> <?= number_format((int)$job['views_count']) ?> views</div>
                         <div><i class="ph ph-map-pin text-main-600 me-1"></i> <?= e($job['location'] ?: 'Worldwide / Remote') ?></div>
                     </div>

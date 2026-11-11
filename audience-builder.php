@@ -208,7 +208,7 @@ $campaigns = db()->fetchAll(
                             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;">
                                 <div>
                                     <h4 style="color:var(--fg);font-size:17px;font-weight:700;margin:0;"><?= htmlspecialchars($seg['name']) ?></h4>
-                                    <span style="font-size:11px;color:var(--fg3);">Created <?= date('M d, Y', strtotime($seg['created_at'])) ?></span>
+                                    <span style="font-size:11px;color:var(--fg3);">Created <?= dt($seg['created_at'], 'M d, Y') ?></span>
                                 </div>
                                 <form method="POST" style="margin:0;" onsubmit="return confirm('Delete this audience segment?')">
                                     <?= csrf_field() ?>

@@ -193,7 +193,7 @@ require_once __DIR__ . '/sidebar.php';
                                     </div>
                                 </td>
                                 <td class="text-muted small">
-                                    <?= date('M j, Y', strtotime($a['created_at'])) ?>
+                                    <?= dt($a['created_at'], 'M j, Y') ?>
                                 </td>
                                 <td>
                                     <div class="d-flex gap-2">
@@ -271,7 +271,7 @@ require_once __DIR__ . '/sidebar.php';
                                     </span>
                                 </td>
                                 <td class="text-muted small">
-                                    <?= date('M j, Y', strtotime($p['created_at'])) ?>
+                                    <?= dt($p['created_at'], 'M j, Y') ?>
                                 </td>
                                 <td>
                                     <form method="POST" style="display:inline;">
@@ -331,7 +331,7 @@ require_once __DIR__ . '/sidebar.php';
                                     </span>
                                 </td>
                                 <td class="text-muted small">
-                                    <?= date('M j, Y', strtotime($c['created_at'])) ?>
+                                    <?= dt($c['created_at'], 'M j, Y') ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

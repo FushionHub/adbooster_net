@@ -116,7 +116,7 @@ require_once __DIR__ . '/includes/app_header.php';
               <div class="d-flex justify-content-between align-items-start mb-2">
                 <div>
                   <h6 class="fw-bold text-white mb-0"><?= e($sub['creator_name']) ?></h6>
-                  <small class="text-secondary"><?= date('M d, Y H:i', strtotime($sub['submitted_at'])) ?></small>
+                  <small class="text-secondary"><?= dt($sub['submitted_at'], 'M d, Y H:i') ?></small>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                   <span class="badge bg-success-subtle text-success fw-bold">

@@ -245,7 +245,7 @@ $remainingThisMin = max(0, 60 - $usedThisMin);
                                     </div>
                                 </td>
                                 <td style="color:var(--fg2);font-size:13px;">
-                                    <?= $k['last_used_at'] ? date('M d, Y H:i', strtotime($k['last_used_at'])) : '<span style="color:var(--fg3)">Never</span>' ?>
+                                    <?= $k['last_used_at'] ? dt($k['last_used_at'], 'M d, Y H:i') : '<span style="color:var(--fg3)">Never</span>' ?>
                                 </td>
                                 <td style="color:var(--fg2);font-size:13px;">
                                     <?= !empty($k['created_at']) ? date('M d, Y', strtotime((string)$k['created_at'])) : '<span style="color:var(--fg3)">Unknown</span>' ?>

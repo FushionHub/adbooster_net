@@ -194,7 +194,7 @@ require_once __DIR__ . '/includes/header.php';
                                 <h5 class="text-white fw-bold tw-mb-2"><?= e($post['title']) ?></h5>
                                 <p class="text-white-50 tw-text-sm tw-mb-0 line-clamp-2"><?= e($post['excerpt'] ?? '') ?></p>
                                 <?php if ($post['published_at']): ?>
-                                    <small class="text-white-50 tw-mt-2 d-block"><?= date('M d, Y', strtotime($post['published_at'])) ?></small>
+                                    <small class="text-white-50 tw-mt-2 d-block"><?= dt($post['published_at'], 'M d, Y') ?></small>
                                 <?php endif; ?>
                             </div>
                         </a>

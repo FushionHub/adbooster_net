@@ -89,7 +89,7 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
                     <span class="text-white fw-semibold"><?= e($post['author_name'] ?? 'Adsbooster Editorial') ?></span>
                 </div>
-                <span><i class="ph ph-calendar-blank me-1 text-main-600"></i> <?= date('M d, Y', strtotime($post['published_at'] ?? $post['created_at'])) ?></span>
+                <span><i class="ph ph-calendar-blank me-1 text-main-600"></i> <?= dt($post['published_at'] ?? $post['created_at'], 'M d, Y') ?></span>
                 <span><i class="ph ph-eye me-1 text-main-600"></i> <?= number_format((int)$post['views_count']) ?> views</span>
                 <span class="badge bg-main-600 text-black px-2 py-1 rounded-pill font-size-11"><?= e($post['category'] ?? 'Guide') ?></span>
             </div>
@@ -178,7 +178,7 @@ require_once __DIR__ . '/includes/header.php';
                                     <img src="<?= e($rImgSrc) ?>" class="rounded-3" style="width:70px; height:54px; object-fit:cover; flex-shrink:0;">
                                     <div style="min-width:0;">
                                         <h6 class="text-white font-size-13 fw-semibold mb-1 line-clamp-2"><?= e($r['title']) ?></h6>
-                                        <span class="text-white-50 font-size-11"><?= date('M d, Y', strtotime($r['published_at'] ?? $r['created_at'])) ?></span>
+                                        <span class="text-white-50 font-size-11"><?= dt($r['published_at'] ?? $r['created_at'], 'M d, Y') ?></span>
                                     </div>
                                 </a>
                             <?php endforeach; ?>

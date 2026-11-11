@@ -150,7 +150,7 @@ require_once __DIR__ . '/sidebar.php';
                 <div class="p-3 rounded mb-2" style="background:<?= $msg['sender_id'] == $viewTicket['user_id'] ? 'var(--admin-hover)' : 'var(--admin-green-dim)' ?>;">
                     <div class="d-flex justify-content-between mb-1">
                         <span class="text-white fw-medium" style="font-size:0.85rem;"><?= htmlspecialchars($msg['sender_name'] ?? 'Unknown') ?></span>
-                        <span class="text-muted" style="font-size:0.7rem;"><?= date('M d, Y H:i', strtotime($msg['created_at'])) ?></span>
+                        <span class="text-muted" style="font-size:0.7rem;"><?= dt($msg['created_at'], 'M d, Y H:i') ?></span>
                     </div>
                     <div style="font-size:0.85rem;white-space:pre-wrap;"><?= htmlspecialchars($msg['message']) ?></div>
                     <?php if ($msg['attachment_path']): ?>
@@ -199,7 +199,7 @@ require_once __DIR__ . '/sidebar.php';
                     <td class="text-capitalize"><?= str_replace('_',' ',$t['ticket_type']) ?></td>
                     <td><span class="badge-status <?= $t['priority'] ?>"><?= $t['priority'] ?></span></td>
                     <td><span class="badge-status <?= $t['status'] ?>"><?= str_replace('_',' ',$t['status']) ?></span></td>
-                    <td class="text-muted" style="font-size:0.78rem;"><?= date('M d, Y', strtotime($t['created_at'])) ?></td>
+                    <td class="text-muted" style="font-size:0.78rem;"><?= dt($t['created_at'], 'M d, Y') ?></td>
                     <td>
                         <a href="?view=<?= $t['id'] ?>" class="btn-admin btn-admin-blue"><i class="ph-bold ph-chat-circle"></i> View</a>
                     </td>

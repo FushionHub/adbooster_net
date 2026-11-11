@@ -745,7 +745,7 @@ require_once __DIR__ . '/includes/app_header.php';
                                     <?= htmlspecialchars($partnerName) ?>
                                 </span>
                                 <span style="font-size:11px; color:var(--fg3);">
-                                    <?= $conv['last_message_at'] ? date('M d', strtotime($conv['last_message_at'])) : '' ?>
+                                    <?= $conv['last_message_at'] ? dt($conv['last_message_at'], 'M d') : '' ?>
                                 </span>
                             </div>
                             <div style="display:flex; align-items:center; justify-content:space-between;">
@@ -844,7 +844,7 @@ require_once __DIR__ . '/includes/app_header.php';
                                     <div style="font-size:11px; opacity:0.65; margin-bottom:4px; font-weight:600;"><?= $senderLabel ?></div>
                                     <div class="msg-content" style="line-height:1.55; font-size:13.5px;"><?= $isMine ? nl2br(htmlspecialchars($msg['message'])) : formatChatMessage($msg['message']) ?></div>
                                     <div style="font-size:10px; opacity:0.55; margin-top:5px; text-align:right;">
-                                        <?= date('g:i A', strtotime($msg['created_at'])) ?>
+                                        <?= dt($msg['created_at'], 'g:i A') ?>
                                     </div>
                                 </div>
                             </div>

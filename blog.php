@@ -145,7 +145,7 @@ require_once __DIR__ . '/includes/header.php';
                             <!-- Card Body -->
                             <div class="p-4 d-flex flex-column flex-grow-1">
                                 <div class="d-flex align-items-center justify-content-between text-white-50 font-size-12 mb-2">
-                                    <span><?= date('M d, Y', strtotime($post['published_at'] ?? $post['created_at'])) ?></span>
+                                    <span><?= dt($post['published_at'] ?? $post['created_at'], 'M d, Y') ?></span>
                                     <span><i class="ph ph-eye me-1"></i><?= number_format((int)($post['views_count'] ?? 0)) ?> views</span>
                                 </div>
 

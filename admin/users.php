@@ -331,7 +331,7 @@ require_once __DIR__ . '/sidebar.php';
                         <?php endif; ?>
                     </td>
                     <td><span class="badge-status <?= e($u['status']) ?>"><?= e($u['status']) ?></span></td>
-                    <td class="text-muted" style="font-size:0.78rem;"><?= date('M d, Y', strtotime($u['created_at'])) ?></td>
+                    <td class="text-muted" style="font-size:0.78rem;"><?= dt($u['created_at'] ?? null) ?></td>
                     <td class="d-flex gap-1">
                         <button class="btn-admin btn-admin-outline" data-bs-toggle="modal" data-bs-target="#userModal<?= $u['id'] ?>" title="Manage">
                             <i class="ph-bold ph-gear"></i>

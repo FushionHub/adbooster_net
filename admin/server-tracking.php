@@ -199,7 +199,7 @@ require_once __DIR__ . '/sidebar.php';
                                     </span>
                                 </td>
                                 <td class="text-muted small">
-                                    <?= date('M j, H:i:s', strtotime($e['created_at'])) ?>
+                                    <?= dt($e['created_at'], 'M j, H:i:s') ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

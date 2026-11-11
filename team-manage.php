@@ -269,7 +269,7 @@ require_once __DIR__ . '/includes/app_header.php';
                                 <?php endif; ?>
                             </td>
                             <td style="font-size:13px;color:var(--fg2);">
-                                <?= date('M d, Y', strtotime($m['invited_at'] ?? $m['created_at'])) ?>
+                                <?= dt($m['invited_at'] ?? $m['created_at'], 'M d, Y') ?>
                             </td>
                             <td class="text-end">
                                 <div style="display:inline-flex;gap:8px;">
