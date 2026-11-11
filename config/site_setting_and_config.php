@@ -536,7 +536,7 @@ function dt(?string $value, string $format = 'M d, Y'): string
         return '—';
     }
     $ts = strtotime($value);
-    return $ts ? date($format, $ts) : '—';
+    return $ts === false ? '—' : date($format, $ts);
 }
 
 /**

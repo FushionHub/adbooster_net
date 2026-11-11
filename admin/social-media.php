@@ -391,7 +391,7 @@ require_once __DIR__ . '/sidebar.php';
                                         <td>
                                             <div class="text-white small"><?= htmlspecialchars((string)($c['author'] ?? 'Unknown')) ?></div>
                                             <?php if (!empty($c['created_at'])): ?>
-                                                <div class="text-muted small"><?= htmlspecialchars((string)date('M j, H:i', strtotime((string)$c['created_at']))) ?></div>
+                                                <div class="text-muted small"><?= dt($c['created_at'], 'M j, H:i') ?></div>
                                             <?php endif; ?>
                                         </td>
                                         <td>

@@ -248,7 +248,7 @@ $remainingThisMin = max(0, 60 - $usedThisMin);
                                     <?= $k['last_used_at'] ? dt($k['last_used_at'], 'M d, Y H:i') : '<span style="color:var(--fg3)">Never</span>' ?>
                                 </td>
                                 <td style="color:var(--fg2);font-size:13px;">
-                                    <?= !empty($k['created_at']) ? date('M d, Y', strtotime((string)$k['created_at'])) : '<span style="color:var(--fg3)">Unknown</span>' ?>
+                                    <?= $k['created_at'] ? dt($k['created_at'], 'M d, Y') : '<span style="color:var(--fg3)">Unknown</span>' ?>
                                 </td>
                                 <td style="text-align:right;">
                                     <form method="POST" style="margin:0;display:inline-block;" onsubmit="return confirm('Revoke this API key? Any applications using it will be denied.')">
@@ -320,7 +320,7 @@ $remainingThisMin = max(0, 60 - $usedThisMin);
                                     <?php endif; ?>
                                 </td>
                                 <td style="color:var(--fg2);font-size:13px;">
-                                    <?= !empty($w['created_at']) ? date('M d, Y', strtotime((string)$w['created_at'])) : '<span style="color:var(--fg3)">Unknown</span>' ?>
+                                    <?= $w['created_at'] ? dt($w['created_at'], 'M d, Y') : '<span style="color:var(--fg3)">Unknown</span>' ?>
                                 </td>
                                 <td style="text-align:right;">
                                     <div style="display:inline-flex;gap:8px;align-items:center;">
