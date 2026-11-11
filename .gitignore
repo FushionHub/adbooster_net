@@ -4,8 +4,12 @@ config/db.local.php
 .env
 .env.*
 
+# One-shot ops tools (upload to server manually, never commit)
+db-doctor.php
+
 # Runtime / generated
-cache/rate_limit/*
+cache/*
+!cache/.htaccess
 uploads/videos/*
 uploads/creatives/*
 uploads/avatars/*
