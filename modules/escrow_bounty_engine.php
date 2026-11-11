@@ -108,6 +108,16 @@ class EscrowBountyEngine
             throw new Exception("Submission not found");
         }
 
+        // Idempotency guard: escrow can only be released once per bounty.
+        // Without this a re-approval would credit the creator wallet a
+        // second time (double payout) for the same locked funds.
+        if ($bounty['escrow_status'] !== 'funded') {
+            throw new Exception("Escrow already released for this bounty");
+        }
+        if (($sub['review_status'] ?? '') === 'approved') {
+            throw new Exception("Submission already approved");
+        }
+
         $creatorId = (int)$sub['creator_user_id'];
         $bountyAmount = (float)$bounty['bounty_amount'];
         $platformFee = $bountyAmount * 0.10; // 10% platform take

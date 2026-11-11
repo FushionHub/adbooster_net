@@ -10,6 +10,10 @@ db-doctor.php
 # Runtime / generated
 cache/*
 !cache/.htaccess
+.phpunit.cache/
+/tests/php_pcov.dll
+/phpunit-events.txt
+/seopp.zip
 uploads/videos/*
 uploads/creatives/*
 uploads/avatars/*

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+         cacheDirectory=".phpunit.cache"
+         failOnWarning="true"
+         failOnRisky="true">
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <!-- Integration tests run against an isolated clone of the dev schema. -->
+        <!-- Recreate it with: php -d extension=php_pdo_mysql.dll tests/make-test-db.php -->
+        <env name="DB_HOST" value="127.0.0.1" force="true"/>
+        <env name="DB_PORT" value="3306" force="true"/>
+        <env name="DB_NAME" value="adsbooster_test" force="true"/>
+        <env name="DB_USER" value="root" force="true"/>
+        <env name="DB_PASS" value="" force="true"/>
+    </php>
+    <source>
+        <include>
+            <directory>includes</directory>
+            <directory>modules</directory>
+            <directory>api</directory>
+            <directory>config</directory>
+        </include>
+        <exclude>
+            <directory>vendor</directory>
+        </exclude>
+    </source>
+</phpunit>
