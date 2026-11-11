@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 533" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#070b12"/>
+      <stop offset="0.55" stop-color="#0b111e"/>
+      <stop offset="1" stop-color="#0d1424"/>
+    </linearGradient>
+    <linearGradient id="lime" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#c8ff00"/>
+      <stop offset="1" stop-color="#7fe80a"/>
+    </linearGradient>
+    <linearGradient id="bar1" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#c8ff00" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#c8ff00"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#131c2e" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#0d1320" stop-opacity="0.95"/>
+    </linearGradient>
+    <radialGradient id="glowLime" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#c8ff00" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#c8ff00" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowBlue" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#3b82f6" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#3b82f6" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1600" height="533" fill="url(#bg)"/>
+  <g stroke="#1a2338" stroke-width="1">
+    <path d="M0 88 H1600 M0 176 H1600 M0 264 H1600 M0 352 H1600 M0 440 H1600"/>
+    <path d="M100 0 V533 M220 0 V533 M340 0 V533 M460 0 V533 M580 0 V533 M700 0 V533 M820 0 V533 M940 0 V533 M1060 0 V533 M1180 0 V533 M1300 0 V533 M1420 0 V533 M1540 0 V533"/>
+  </g>
+  <circle cx="1330" cy="120" r="330" fill="url(#glowBlue)"/>
+  <circle cx="380" cy="430" r="360" fill="url(#glowLime)"/>
+
+  <!-- ══ Left: wordmark + tagline + chips ══ -->
+  <g>
+    <rect x="70" y="88" width="64" height="6" rx="3" fill="url(#lime)"/>
+    <text x="70" y="196" fill="#ffffff" font-size="92" font-weight="800" letter-spacing="1">ADSBOOSTER<tspan fill="#c8ff00">.NET</tspan></text>
+    <text x="72" y="248" fill="#9aa4b8" font-size="26" font-weight="400" letter-spacing="0.5">AI Ad Optimization &#183; UGC Creative Studio &#183; Multi-Network Publishing</text>
+
+    <!-- feature chips -->
+    <g font-size="17" font-weight="600">
+      <rect x="70" y="292" width="222" height="42" rx="21" fill="#111a2b" stroke="#253248"/>
+      <circle cx="94" cy="313" r="6" fill="#c8ff00"/>
+      <text x="110" y="319" fill="#dbe3f0">AI UGC Image Studio</text>
+
+      <rect x="306" y="292" width="238" height="42" rx="21" fill="#111a2b" stroke="#253248"/>
+      <circle cx="330" cy="313" r="6" fill="#3b82f6"/>
+      <text x="346" y="319" fill="#dbe3f0">AI Video Studio (Veo)</text>
+
+      <rect x="558" y="292" width="252" height="42" rx="21" fill="#111a2b" stroke="#253248"/>
+      <circle cx="582" cy="313" r="6" fill="#f59e0b"/>
+      <text x="598" y="319" fill="#dbe3f0">Dual API Gateways</text>
+
+      <rect x="824" y="292" width="210" height="42" rx="21" fill="#111a2b" stroke="#253248"/>
+      <circle cx="848" cy="313" r="6" fill="#ef4444"/>
+      <text x="864" y="319" fill="#dbe3f0">NGN-Only Billing</text>
+    </g>
+
+    <!-- tech line -->
+    <g font-size="16" fill="#5b647a" font-weight="500">
+      <text x="70" y="386">Vanilla PHP 8.x</text>
+      <circle cx="218" cy="381" r="3" fill="#3a4560"/>
+      <text x="234" y="386">MySQL 8</text>
+      <circle cx="322" cy="381" r="3" fill="#3a4560"/>
+      <text x="338" y="386">Gemini + Groq AI</text>
+      <circle cx="500" cy="381" r="3" fill="#3a4560"/>
+      <text x="516" y="386">Flutterwave / Paystack</text>
+    </g>
+  </g>
+
+  <!-- ══ Right: dashboard illustration ══ -->
+  <g transform="translate(990 118)">
+    <!-- main card -->
+    <g filter="url(#soft)" opacity="0.55"><rect x="14" y="18" width="470" height="300" rx="20" fill="#000" opacity="0.5"/></g>
+    <rect x="0" y="0" width="470" height="300" rx="20" fill="url(#card)" stroke="#26334d"/>
+    <circle cx="30" cy="30" r="5" fill="#ef4444"/>
+    <circle cx="52" cy="30" r="5" fill="#f59e0b"/>
+    <circle cx="74" cy="30" r="5" fill="#c8ff00"/>
+    <text x="290" y="36" fill="#5b647a" font-size="15" font-weight="600" text-anchor="end">Campaign Performance</text>
+
+    <!-- bar chart -->
+    <g>
+      <rect x="40"  y="200" width="46" height="66"  rx="8" fill="#253248"/>
+      <rect x="102" y="160" width="46" height="106" rx="8" fill="#253248"/>
+      <rect x="164" y="120" width="46" height="146" rx="8" fill="#253248"/>
+      <rect x="226" y="86"  width="46" height="180" rx="8" fill="url(#bar1)"/>
+      <rect x="288" y="54"  width="46" height="212" rx="8" fill="url(#bar1)"/>
+      <rect x="350" y="28"  width="46" height="238" rx="8" fill="url(#bar1)"/>
+      <polyline points="63,196 125,156 187,116 249,84 311,52 373,30" fill="none" stroke="#3b82f6" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="373" cy="30" r="7" fill="#3b82f6"/>
+      <circle cx="373" cy="30" r="13" fill="#3b82f6" opacity="0.25"/>
+    </g>
+
+    <!-- KPI pills -->
+    <g font-size="16" font-weight="700">
+      <rect x="40" y="252" width="130" height="34" rx="17" fill="#101828" stroke="#26334d"/>
+      <text x="56" y="274" fill="#c8ff00">CTR 6.8%</text>
+      <rect x="182" y="252" width="130" height="34" rx="17" fill="#101828" stroke="#26334d"/>
+      <text x="198" y="274" fill="#3b82f6">1.2M Reach</text>
+      <rect x="324" y="252" width="106" height="34" rx="17" fill="#101828" stroke="#26334d"/>
+      <text x="340" y="274" fill="#9aa4b8">&#8366; NGN</text>
+    </g>
+  </g>
+
+  <!-- ══ Gateway flow strip (bottom right) ══ -->
+  <g transform="translate(990 456)" font-size="15" font-weight="600">
+    <rect x="0" y="-24" width="470" height="52" rx="14" fill="#0e1626" stroke="#223050"/>
+    <text x="24" y="8" fill="#c8ff00">Bundle.social</text>
+    <text x="24" y="24" fill="#5b647a" font-size="12" font-weight="500">Organic Engine</text>
+    <line x1="150" y1="2" x2="196" y2="2" stroke="#3a4560" stroke-width="2"/>
+    <path d="M190 -4 L202 2 L190 8 Z" fill="#3a4560"/>
+    <text x="222" y="8" fill="#3b82f6">Zernio</text>
+    <text x="222" y="24" fill="#5b647a" font-size="12" font-weight="500">Ads Engine</text>
+    <line x1="310" y1="2" x2="356" y2="2" stroke="#3a4560" stroke-width="2"/>
+    <path d="M350 -4 L362 2 L350 8 Z" fill="#3a4560"/>
+    <text x="382" y="4" fill="#dbe3f0" font-size="13">9+ Networks</text>
+    <text x="382" y="21" fill="#5b647a" font-size="12" font-weight="500">FB &#183; IG &#183; TT &#183; X &#183; LI</text>
+  </g>
+
+  <!-- rocket accent -->
+  <g transform="translate(870 470) rotate(-42) scale(0.9)">
+    <path d="M0 46 C-10 30 -12 14 -8 -6 C-5 -22 2 -34 10 -44 C18 -34 25 -22 28 -6 C32 14 30 30 20 46 C14 50 6 50 0 46 Z" fill="#0f1830" stroke="#c8ff00" stroke-width="2.5"/>
+    <circle cx="10" cy="-8" r="7" fill="#c8ff00"/>
+    <path d="M-8 18 L-22 34 L-6 32 Z" fill="#ef4444"/>
+    <path d="M28 18 L42 34 L26 32 Z" fill="#ef4444"/>
+    <path d="M2 50 Q10 66 18 50" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <!-- bottom fade edge -->
+  <rect x="0" y="521" width="1600" height="12" fill="url(#lime)" opacity="0.35"/>
+</svg>

@@ -1,5 +1,9 @@
 # Adsbooster.net — Next-Gen AI Ad Optimization, UGC Image Studio & Verified Growth Directory
 
+<p align="center">
+  <img src="docs/assets/readme-banner.svg" alt="Adsbooster.net — AI Ad Optimization · UGC Creative Studio · Multi-Network Publishing" width="100%"/>
+</p>
+
 [![PHP Version](https://img.shields.io/badge/PHP-8.1%20%7C%208.2%20%7C%208.3%20%7C%208.4-777BB4?style=flat-square&logo=php&logoColor=white)](https://php.net)
 [![Database](https://img.shields.io/badge/MySQL-8.0%2B%20%7C%20MariaDB-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://mysql.com)
 [![AI Engines](https://img.shields.io/badge/AI-Google%20Gemini%20(Nano%20Banana%202%20%2B%20Veo)%20%7C%20Groq%20LPU%20%7C%20Firecrawl-f55036?style=flat-square)](https://ai.google.dev)
