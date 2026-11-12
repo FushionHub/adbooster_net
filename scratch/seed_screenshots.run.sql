@@ -3,8 +3,8 @@
 -- accounts so the referral screens show content, and prints the original
 -- password hashes so they can be restored afterwards.
 
-SET @pw_user  = '$2y$12$aoxw7HO7YzqN84fIcALP.OKQA0NSoWFn.t4LKSai1UEioXybYDWq.';
-SET @pw_admin = '$2y$12$uC4NzxeP77n2IuUehp1zWe7ksQRbX96NB752.jMZWUFBHEqwpIDzC';
+SET @pw_user  = '$2y$12$38WNgI4xuKjBtuaFcVL1le4Nl8VlBxkoWz9gCvnOOF7DPrMczye2K';
+SET @pw_admin = '$2y$12$r4Jc/NhQd468OorVPAOOXOQRhvYSHCCWRdribK38ADL0uLlLCQZRe';
 
 -- 1. Save the original hashes of the accounts we touch.
 SELECT 'ORIGINAL_HASH' AS tag, email, password FROM adsbooster.users

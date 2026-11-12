@@ -1,5 +1,9 @@
 # Payments & Webhooks
 
+<p align="center">
+  <img src="assets/illustration-payments-webhooks.svg" alt="Checkout to a single verification hub, with one webhook URL per payment gateway" width="100%"/>
+</p>
+
 Adsbooster accepts card, USSD and bank-transfer payments through **Flutterwave** and
 **Paystack**. Every gateway is verified through one gateway-agnostic code path, and every
 gateway gets **its own inbound webhook URL** so the credits land even when the payer never

@@ -1,5 +1,9 @@
 # Referral Programme
 
+<p align="center">
+  <img src="assets/illustration-referral-rewards.svg" alt="Referral recorded at sign-up, paid automatically on the referred user's first verified payment, with admin controls" width="100%"/>
+</p>
+
 Adsbooster rewards users who bring in new accounts. A referral is **recorded** when the new
 account registers and **paid** when that account makes its first successful payment.
 
