@@ -261,6 +261,24 @@ The SDK is the official way to drive Adsbooster from JavaScript or TypeScript �
 campaigns, posts, credits and webhooks — and is documented in
 [llms-full.md](llms-full.md) and the in-app developer docs (`developer-docs.php`).
 
+```bash
+npm install adsbooster-js-sdk
+```
+
+```js
+const { Adsbooster } = require('adsbooster-js-sdk');   // Node / CommonJS
+import { Adsbooster } from 'adsbooster-js-sdk';         // ESM / TypeScript
+
+const client = new Adsbooster({ apiKey: process.env.ADSBOOSTER_API_KEY });
+const balance = await client.credits.balance();
+```
+
+Browser users can load the same build from a CDN:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/adsbooster-js-sdk/dist/adsbooster.js"></script>
+```
+
 ---
 
 *© 2026 Jamachi Mauricennadi · Adsbooster.net. All rights reserved.*

@@ -271,3 +271,4 @@ php -d extension=php_pdo_mysql.dll vendor/bin/phpunit --filter PaymentWebhook
 |---|---|
 | Project repository | <https://github.com/FushionHub/adbooster_net> |
 | Official JS/TS SDK | <https://github.com/FushionHub/adsbooster-js-sdk> |
+| SDK on npm | <https://www.npmjs.com/package/adsbooster-js-sdk> (`npm install adsbooster-js-sdk`) |
