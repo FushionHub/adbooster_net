@@ -689,7 +689,7 @@ require_once __DIR__ . '/includes/app_header.php';
                                     <div class="card border-0 bg-dark p-3 rounded-3 h-100 d-flex flex-column justify-content-between">
                                         <div class="d-flex gap-3 mb-3">
                                             <div class="ratio ratio-1x1 rounded-2 overflow-hidden bg-black flex-shrink-0" style="width:72px;">
-                                                <img src="<?= BASE_URL ?>/<?= e($vid['thumbnail_url'] ?? 'assets/images/thumbs/about-five-img1.png') ?>" class="w-100 h-100 object-fit-cover">
+                                                <img src="<?= e(media_url($vid['thumbnail_url'] ?? 'assets/images/thumbs/about-five-img1.png')) ?>" class="w-100 h-100 object-fit-cover">
                                             </div>
                                             <div class="min-w-0">
                                                 <span class="badge bg-primary text-black fw-bold font-size-10 mb-1"><?= (int)$vid['duration_seconds'] ?>s <?= e(ucfirst($vid['avatar_id'])) ?></span>
@@ -697,7 +697,7 @@ require_once __DIR__ . '/includes/app_header.php';
                                                 <p class="text-white-50 font-size-11 mb-0 text-truncate-2"><?= e($vid['script_body']) ?></p>
                                             </div>
                                         </div>
-                                        <button type="button" class="btn btn-sm btn-accent w-100 rounded-pill fw-bold" onclick="selectPostLibraryMedia('video', '<?= e($vid['video_url']) ?>', '<?= BASE_URL ?>/<?= e($vid['thumbnail_url'] ?? 'assets/images/thumbs/about-five-img1.png') ?>', <?= htmlspecialchars(json_encode($vid['hook_text'] . "\n\n" . $vid['script_body'] . "\n\n" . ($vid['cta_text'] ?? '')), ENT_QUOTES) ?>)">
+                                        <button type="button" class="btn btn-sm btn-accent w-100 rounded-pill fw-bold" onclick="selectPostLibraryMedia('video', '<?= e(media_url($vid['video_url'])) ?>', '<?= e(media_url($vid['thumbnail_url'] ?? 'assets/images/thumbs/about-five-img1.png')) ?>', <?= htmlspecialchars(json_encode(($vid['hook_text'] ?? '') . "\n\n" . ($vid['script_body'] ?? '') . "\n\n" . ($vid['cta_text'] ?? '')), ENT_QUOTES) ?>)">
                                             <i class="ph ph-check-circle me-1"></i> Use This Video
                                         </button>
                                     </div>

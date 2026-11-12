@@ -525,6 +525,27 @@ function e(?string $value): string
 }
 
 /**
+ * Resolve a stored media path to a usable URL.
+ *
+ * Media rows mix two shapes: same-origin relative paths
+ * ("uploads/videos/x.mp4") and absolute remote URLs (Replicate/fal CDN
+ * links). Rendering a relative path raw breaks the link (it resolves
+ * against the current directory), and blindly prefixing BASE_URL breaks
+ * absolute URLs. This helper handles both.
+ */
+function media_url(?string $path): string
+{
+    $path = trim((string)($path ?? ''));
+    if ($path === '') {
+        return '';
+    }
+    if (preg_match('#^(https?:)?//#i', $path)) {
+        return $path;
+    }
+    return rtrim(BASE_URL, '/') . '/' . ltrim($path, '/');
+}
+
+/**
  * Null-safe date display: NULL/zero-date columns render as a dash
  * instead of crashing (strtotime(null) is a TypeError under
  * strict_types — this crashed the production admin Users monitor).

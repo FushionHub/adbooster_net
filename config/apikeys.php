@@ -65,6 +65,8 @@ defined('GROQ_API_KEY')       or define('GROQ_API_KEY', '');
 defined('GEMINI_API_KEY')     or define('GEMINI_API_KEY', '');
 defined('NVIDIA_API_KEY')     or define('NVIDIA_API_KEY', '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');
 defined('NVIDIA_BASE_URL')    or define('NVIDIA_BASE_URL', 'https://integrate.api.nvidia.com/v1');
+defined('NVIDIA_IMAGE_URL')   or define('NVIDIA_IMAGE_URL', 'https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-schnell');
+defined('NVIDIA_IMAGE_TIMEOUT') or define('NVIDIA_IMAGE_TIMEOUT', 75);
 
 // ── AI Video renderers (optional — the built-in Storyboard Studio needs none) ──
 defined('REPLICATE_API_TOKEN') or define('REPLICATE_API_TOKEN', 'r8_Flrivuomj0cbzIKotRZbk0giQltmoQD2iJenM');

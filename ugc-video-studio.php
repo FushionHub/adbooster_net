@@ -703,10 +703,8 @@ require_once __DIR__ . '/includes/app_header.php';
   <div class="vs-lib">
     <?php foreach ($history as $vid):
         $meta = json_decode($vid['metadata'] ?? '{}', true) ?: [];
-        $vUrl = $vid['video_url'] ?? '';
-        $vAbs = $vUrl !== '' && !preg_match('#^https?://#i', $vUrl) ? BASE_URL . '/' . ltrim($vUrl, '/') : $vUrl;
-        $tUrl = $vid['thumbnail_url'] ?? '';
-        $tAbs = $tUrl !== '' && !preg_match('#^https?://#i', $tUrl) ? BASE_URL . '/' . ltrim($tUrl, '/') : $tUrl;
+        $vAbs = media_url($vid['video_url'] ?? '');
+        $tAbs = media_url($vid['thumbnail_url'] ?? '');
         $st   = (string)$vid['status'];
         $hasVideo = $vAbs !== '' && in_array($st, ['completed'], true);
     ?>
@@ -1748,7 +1746,7 @@ syncMeta();
 setMode('ugc');
 if (PROVIDERS[ACTIVE]) $('#vs-gen-engine').textContent = PROVIDERS[ACTIVE].label;
 if (!(PROVIDERS[ACTIVE] && PROVIDERS[ACTIVE].kind !== 'storyboard')){
-  $('#vs-provider-pill').title = 'Rendering with the free built-in Studio: photoreal stills via the keyless Pollinations API, composited into a real video in your browser. Add a Replicate, Veo, fal.ai or Runway key in Admin → Settings to unlock premium cloud rendering.';
+  $('#vs-provider-pill').title = 'Rendering with the free built-in Studio: photoreal stills generated via Gemini / NVIDIA NIM / Pollinations (auto-routed, keyless fallback), composited into a real video in your browser. Add a Veo, Replicate, fal.ai or Runway key in Admin → Settings to unlock premium cloud rendering.';
 }
 window.addEventListener('beforeunload', e => {
   if (S.status === 'rendering_client' || S.playing){ e.preventDefault(); e.returnValue = ''; }

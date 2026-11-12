@@ -185,7 +185,7 @@ require_once __DIR__ . '/sidebar.php';
                                 <td>
                                     <div class="d-flex gap-2">
                                         <?php if (!empty($v['video_url'])): ?>
-                                            <a href="<?= htmlspecialchars($v['video_url']) ?>" target="_blank" class="btn-admin btn-admin-blue" title="Watch Video">
+                                            <a href="<?= e(media_url($v['video_url'])) ?>" target="_blank" class="btn-admin btn-admin-blue" title="Watch Video">
                                                 <i class="ph-bold ph-play"></i>
                                             </a>
                                         <?php endif; ?>

@@ -716,12 +716,10 @@ class AIVideoEngine
                 }
             }
 
-            // Gemini first when a key exists. Without a key, GeminiEngine
-            // falls back to the free keyless Pollinations route itself, so
-            // the built-in Storyboard route still renders real photoreal
-            // stills. (The `pollinations` route already tried Pollinations
-            // directly above — do not duplicate the attempt here.)
-            if ($generated === null && $route !== 'pollinations') {
+            // Unified engine fallback: Gemini (when a key exists), the NVIDIA
+            // NIM image route, and a final keyless Pollinations attempt — so
+            // scene stills render photoreal on every route configuration.
+            if ($generated === null) {
                 try {
                     $generated = GeminiEngine::generateImage(
                         $sc['visual_prompt'],
