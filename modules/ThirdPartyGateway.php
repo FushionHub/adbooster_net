@@ -1255,25 +1255,94 @@ class ThirdPartyGateway
             'callToAction' => $cta,
             'linkUrl'      => (string)($adPayload['destination_url'] ?? BASE_URL),
         ];
-        if ($isVideo && $mediaUrl !== '') {
-            $body['video'] = ['url' => $mediaUrl];
-        } elseif ($mediaUrl !== '') {
-            $body['imageUrl'] = $mediaUrl;
-        }
         // accountId self-heal: locally stored connection ids may be stale or
         // placeholder rows (pre-verification). Resolve a REAL connection id
-        // from GET /v1/accounts, whose items carry `_id`.
+        // from GET /v1/accounts, whose items carry `_id`. Prefer a real
+        // account whose platform matches the campaign's platforms.
+        $accPlatform = '';
+        $accName     = '';
         try {
             $realAccounts = self::zernioListAccounts();
         } catch (\Throwable $e) {
             $realAccounts = [];
         }
         if ($realAccounts) {
-            $realIds = array_values(array_filter(array_column($realAccounts, 'id')));
-            if ($realIds && ($accountId === '' || $accountId === 'default' || !in_array($accountId, $realIds, true))) {
-                $accountId = (string)$realIds[0];
-                $body['accountId'] = $accountId;
+            $wanted = [];
+            foreach ((array)($adPayload['platforms'] ?? []) as $pp) {
+                $seg = self::zernioPlatformSegment(strtolower(trim((string)$pp)));
+                if ($seg !== null) {
+                    $wanted[] = $seg;
+                }
             }
+            $preferred = null;
+            $fallback  = null;
+            foreach ($realAccounts as $ra) {
+                if (empty($ra['id'])) {
+                    continue;
+                }
+                if ($fallback === null) {
+                    $fallback = $ra;
+                }
+                if ($wanted && in_array((string)$ra['platform'], $wanted, true) && $preferred === null) {
+                    $preferred = $ra;
+                }
+            }
+            $chosen = $preferred ?? $fallback;
+            if ($chosen !== null
+                && ($accountId === '' || $accountId === 'default'
+                    || !in_array($accountId, array_column($realAccounts, 'id'), true))) {
+                $accountId = (string)$chosen['id'];
+                $accPlatform = (string)($chosen['platform'] ?? '');
+                $accName     = (string)($chosen['name'] ?? '');
+                $body['accountId'] = $accountId;
+            } elseif ($chosen !== null) {
+                foreach ($realAccounts as $ra) {
+                    if ((string)$ra['id'] === $accountId) {
+                        $accPlatform = (string)($ra['platform'] ?? '');
+                        $accName     = (string)($ra['name'] ?? '');
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Goal validation is per platform: googleads only accepts
+        // engagement | traffic | awareness | video_views — remap the
+        // internal objective honestly instead of letting the launch die.
+        if ($accPlatform === 'googleads') {
+            $goalMap = [
+                'conversions' => 'traffic', 'conversion' => 'traffic',
+                'sales'       => 'traffic', 'leads'      => 'traffic',
+                'clicks'      => 'traffic', 'link_clicks'=> 'traffic',
+                'reach'       => 'awareness',
+                'video'       => 'video_views', 'views' => 'video_views',
+            ];
+            $goal = $goalMap[$goal] ?? (in_array($goal, ['engagement', 'traffic', 'awareness', 'video_views'], true) ? $goal : 'traffic');
+            $body['goal'] = $goal;
+        }
+
+        // Creative media: only TikTok takes the `video` field; Google Ads
+        // (and every other platform) rejects it with INVALID_FIELD_VALUE and
+        // takes the media URL via the documented `imageUrl` overload.
+        if ($isVideo && $mediaUrl !== '') {
+            if ($accPlatform === 'tiktok') {
+                $body['video'] = ['url' => $mediaUrl];
+            } else {
+                $body['imageUrl'] = $mediaUrl;
+            }
+        } elseif ($mediaUrl !== '') {
+            $body['imageUrl'] = $mediaUrl;
+        }
+        if ($accPlatform === 'googleads' && !empty($body['imageUrl'])) {
+            // Google Display requires BOTH a landscape (1.91:1) and a square
+            // (1:1) image — supplying only one is rejected as "Too few."
+            // With a single creative source we send the same URL for both
+            // slots so the launch is accepted (Google re-checks aspect ratios
+            // at review time).
+            $body['images'] = ['landscape' => $mediaUrl, 'square' => $mediaUrl];
+        }
+        if ($accPlatform === 'googleads' && empty($body['businessName'])) {
+            $body['businessName'] = $accName !== '' ? $accName : get_setting('site_name', 'Adsbooster');
         }
 
         if (!empty($adPayload['targeting']) && is_array($adPayload['targeting'])) {

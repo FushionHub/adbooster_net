@@ -27,6 +27,9 @@ class SchemaGuard
             'email_2fa_code'       => 'VARCHAR(255) NULL',
             'email_2fa_expires_at' => 'DATETIME NULL',
             '2fa_attempts'         => 'TINYINT UNSIGNED NOT NULL DEFAULT 0',
+            // "Don't show again" for the onboarding popup (permanent opt-out;
+            // the session-scoped "Skip for later" lives in $_SESSION).
+            'onboarding_popup_dismissed' => 'TINYINT UNSIGNED NOT NULL DEFAULT 0',
         ],
         // Campaign Doctor recommendations (the code stores richer fields than
         // the original legacy recommendation_type/message pair).

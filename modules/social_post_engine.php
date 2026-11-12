@@ -342,12 +342,20 @@ class SocialPostEngine
 
         $status = $isSuccess ? 'published' : 'failed';
 
+        // Honest error surfacing: record WHY the gateway rejected the post
+        // (previously failures were silent — publish_error stayed empty and
+        // production had no way to see what went wrong).
+        $failReason = $isSuccess ? '' : ((string)($gatewayResult['error'] ?? '') !== ''
+            ? (string)$gatewayResult['error']
+            : (string)($gatewayResult['data']['message'] ?? 'Bundle.social publish failed.'));
+
         $previousStatus = (string)$post['status'];
 
         try {
             db()->update('scheduled_posts', [
                 'status'         => $status,
                 'bundle_post_id' => $bundlePostId,
+                'publish_error'  => $failReason !== '' ? mb_substr($failReason, 0, 500) : '',
                 'updated_at'     => date('Y-m-d H:i:s'),
             ], 'id = ?', [$postId]);
         } catch (\Throwable $e) {
@@ -370,7 +378,7 @@ class SocialPostEngine
                     Notifier::user($userId, 'post_published', $notifyData);
                 } else {
                     Notifier::user($userId, 'post_failed', array_merge($notifyData, [
-                        'reason' => mb_substr((string)($gatewayResult['data']['message'] ?? 'The social network did not accept the post.'), 0, 500),
+                        'reason' => mb_substr($failReason !== '' ? $failReason : 'The social network did not accept the post.', 0, 500),
                     ]));
                 }
             } catch (\Throwable $e) {
@@ -383,7 +391,7 @@ class SocialPostEngine
             'bundle_post_id' => $bundlePostId,
             'error'          => $simulated
                 ? 'SIMULATED: Bundle.social sandbox answer (placeholder API key) — publish held, nothing recorded as real.'
-                : ($isSuccess ? null : ((string)($gatewayResult['data']['message'] ?? '') !== '' ? (string)$gatewayResult['data']['message'] : 'Bundle.social publish failed.')),
+                : ($isSuccess ? null : ($failReason !== '' ? $failReason : 'Bundle.social publish failed.')),
             'data'           => $gatewayResult['data'] ?? null,
         ];
     }
@@ -456,4 +464,6 @@ class SocialPostEngine
             'scheduled_time' => date('Y-m-d H:i:s', $newTimestamp),
             'status'         => 'scheduled',
             'updated_at'     => date('Y-m-d H:i:s'),
-     
+        ], 'id = ? AND status IN (\'scheduled\', \'failed\')', [$postId]) > 0;
+    }
+}

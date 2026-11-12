@@ -415,7 +415,10 @@ class AsyncQueue
         }
 
         $spec = json_decode((string)($campaign['targeting_spec'] ?? '{}'), true) ?: [];
-        $adAccountId = (string)($payload['ad_account_id'] ?: ($spec['zernio_ad_account_id'] ?? 'zern_act_' . (int)$campaign['user_id']));
+        // Empty fallback on purpose: launchPaidCampaign() self-heals by
+        // resolving a REAL Zernio connection id from GET /v1/accounts.
+        // (Inventing 'zern_act_<userId>' here guaranteed a 404.)
+        $adAccountId = (string)($payload['ad_account_id'] ?: ($spec['zernio_ad_account_id'] ?? ''));
         $platforms = (array)($payload['platforms'] ?: ($spec['platforms'] ?? ['meta']));
 
         $res = ThirdPartyGateway::launchPaidCampaign([
@@ -450,7 +453,7 @@ class AsyncQueue
                     Notifier::user((int)$campaign['user_id'], 'ad_failed', [
                         'campaign_name' => (string)($campaign['campaign_name'] ?? 'Campaign'),
                         'reason'        => $failReason,
-                        'link'          => (defined('BASE_URL') ? BASE_URL : '') . '/campaigns',
+                        'link'          => (defined('BASE_URL') ? BASE_URL : '') . '/create-ad',
                         'time'          => date('c'),
                     ]);
                     $spec['failure_notified_at'] = date('c');
@@ -492,7 +495,7 @@ class AsyncQueue
                 'campaign_id'   => $zid,
                 'platforms'     => implode(', ', array_map('ucfirst', array_map('strval', $platforms))),
                 'budget'        => number_format((float)($campaign['budget_amount'] ?? 0), 2),
-                'link'          => (defined('BASE_URL') ? BASE_URL : '') . '/campaigns',
+                'link'          => (defined('BASE_URL') ? BASE_URL : '') . '/create-ad',
                 'time'          => date('c'),
             ]);
         } catch (\Throwable $mailErr) {

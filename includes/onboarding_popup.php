@@ -7,9 +7,12 @@ declare(strict_types=1);
  * Two responsive modal popups injected on every app page for users who have
  * not finished onboarding (users.onboarding_completed = 0):
  *
- *   1. obWizardModal   — a compact 3-step "welcome" wizard. Auto-opens once
- *                        per browser (localStorage flag); dismissed users get
- *                        a small floating "Finish setup" chip to reopen it.
+ *   1. obWizardModal   — a compact 3-step "welcome" wizard. Auto-opens for
+ *                        users who have not dismissed it ("Skip for later"
+ *                        is session-scoped; the "Don't show again" checkbox
+ *                        persists to users.onboarding_popup_dismissed).
+ *                        Dismissed users get a small floating "Finish setup"
+ *                        chip to reopen it.
  *   2. obConnectorModal — the social connector: every platform starts the REAL
  *                        gateway OAuth flow (Bundle.social for organic, Zernio
  *                        for ads), exactly like onboarding.php / social-connect.
@@ -29,6 +32,11 @@ if (!$obSkip) {
     $obDone      = !empty($obUser['onboarding_completed']);
     $obUserId    = current_user_id();
 
+    // Dismissal gates: "Skip for later" (session-scoped) or the permanent
+    // "Don't show again" checkbox (users.onboarding_popup_dismissed).
+    $obDismissed = !empty($_SESSION['ob_popup_dismissed'])
+        || !empty($obUser['onboarding_popup_dismissed']);
+
     $obConnected = [];
     if (!$obDone) {
         try {
@@ -42,7 +50,7 @@ if (!$obSkip) {
     }
 }
 
-if (!$obSkip && !$obDone):
+if (!$obSkip && !$obDone && !$obDismissed):
     $obCsrf = csrf_token();
     $obBase = url('onboarding');
     $obPlatforms = [
@@ -104,7 +112,10 @@ if (!$obSkip && !$obDone):
     <div class="ob-step" data-step="3" style="display:none">
       <p class="ob-note" style="margin-bottom:16px">That's it! Mark onboarding complete and jump straight in — you can always connect more accounts later from <b>Social Connect</b>.</p>
       <button type="button" class="ob-btn pri w-100" id="obFinishBtn" onclick="obComplete()"><i class="ph-bold ph-check-circle"></i> Finish setup</button>
-      <button type="button" class="ob-btn ghost w-100 mt-2" onclick="obCloseWizard()">I'll do it later</button>
+      <label class="ob-dontshow">
+        <input type="checkbox" id="obDontShow"> Don't show again
+      </label>
+      <button type="button" class="ob-btn ghost w-100 mt-2" onclick="obSkipLater()">Skip for later</button>
     </div>
   </div>
 </div>
@@ -180,6 +191,8 @@ if (!$obSkip && !$obDone):
 .ob-btn.ghost{background:transparent;border:1px solid rgba(255,255,255,.15);color:#cdd9ee}
 .ob-btn.ghost:hover{border-color:rgba(200,255,0,.35);color:#fff}
 .ob-btn:disabled{opacity:.6;cursor:not-allowed}
+.ob-dontshow{display:flex;align-items:center;justify-content:center;gap:7px;color:#9aa8c4;font-size:12px;margin:14px 0 2px;cursor:pointer;user-select:none}
+.ob-dontshow input{accent-color:#c8ff00;width:15px;height:15px;cursor:pointer}
 .ob-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:12px}
 .ob-tile{display:flex;flex-direction:column;align-items:center;gap:7px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:16px 8px;text-decoration:none;transition:border-color .15s}
 .ob-tile:hover{border-color:rgba(200,255,0,.4)}
@@ -215,13 +228,30 @@ function openOnboardingPopup() {
   var chip = document.getElementById('obReopenChip');
   if (chip) chip.classList.remove('show');
 }
-function obCloseWizard() {
-  var m = document.getElementById('obWizardModal');
-  if (m) m.style.display = 'none';
+/* Dismissal is tracked server-side: "Skip for later" is session-scoped,
+   "Don't show again" persists to users.onboarding_popup_dismissed. */
+async function obDismiss(permanent) {
+  var w = document.getElementById('obWizardModal');
+  if (w) w.style.display = 'none';
+  var c = document.getElementById('obConnectorModal');
+  if (c) c.style.display = 'none';
   document.body.style.overflow = '';
-  try { localStorage.setItem('ob_wizard_dismissed', '1'); } catch (e) {}
   var chip = document.getElementById('obReopenChip');
   if (chip) chip.classList.add('show');
+  try {
+    var fd = new FormData();
+    fd.append('action', 'dismiss_popup');
+    fd.append('permanent', permanent ? '1' : '0');
+    fd.append('csrf_token', document.getElementById('obCsrf')?.value || '');
+    await fetch('<?= $obBase ?>', { method: 'POST', body: fd, credentials: 'same-origin' });
+  } catch (e) { /* popup stays closed for this page either way */ }
+}
+function obSkipLater() {
+  var cb = document.getElementById('obDontShow');
+  obDismiss(cb && cb.checked);
+}
+function obCloseWizard() {
+  obDismiss(false);
 }
 function obGoStep(n) {
   document.querySelectorAll('#obWizardModal .ob-step').forEach(function (s) {
@@ -237,12 +267,7 @@ function openConnectorPopup() {
   if (m) m.style.display = 'flex';
 }
 function closeConnectorPopup() {
-  var m = document.getElementById('obConnectorModal');
-  if (m) m.style.display = 'none';
-  document.body.style.overflow = '';
-  try { localStorage.setItem('ob_wizard_dismissed', '1'); } catch (e) {}
-  var chip = document.getElementById('obReopenChip');
-  if (chip) chip.classList.add('show');
+  obDismiss(false);
 }
 async function obComplete() {
   var btn = document.getElementById('obFinishBtn');
@@ -270,14 +295,9 @@ document.addEventListener('keydown', function (e) {
   });
 });
 (function () {
-  var dismissed = false;
-  try { dismissed = localStorage.getItem('ob_wizard_dismissed') === '1'; } catch (e) {}
-  if (!dismissed) {
-    setTimeout(openOnboardingPopup, 600);
-  } else {
-    var chip = document.getElementById('obReopenChip');
-    if (chip) chip.classList.add('show');
-  }
+  /* The partial only renders for users who have NOT dismissed the popup
+     (server-side gate), so auto-open unless something is already open. */
+  setTimeout(openOnboardingPopup, 600);
 })();
 </script>
 

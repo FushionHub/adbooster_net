@@ -63,15 +63,29 @@ if (isset($_GET['action']) && $_GET['action'] === 'bundle_connected') {
         redirect(url('onboarding', ['step' => 1]));
     }
     $platform = $validatedPlatform;
-    $extId = trim((string)($_GET['account_id'] ?? ($_GET['external_id'] ?? ('bndl_' . $platform . '_' . bin2hex(random_bytes(4))))));
-    $name  = trim((string)($_GET['display_name'] ?? ($_GET['name'] ?? ucfirst($platform) . ' Profile')));
-    $avatar = trim((string)($_GET['avatar_url'] ?? ''));
+
+    // Verify the connection is REAL before recording it (server-side check
+    // via Bundle.social social-account/by-type — callback params are never
+    // trusted, and ids are never fabricated).
+    $bundleType = ThirdPartyGateway::bundlePlatformType($platform);
+    if ($bundleType === null) {
+        set_flash('error', "Platform '{$platform}' is not supported by the Bundle.social gateway.");
+        redirect(url('onboarding', ['step' => 1]));
+    }
+    $verified = ThirdPartyGateway::verifyBundleAccount($bundleType);
+    if (empty($verified['success'])) {
+        set_flash('error', 'The ' . ucfirst((string)$platform) . ' connection could not be verified with Bundle.social (' . ($verified['error'] ?? 'no connected account found') . '). Complete the authorization on the provider site and try again.');
+        redirect(url('onboarding', ['step' => 1]));
+    }
+    $extId  = (string)$verified['account']['id'];
+    $name   = (string)($verified['account']['name'] ?: ucfirst((string)$platform) . ' Profile');
+    $avatar = (string)($verified['account']['avatar'] ?? '');
 
     try {
         db()->query(
             "INSERT INTO connected_accounts (user_id, gateway_provider, account_type, platform_name, external_account_id, display_name, avatar_url, status)
              VALUES (?, 'bundle_social', 'organic_profile', ?, ?, ?, ?, 'connected')
-             ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), avatar_url = VALUES(avatar_url), status = 'connected'",
+             ON DUPLICATE KEY UPDATE external_account_id = VALUES(external_account_id), display_name = VALUES(display_name), avatar_url = VALUES(avatar_url), status = 'connected'",
             [$userId, $platform, $extId, $name, $avatar]
         );
         set_flash('success', "{$name} was successfully connected via Bundle.social!");
@@ -91,14 +105,30 @@ if (isset($_GET['action']) && $_GET['action'] === 'zernio_connected') {
     // Normalize to the onboarding platform key ('googleads' → 'google_ads')
     // so the connect-state check below lights up the right card.
     $network = $validatedNetwork === 'googleads' ? 'google_ads' : $validatedNetwork;
-    $extId = trim((string)($_GET['ad_account_id'] ?? ($_GET['account_id'] ?? ('act_' . $network . '_' . bin2hex(random_bytes(4))))));
-    $name  = trim((string)($_GET['name'] ?? ($_GET['display_name'] ?? ucfirst($network) . ' Ad Account')));
+
+    // Verify the connection is REAL: GET /v1/accounts must hold a
+    // connection on this platform segment, and its REAL `_id` is stored
+    // (ids are never fabricated).
+    $segment = ThirdPartyGateway::zernioPlatformSegment($network) ?: $network;
+    $match = null;
+    foreach (ThirdPartyGateway::zernioListAccounts() as $za) {
+        if (($za['platform'] ?? '') === $segment && !empty($za['id'])) {
+            $match = $za;
+            break;
+        }
+    }
+    if ($match === null) {
+        set_flash('error', 'The ' . ucfirst((string)$network) . ' ad-account connection could not be verified with Zernio (no connected account found on the gateway). Complete the authorization on the provider site and try again.');
+        redirect(url('onboarding', ['step' => 1]));
+    }
+    $extId = (string)$match['id'];
+    $name  = (string)($match['name'] ?: (ucfirst((string)$network) . ' Ad Account'));
 
     try {
         db()->query(
             "INSERT INTO connected_accounts (user_id, gateway_provider, account_type, platform_name, external_account_id, display_name, status)
              VALUES (?, 'zernio', 'ad_account', ?, ?, ?, 'connected')
-             ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), status = 'connected'",
+             ON DUPLICATE KEY UPDATE external_account_id = VALUES(external_account_id), display_name = VALUES(display_name), status = 'connected'",
             [$userId, $network, $extId, $name]
         );
         set_flash('success', "{$name} was successfully connected via Zernio Ad Gateway!");
@@ -114,6 +144,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = '<div class="alert alert-danger">Invalid security token.</div>';
     } else {
         $action = $_POST['action'] ?? '';
+
+        if ($action === 'dismiss_popup') {
+            // AJAX: onboarding popup dismissal ("Skip for later" / "Don't
+            // show again" checkbox). Session-scoped by default; persisted to
+            // users.onboarding_popup_dismissed when the checkbox was ticked.
+            $_SESSION['ob_popup_dismissed'] = 1;
+            if (!empty($_POST['permanent'])) {
+                try {
+                    db()->update('users', ['onboarding_popup_dismissed' => 1], 'id = ?', [$userId]);
+                } catch (\Throwable $e) {
+                    error_log('onboarding_popup_dismissed persist failed: ' . $e->getMessage());
+                }
+            }
+            header('Content-Type: text/plain; charset=utf-8');
+            echo 'ok';
+            exit;
+        }
 
         if ($action === 'disconnect_social') {
             $platform = trim($_POST['platform'] ?? '');

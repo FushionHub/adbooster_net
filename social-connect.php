@@ -42,15 +42,32 @@ if (isset($_GET['action']) && $_GET['action'] === 'bundle_connected') {
         redirect(url('social-connect'));
     }
     $platform = $validatedPlatform;
-    $extId = trim((string)($_GET['account_id'] ?? ($_GET['external_id'] ?? ('bndl_' . $platform . '_' . bin2hex(random_bytes(4))))));
-    $name = trim((string)($_GET['display_name'] ?? ($_GET['name'] ?? ucfirst($platform) . ' Profile')));
-    $avatar = trim((string)($_GET['avatar_url'] ?? ''));
+
+    // Verify the connection is REAL before recording it: Bundle.social's
+    // team must actually hold an account of this type (checked server-side
+    // via GET /v1/social-account/by-type). Callback query params are never
+    // trusted — earlier code fabricated ids like 'bndl_facebook_…' and
+    // marked accounts connected that did not exist, which made every later
+    // publish fail with "No social accounts selected".
+    $bundleType = ThirdPartyGateway::bundlePlatformType($platform);
+    if ($bundleType === null) {
+        set_flash('error', "Platform '{$platform}' is not supported by the Bundle.social gateway.");
+        redirect(url('social-connect'));
+    }
+    $verified = ThirdPartyGateway::verifyBundleAccount($bundleType);
+    if (empty($verified['success'])) {
+        set_flash('error', 'The ' . ucfirst((string)$platform) . ' connection could not be verified with Bundle.social (' . ($verified['error'] ?? 'no connected account found') . '). Complete the authorization on the provider site and try again.');
+        redirect(url('social-connect'));
+    }
+    $extId  = (string)$verified['account']['id'];
+    $name   = (string)($verified['account']['name'] ?: ucfirst((string)$platform) . ' Profile');
+    $avatar = (string)($verified['account']['avatar'] ?? '');
 
     try {
         db()->query(
             "INSERT INTO connected_accounts (user_id, gateway_provider, account_type, platform_name, external_account_id, display_name, avatar_url, status)
              VALUES (?, 'bundle_social', 'organic_profile', ?, ?, ?, ?, 'connected')
-             ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), avatar_url = VALUES(avatar_url), status = 'connected'",
+             ON DUPLICATE KEY UPDATE external_account_id = VALUES(external_account_id), display_name = VALUES(display_name), avatar_url = VALUES(avatar_url), status = 'connected'",
             [$userId, $platform, $extId, $name, $avatar]
         );
         try {
@@ -89,14 +106,31 @@ if (isset($_GET['action']) && $_GET['action'] === 'zernio_connected') {
         redirect(url('social-connect'));
     }
     $network = $validatedNetwork;
-    $extId = trim((string)($_GET['ad_account_id'] ?? ($_GET['account_id'] ?? ('act_' . $network . '_' . bin2hex(random_bytes(4))))));
-    $name = trim((string)($_GET['name'] ?? ($_GET['display_name'] ?? ucfirst($network) . ' Ad Account')));
+
+    // Verify the connection is REAL: GET /v1/accounts must hold a
+    // connection on this platform segment, and its REAL `_id` is stored
+    // (earlier code invented ids like 'act_google_…' which made every
+    // ad-account lookup and campaign launch fail).
+    $segment = ThirdPartyGateway::zernioPlatformSegment($network) ?: $network;
+    $match = null;
+    foreach (ThirdPartyGateway::zernioListAccounts() as $za) {
+        if (($za['platform'] ?? '') === $segment && !empty($za['id'])) {
+            $match = $za;
+            break;
+        }
+    }
+    if ($match === null) {
+        set_flash('error', 'The ' . ucfirst((string)$network) . ' ad-account connection could not be verified with Zernio (no connected account found on the gateway). Complete the authorization on the provider site and try again.');
+        redirect(url('social-connect'));
+    }
+    $extId = (string)$match['id'];
+    $name  = (string)($match['name'] ?: (ucfirst((string)$network) . ' Ad Account'));
 
     try {
         db()->query(
             "INSERT INTO connected_accounts (user_id, gateway_provider, account_type, platform_name, external_account_id, display_name, status)
              VALUES (?, 'zernio', 'ad_account', ?, ?, ?, 'connected')
-             ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), status = 'connected'",
+             ON DUPLICATE KEY UPDATE external_account_id = VALUES(external_account_id), display_name = VALUES(display_name), status = 'connected'",
             [$userId, $network, $extId, $name]
         );
         try {
