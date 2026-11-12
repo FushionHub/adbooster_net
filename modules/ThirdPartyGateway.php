@@ -880,6 +880,60 @@ class ThirdPartyGateway
      * @return array Legacy envelope; data.accounts carries a flattened
      *         per-platform account list (empty list when none connected).
      */
+    /** Public wrapper: map a local platform key to its Bundle.social type (FACEBOOK, INSTAGRAM, …). */
+    public static function bundlePlatformType(string $platform): ?string
+    {
+        return self::bundleType($platform);
+    }
+
+    /**
+     * Verify a Bundle.social connection is REAL: the team must actually hold
+     * an account of the given type (verified server-side via
+     * GET /v1/social-account/by-type). OAuth callback query params are never
+     * trusted — earlier code fabricated ids like 'bndl_facebook_…' and marked
+     * accounts connected that did not exist on the gateway.
+     *
+     * @return array{success:bool, error?:string, account?:array{id:string,name:string,avatar:string}}
+     */
+    public static function verifyBundleAccount(string $type): array
+    {
+        $teamId = self::bundleTeamId();
+        if ($teamId === null) {
+            return ['success' => false, 'error' => 'the Bundle.social team could not be resolved (API key or connectivity issue)'];
+        }
+
+        $res = self::makeRequest('bundle_social', 'social-account/by-type', 'GET', [], [
+            'query' => ['type' => $type, 'teamId' => $teamId],
+        ]);
+        if (empty($res['success'])) {
+            $err = $res['error'] ?? '';
+            if (is_array($err)) {
+                $err = (string)($err['message'] ?? json_encode($err));
+            }
+            $err = trim((string)$err);
+            if ($err === '') {
+                $err = 'HTTP ' . (string)($res['status_code'] ?? 0);
+            }
+            return ['success' => false, 'error' => mb_substr($err, 0, 300)];
+        }
+
+        $data = $res['data'] ?? [];
+        $candidates = is_array($data) ? ($data['items'] ?? ($data['accounts'] ?? (isset($data['id']) ? [$data] : []))) : [];
+        foreach ((array)$candidates as $acc) {
+            if (is_array($acc) && !empty($acc['id'])) {
+                return [
+                    'success' => true,
+                    'account' => [
+                        'id'     => (string)$acc['id'],
+                        'name'   => (string)($acc['name'] ?? ($acc['displayName'] ?? ($acc['username'] ?? ($acc['accountName'] ?? '')))),
+                        'avatar' => (string)($acc['avatarUrl'] ?? ($acc['avatar'] ?? '')),
+                    ],
+                ];
+            }
+        }
+        return ['success' => false, 'error' => 'the gateway returned no usable account for this platform'];
+    }
+
     public static function getBundleConnectedAccounts(): array
     {
         $types = [];
@@ -1026,7 +1080,7 @@ class ThirdPartyGateway
     // =========================================================================
 
     /** Zernio posting-platform alias → /v1/connect/{platform} segment name. */
-    private static function zernioPlatformSegment(string $network): ?string
+    public static function zernioPlatformSegment(string $network): ?string
     {
         $n = strtolower(trim($network));
         return match ($n) {
@@ -1206,8 +1260,30 @@ class ThirdPartyGateway
         } elseif ($mediaUrl !== '') {
             $body['imageUrl'] = $mediaUrl;
         }
+        // accountId self-heal: locally stored connection ids may be stale or
+        // placeholder rows (pre-verification). Resolve a REAL connection id
+        // from GET /v1/accounts, whose items carry `_id`.
+        try {
+            $realAccounts = self::zernioListAccounts();
+        } catch (\Throwable $e) {
+            $realAccounts = [];
+        }
+        if ($realAccounts) {
+            $realIds = array_values(array_filter(array_column($realAccounts, 'id')));
+            if ($realIds && ($accountId === '' || $accountId === 'default' || !in_array($accountId, $realIds, true))) {
+                $accountId = (string)$realIds[0];
+                $body['accountId'] = $accountId;
+            }
+        }
+
         if (!empty($adPayload['targeting']) && is_array($adPayload['targeting'])) {
-            $body['targeting'] = $adPayload['targeting'];
+            // Zernio rejects unknown fields (INVALID_FIELD_VALUE) and the
+            // internal targeting_spec is snake_case housekeeping + comma
+            // strings — normalize to the clean TargetingSpec contract.
+            $normalized = self::zernioNormalizeTargeting($adPayload['targeting'], $accountId);
+            if ($normalized) {
+                $body['targeting'] = $normalized;
+            }
         }
 
         // adAccountId is required but the caller may not know it: resolve the
@@ -1343,6 +1419,176 @@ class ThirdPartyGateway
      * @return array Legacy envelope; data.ad_accounts carries the flattened
      *         platform ad account list.
      */
+    /**
+     * REAL Zernio connected accounts (GET /v1/accounts), normalized to
+     * [{id (= `_id`), platform, isActive, name}]. The provider's own list is
+     * the source of truth — locally stored connection ids may be stale or
+     * placeholder rows that never resolve.
+     */
+    public static function zernioListAccounts(): array
+    {
+        $res = self::makeRequest('zernio', 'accounts', 'GET');
+        if (empty($res['success']) || !is_array($res['data'] ?? null)) {
+            return [];
+        }
+        $items = $res['data']['accounts'] ?? ($res['data']['items'] ?? []);
+        if (!is_array($items)) {
+            return [];
+        }
+        $out = [];
+        foreach ($items as $it) {
+            if (!is_array($it)) {
+                continue;
+            }
+            $id = (string)($it['_id'] ?? ($it['id'] ?? ''));
+            if ($id === '') {
+                continue;
+            }
+            $out[] = [
+                'id'       => $id,
+                'platform' => (string)($it['platform'] ?? ''),
+                'isActive' => !empty($it['isActive']),
+                'name'     => (string)($it['displayName'] ?? ($it['username'] ?? '')),
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * Convert the internal targeting_spec (snake_case form fields from
+     * create-ad.php plus housekeeping keys written by the queue worker) into
+     * the clean Zernio TargetingSpec contract:
+     *   - camelCase ageMin/ageMax (ints clamped to 13–65, min <= max)
+     *   - countries: ISO-3166-1 alpha-2 codes, resolved via targeting/search
+     *     (dimension=geo, exact country-type name match); 2-letter codes pass
+     *     through directly
+     *   - interests: array of {id, name} resolved via targeting/search
+     *     (dimension=interest, interestKeyword fallback); unresolvable names
+     *     are DROPPED rather than sent — Zernio rejects unknown values with
+     *     INVALID_FIELD_VALUE, which kills the entire launch
+     *   - every internal/unrecognized key is dropped (whitelist contract)
+     */
+    private static function zernioNormalizeTargeting(array $raw, string $accountId): array
+    {
+        $out = [];
+        $accId = $accountId !== '' ? $accountId : 'default';
+
+        // ageMin / ageMax.
+        $ageMin = $raw['ageMin'] ?? ($raw['age_min'] ?? null);
+        $ageMax = $raw['ageMax'] ?? ($raw['age_max'] ?? null);
+        if ($ageMin !== null && $ageMin !== '') {
+            $ageMin = max(13, min(65, (int)$ageMin));
+            $out['ageMin'] = $ageMin;
+        }
+        if ($ageMax !== null && $ageMax !== '') {
+            $ageMax = max(13, min(65, (int)$ageMax));
+            if (isset($out['ageMin']) && $ageMax < $out['ageMin']) {
+                $ageMax = $out['ageMin'];
+            }
+            $out['ageMax'] = $ageMax;
+        }
+
+        // countries: "United States, United Kingdom" | ["US","GB"] | mixed.
+        $countries = [];
+        $geoNames  = [];
+        $geoRaw    = $raw['countries'] ?? ($raw['geo'] ?? '');
+        $geoParts  = is_array($geoRaw)
+            ? $geoRaw
+            : (preg_split('~[,;]\s*~', trim((string)$geoRaw)) ?: []);
+        foreach ($geoParts as $g) {
+            $g = trim((string)$g);
+            if ($g === '') {
+                continue;
+            }
+            if (preg_match('~^[A-Za-z]{2}$~', $g)) {
+                $countries[] = strtoupper($g);
+            } else {
+                $geoNames[] = $g;
+            }
+        }
+        foreach (array_unique($geoNames) as $nm) {
+            try {
+                $r = self::makeRequest('zernio', 'ads/targeting/search', 'GET', [], [
+                    'query' => ['accountId' => $accId, 'dimension' => 'geo', 'q' => $nm, 'platform' => 'facebook'],
+                ]);
+            } catch (\Throwable $e) {
+                continue;
+            }
+            foreach ((array)($r['data']['results'] ?? []) as $hit) {
+                if (is_array($hit)
+                    && ($hit['type'] ?? '') === 'country'
+                    && strcasecmp((string)($hit['name'] ?? ''), $nm) === 0
+                    && !empty($hit['id'])) {
+                    $countries[] = strtoupper((string)$hit['id']);
+                    break;
+                }
+            }
+        }
+        $countries = array_values(array_unique($countries));
+        if ($countries) {
+            $out['countries'] = $countries;
+        }
+
+        // interests: "A, B" | ["A","B"] | [{id,name},...].
+        $resolved  = [];
+        $intNames  = [];
+        $intRaw    = $raw['interests'] ?? [];
+        $intParts  = is_array($intRaw)
+            ? $intRaw
+            : (preg_split('~[,;]\s*~', trim((string)$intRaw)) ?: []);
+        foreach ($intParts as $it) {
+            if (is_array($it)) {
+                if (!empty($it['id'])) {
+                    $resolved[] = ['id' => (string)$it['id'], 'name' => (string)($it['name'] ?? '')];
+                }
+            } else {
+                $n = trim((string)$it);
+                if ($n !== '') {
+                    $intNames[] = $n;
+                }
+            }
+        }
+        foreach (array_unique($intNames) as $nm) {
+            $hit = null;
+            foreach (['interest', 'interestKeyword'] as $dim) {
+                try {
+                    $r = self::makeRequest('zernio', 'ads/targeting/search', 'GET', [], [
+                        'query' => ['accountId' => $accId, 'dimension' => $dim, 'q' => $nm, 'platform' => 'facebook'],
+                    ]);
+                } catch (\Throwable $e) {
+                    continue;
+                }
+                $results = (array)($r['data']['results'] ?? []);
+                if ($results) {
+                    $candidate = reset($results);
+                    if (is_array($candidate) && !empty($candidate['id'])) {
+                        $hit = $candidate;
+                    }
+                    break;
+                }
+            }
+            if ($hit !== null) {
+                $resolved[] = ['id' => (string)$hit['id'], 'name' => (string)($hit['name'] ?? $nm)];
+            }
+            // Unresolvable interests are dropped silently — sending them
+            // invalidates the whole launch (INVALID_FIELD_VALUE).
+        }
+        if ($resolved) {
+            $out['interests'] = $resolved;
+        }
+
+        // gender passthrough (all|male|female → 0|1|2), ints pass through.
+        $gender = $raw['gender'] ?? null;
+        if ($gender !== null && $gender !== '' && $gender !== 'all') {
+            $map = ['male' => 1, 'female' => 2];
+            $out['gender'] = is_string($gender) && isset($map[strtolower($gender)])
+                ? $map[strtolower($gender)]
+                : (int)$gender;
+        }
+
+        return $out;
+    }
+
     public static function getZernioAdAccounts(?string $zernioAccountId = null): array
     {
         // Resolve candidate connection ids.
@@ -1365,6 +1611,21 @@ class ThirdPartyGateway
             } catch (\Throwable $e) {
                 $connectionIds = [];
             }
+        }
+
+        // Self-heal: locally stored ids may be placeholders/stale (pre-
+        // verification rows). Always union with the REAL connection ids
+        // reported by GET /v1/accounts (items carry `_id`) so ad-account
+        // resolution never silently finds nothing.
+        try {
+            foreach (self::zernioListAccounts() as $acc) {
+                $rid = (string)($acc['id'] ?? '');
+                if ($rid !== '' && !in_array($rid, $connectionIds, true)) {
+                    $connectionIds[] = $rid;
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fall through to whatever ids we already collected.
         }
 
         if (!$connectionIds) {

@@ -62,10 +62,19 @@ final class PaymentWebhook
         if ($event === '') {
             return false;
         }
-        if (preg_match('/\b(success|successful|completed|paid)\b/', $event)) {
-            return true;
+
+        // Event names use different separators ("charge.success",
+        // "charge_completed", "transaction-successful"). Normalise them
+        // to words so the match does not depend on the separator.
+        $normalised = preg_replace('/[^a-z0-9]+/', ' ', $event) ?? '';
+
+        // A negated word wins over a success word: "unsuccessful" and
+        // "not successful" must never settle an order.
+        if (preg_match('/\b(unsuccessful|unsuccess|not success(?:ful)?|failed|failure|cancelled|canceled|reversed|refunded)\b/', $normalised)) {
+            return false;
         }
-        return str_ends_with($event, '.success') || str_ends_with($event, '.completed');
+
+        return (bool)preg_match('/\b(success|successful|completed|paid)\b/', $normalised);
     }
 
     /**

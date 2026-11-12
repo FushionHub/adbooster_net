@@ -267,8 +267,24 @@ class SocialPostEngine
         if (!$post) {
             return ['success' => false, 'error' => 'Scheduled post not found.', 'bundle_post_id' => ''];
         }
-        if (!in_array((string)$post['status'], ['scheduled', 'publishing'], true)) {
+        if (!in_array((string)$post['status'], ['scheduled', 'publishing', 'failed'], true)) {
             return ['success' => false, 'error' => "Post is already {$post['status']}.", 'bundle_post_id' => ''];
+        }
+        if ((string)$post['status'] === 'failed') {
+            // Self-heal: a retried publish job whose row is already failed
+            // resets the row so the publish can actually run again. Without
+            // this, queue retries deadlock forever on "Post is already
+            // failed." (observed in production).
+            try {
+                db()->update('scheduled_posts', [
+                    'status'        => 'scheduled',
+                    'publish_error' => '',
+                    'updated_at'    => date('Y-m-d H:i:s'),
+                ], 'id = ?', [$postId]);
+            } catch (\Throwable $resetErr) {
+                error_log('publishScheduledRow retry-reset error: ' . $resetErr->getMessage());
+            }
+            $post['status'] = 'scheduled';
         }
 
         $userId = (int)$post['user_id'];
@@ -280,8 +296,9 @@ class SocialPostEngine
             // Do not route paid/unknown channels through the organic gateway.
             try {
                 db()->update('scheduled_posts', [
-                    'status'     => 'failed',
-                    'updated_at' => date('Y-m-d H:i:s'),
+                    'status'        => 'failed',
+                    'publish_error' => mb_substr($e->getMessage(), 0, 500),
+                    'updated_at'    => date('Y-m-d H:i:s'),
                 ], 'id = ?', [$postId]);
             } catch (\Throwable $uErr) {
                 error_log('publishScheduledRow status update error: ' . $uErr->getMessage());
@@ -439,6 +456,4 @@ class SocialPostEngine
             'scheduled_time' => date('Y-m-d H:i:s', $newTimestamp),
             'status'         => 'scheduled',
             'updated_at'     => date('Y-m-d H:i:s'),
-        ], 'id = ? AND status IN (\'scheduled\', \'failed\')', [$postId]) > 0;
-    }
-}
+     
