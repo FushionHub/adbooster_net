@@ -83,9 +83,9 @@ require_once __DIR__ . '/includes/header.php';
                                 <div class="flex-grow-1">
                                     <a href="https://jmn.morexweb.com" target="_blank" rel="noopener noreferrer"
                                         class="tw-rounded-xl overflow-hidden d-block position-relative view-cursor-show">
-                                        <img src="<?= ASSETS_URL ?>/images/thumbs/team-three-img1.png" alt="Jamachi Mauricennadi"
+                                        <img src="<?= ASSETS_URL ?>/images/thumbs/jamachi-mauricennadi.jpg" alt="Jamachi Mauricennadi"
                                             class="image-double-animation__element tw-rounded-xl w-100 object-fit-cover">
-                                        <img src="<?= ASSETS_URL ?>/images/thumbs/team-three-img1.png" alt="Jamachi Mauricennadi"
+                                        <img src="<?= ASSETS_URL ?>/images/thumbs/jamachi-mauricennadi.jpg" alt="Jamachi Mauricennadi"
                                             class="image-double-animation__element tw-rounded-xl w-100 object-fit-cover">
                                     </a>
                                 </div>

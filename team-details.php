@@ -55,7 +55,7 @@ $emailUrl     = 'mailto:' . rawurlencode($contactEmail)
                 <div class="row gy-5">
                     <div class="col-lg-6">
                         <div class="hover-animation-white h-100">
-                            <img src="<?= ASSETS_URL ?>/images/thumbs/team-details-img.png" alt="Jamachi Mauricennadi"
+                            <img src="<?= ASSETS_URL ?>/images/thumbs/jamachi-mauricennadi.jpg" alt="Jamachi Mauricennadi"
                                 class="tw-rounded-xl w-100 h-100 object-fit-cover">
                         </div>
                     </div>
