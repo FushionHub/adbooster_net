@@ -177,7 +177,9 @@ $search   = trim((string)($_GET['q'] ?? ''));
 $fStatus  = trim((string)($_GET['status'] ?? ''));
 $fRole    = trim((string)($_GET['role'] ?? ''));
 $page     = max(1, (int)($_GET['page'] ?? 1));
-$perPage  = 25;
+// The admin picks how many rows per page (10–100); 25 is the default.
+$perPageRaw = (int)($_GET['per_page'] ?? 25);
+$perPage    = in_array($perPageRaw, [10, 25, 50, 100], true) ? $perPageRaw : 25;
 
 $conds  = ['1=1'];
 $params = [];
@@ -224,8 +226,13 @@ $kpi = db()->fetchOne(
 
 function user_query(array $extra): string
 {
-    $qs = http_build_query(array_merge($_GET, $extra, ['page' => null]));
-    return '?' . preg_replace('/page=$|&page=$/', '', $qs);
+    // Merge $_GET with the overrides LAST so an explicit page (or per_page)
+    // wins; a null value is dropped by http_build_query, which is exactly
+    // what we want when resetting the page after a filter change.
+    // (The old version merged ['page' => null] after $extra, which erased
+    // the page the caller asked for — every pagination link went to page 1.)
+    $qs = http_build_query(array_merge($_GET, $extra));
+    return '?' . $qs;
 }
 
 require_once __DIR__ . '/sidebar.php';
@@ -271,7 +278,7 @@ require_once __DIR__ . '/sidebar.php';
                 <?php endforeach; ?>
             </select>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <label class="form-label-admin">Role</label>
             <select name="role" class="form-select-admin w-100">
                 <option value="">All roles</option>
@@ -280,13 +287,21 @@ require_once __DIR__ . '/sidebar.php';
                 <?php endforeach; ?>
             </select>
         </div>
-        <div class="col-md-2 d-flex gap-2">
-            <button type="submit" class="btn-admin btn-admin-green flex-grow-1"><i class="ph-bold ph-funnel"></i> Filter</button>
+        <div class="col-md-1">
+            <label class="form-label-admin">Show</label>
+            <select name="per_page" class="form-select-admin w-100" onchange="this.form.submit()" title="Users per page">
+                <?php foreach ([10, 25, 50, 100] as $pp): ?>
+                    <option value="<?= $pp ?>" <?= $perPage === $pp ? 'selected' : '' ?>><?= $pp ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="col-md-1 d-flex gap-2">
+            <button type="submit" class="btn-admin btn-admin-green flex-grow-1" title="Apply filters"><i class="ph-bold ph-funnel"></i></button>
             <a href="<?= url('admin/users') ?>" class="btn-admin btn-admin-outline" title="Reset">✕</a>
         </div>
     </div>
     <div class="text-muted mt-2" style="font-size:0.78rem;">
-        <?= number_format($total) ?> user(s) match · page <?= $page ?> of <?= $pages ?>
+        <?= number_format($total) ?> user(s) match · page <?= $page ?> of <?= $pages ?> · showing <?= $perPage ?> per page
     </div>
 </form>
 

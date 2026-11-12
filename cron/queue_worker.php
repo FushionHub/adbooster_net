@@ -32,6 +32,13 @@ if (PHP_SAPI !== 'cli') {
 require_once __DIR__ . '/../config/site_setting_and_config.php';
 require_once __DIR__ . '/../modules/AsyncQueue.php';
 
+/**
+ * Content-calendar post reminders piggyback on this every-minute worker so
+ * they need no extra cron line. Idempotent (reminders_sent counter), so
+ * running it once per cycle is safe in both --once and daemon mode.
+ */
+require_once __DIR__ . '/../modules/post_reminders.php';
+
 $args = [];
 foreach (array_slice($argv, 1) as $arg) {
     $kv = explode('=', $arg, 2);
@@ -53,6 +60,14 @@ if (isset($args['retry-failed'])) {
 if (isset($args['once'])) {
     $stats = AsyncQueue::processBatch(10, $logger);
     $logger('Batch done. Claimed: ' . $stats['claimed'] . ' | Completed: ' . $stats['completed'] . ' | Failed/backoff: ' . $stats['failed']);
+    try {
+        $reminders = PostReminders::dispatch();
+        if ($reminders > 0) {
+            $logger("Sent {$reminders} post reminder(s).");
+        }
+    } catch (\Throwable $e) {
+        $logger('Post reminders failed: ' . $e->getMessage());
+    }
     exit($stats['failed'] > 0 ? 1 : 0);
 }
 
@@ -61,6 +76,11 @@ while (true) {
     $stats = AsyncQueue::processBatch(10, $logger);
     if ($stats['claimed'] > 0) {
         $logger('Batch: claimed=' . $stats['claimed'] . ' completed=' . $stats['completed'] . ' failed=' . $stats['failed']);
+    }
+    try {
+        PostReminders::dispatch();
+    } catch (\Throwable $e) {
+        error_log('Post reminders failed: ' . $e->getMessage());
     }
     sleep(2); // Rest worker cycle
 }

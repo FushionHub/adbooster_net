@@ -291,6 +291,20 @@ $sqls = [
       PRIMARY KEY (`id`),
       KEY `idx_bounty_subs_bounty` (`bounty_id`),
       KEY `idx_bounty_subs_creator` (`creator_user_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;",
+
+  // Content Calendar: free-form sticky notes pinned to a day. Kept separate
+  // from scheduled_posts so a note never depends on a post existing.
+  "CREATE TABLE IF NOT EXISTS `calendar_notes` (
+      `id` int NOT NULL AUTO_INCREMENT,
+      `user_id` int NOT NULL,
+      `note_date` date NOT NULL,
+      `note` text,
+      `color` varchar(20) DEFAULT 'lime',
+      `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+      `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (`id`),
+      KEY `idx_calendar_notes_user` (`user_id`, `note_date`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;"
 ];
 

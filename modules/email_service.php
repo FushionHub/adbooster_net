@@ -411,9 +411,22 @@ HTML;
                         <a href="{{link}}" class="btn-action">Open my content calendar &rarr;</a>
                     </div>',
             ],
-            'post_published' => [
-                'subject' => 'Your {{platform}} post is live 🎉',
+            'post_reminder' => [
+                'subject' => 'Reminder {{reminder_no}}/{{reminder_total}}: {{platform}} post goes out {{reminder_for}} from now',
                 'body' => '
+                    <h2>Your scheduled post is coming up ⏰</h2>
+                    <p>Hi {{name}},</p>
+                    <p>This is reminder <b>{{reminder_no}} of {{reminder_total}}</b>: your post to <b>{{platform}}</b> goes out <b>{{reminder_for}}</b> from now ({{scheduled_time}}).</p>
+                    <div style="background:#080c14;border-left:3px solid #c8ff00;border-radius:6px;padding:16px 20px;margin:20px 0;">
+                        "{{caption}}"
+                    </div>
+                    <p style="color:#94a3b8;font-size:13px;">You set how many reminders you get on the content calendar — open any scheduled post and choose 0 to turn them off.</p>
+                    <div style="text-align:center;">
+                        <a href="{{link}}" class="btn-action">Open my content calendar &rarr;</a>
+                    </div>',
+            ],
+            'post_published' => [
+                'subject' => 'Your {{platform}} post is live 🎉',                'body' => '
                     <h2>Published successfully 🎉</h2>
                     <p>Hi {{name}},</p>
                     <p>Your post went live on <b>{{platform}}</b>.</p>

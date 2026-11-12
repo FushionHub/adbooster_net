@@ -316,5 +316,10 @@ function closeQuickGuide() {
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeQuickGuide(); });
 </script>
 <?php endif; ?>
+
+<?php
+// ── Onboarding popup + social connector (responsive, gateway-backed) ──
+require_once __DIR__ . '/onboarding_popup.php';
+?>
 </body>
 </html>

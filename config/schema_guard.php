@@ -68,6 +68,13 @@ class SchemaGuard
         'ticket_messages' => [
             'attachment_path' => 'VARCHAR(255) NULL',
         ],
+        // Per-post reminder plan for the content calendar: how many email
+        // reminders the user wants before publish time, and how many the
+        // cron has already sent (duplicate-prevention counter).
+        'scheduled_posts' => [
+            'reminder_count'  => 'INT NULL DEFAULT 3',
+            'reminders_sent'  => 'INT NULL DEFAULT 0',
+        ],
     ];
 
     /**
