@@ -4,18 +4,6 @@ declare(strict_types=1);
 $pageTitle = 'About Us - Adsbooster.net';
 $pageDescription = 'Learn about Adsbooster.net - Your multi-network advertising platform.';
 require_once __DIR__ . '/includes/header.php';
-
-/** Real, current pricing — rendered straight from the pricing_plans table. */
-$aboutPlans = [];
-try {
-    $aboutPlans = db()->fetchAll(
-        "SELECT * FROM pricing_plans
-         WHERE status = 'active' AND billing_cycle = 'monthly'
-         ORDER BY price ASC"
-    );
-} catch (\Throwable $e) {
-    $aboutPlans = [];
-}
 ?>
 
 <div id="smooth-wrapper" class="">
@@ -251,100 +239,6 @@ try {
                 <img src="<?= ASSETS_URL ?>/images/shapes/about-shape1.png" alt="Shape" class="position-absolute d-lg-block d-none z-1 tw-start-0 top-0 tw-mt-17 tw-pt-6 animated-upDown">
                 <img src="<?= ASSETS_URL ?>/images/shapes/about-shape2.png" alt="Shape" class="position-absolute d-lg-block d-none z-1 tw-end-0 top-0 tw-mb-11 animated-upDown">
                 
-                <!-- ========================= pricing plan two section start =============================== -->
-<section class="pricing-plan-two py-120">
-  <div class="container">
-    <!-- Section heading start -->
-    <div class="max-w-680-px text-center mx-auto tw-mb-10" data-aos="fade-up" data-aos-duration="800"
-      data-aos-delay="100">
-      <span class="bg-main-50 text-main-600 fw-medium tw-text-base rounded-pill tw-px-5 tw-py-1 tw-mb-6">
-        Our Pricing Plan</span>
-      <h2 class="splitTextStyleOne cursor-big">
-        Fair, Simple
-        <span class="font-playfair fw-normal font-playfair fst-italic">Start Pricing</span>
-      </h2>
-    </div>
-    <!-- Section heading end -->
-
-    <div class="row g-0 align-items-center pricing-plan-two-wrapper">
-      <?php if (empty($aboutPlans)): ?>
-      <div class="col-12">
-        <p class="text-center text-neutral-500 tw-text-lg">
-          Our current plans are being updated — please check the <a href="<?= url('billing') ?>" class="text-main-600 fw-semibold">pricing page</a> or contact us.
-        </p>
-      </div>
-      <?php else: ?>
-      <?php foreach ($aboutPlans as $aboutIndex => $aboutPlan): ?>
-      <?php
-        $aboutFeatures = json_decode((string)($aboutPlan['features_json'] ?? '[]'), true);
-        if (!is_array($aboutFeatures)) {
-            $aboutFeatures = [];
-        }
-        $aboutFeatured  = !empty($aboutPlan['is_featured']);
-        $aboutPlanPrice = (float)($aboutPlan['price'] ?? 0);
-        $aboutPlanId    = (int)($aboutPlan['id'] ?? 0);
-        // Show at most six features per card on this overview page.
-        $aboutFeatures  = array_slice($aboutFeatures, 0, 6);
-      ?>
-      <div class="col-xl-4 col-md-6 p-0 pricing-plan-two-item">
-        <div class="tw-p-48-px bg-white tw-rounded-32-px common-shadow-3 <?= $aboutFeatured ? 'border border-main-two-600' : 'border border-neutral-200' ?>">
-          <?php if ($aboutFeatured): ?>
-          <div class="text-center bg-main-two-600 tw-py-2 tw-px-4 tw-rounded-pill tw-mb-5">
-            <span class="text-heading fw-semibold tw-text-base">Most Popular</span>
-          </div>
-          <?php endif; ?>
-          <h2 class="text-22-px tw-mb-5"><?= e((string)($aboutPlan['name'] ?? 'Plan')) ?> Plan</h2>
-          <p class="text-neutral-500 fw-medium">
-            <?= e((string)($aboutPlan['description'] ?? '')) ?>
-          </p>
-
-          <div class="tw-mt-8 d-flex align-items-end tw-gap-1">
-            <h2 class="cursor-big">$<?= number_format($aboutPlanPrice, 0) ?></h2>
-            <span class="text-neutral-600 fw-medium tw-mb-2"> / Per Month</span>
-          </div>
-          <div class="d-flex flex-column tw-gap-5 tw-mt-11">
-            <?php if (!empty($aboutPlan['ad_credits_included']) || !empty($aboutPlan['ai_credits_included'])): ?>
-            <div class="d-flex align-items-center tw-gap-2">
-              <span
-                class="tw-w-4 tw-h-4 bg-main-600 tw-text-xs text-white d-flex justify-content-center align-items-center rounded-circle flex-shrink-0">
-                <i class="ph-bold ph-check"></i>
-              </span>
-              <span class="tw-text-lg text-neutral-600">
-                <?= number_format((float)($aboutPlan['ad_credits_included'] ?? 0)) ?> ad credits
-                &amp; <?= number_format((int)($aboutPlan['ai_credits_included'] ?? 0)) ?> AI credits every month
-              </span>
-            </div>
-            <?php endif; ?>
-            <?php foreach ($aboutFeatures as $aboutFeature): ?>
-            <div class="d-flex align-items-center tw-gap-2">
-              <span
-                class="tw-w-4 tw-h-4 bg-main-600 tw-text-xs text-white d-flex justify-content-center align-items-center rounded-circle flex-shrink-0">
-                <i class="ph-bold ph-check"></i>
-              </span>
-              <span class="tw-text-lg text-neutral-600"><?= e(is_string($aboutFeature) ? $aboutFeature : json_encode($aboutFeature)) ?></span>
-            </div>
-            <?php endforeach; ?>
-          </div>
-          <div class="tw-mt-8">
-            <a href="<?= url('billing') ?>?plan=<?= $aboutPlanId ?>&amp;cycle=monthly"
-              class="btn btn-main hover-style-one button--stroke active-scale-094 tw-duration-100 d-inline-flex align-items-center justify-content-center tw-gap-705 group active--translate-y-2 tw-p-1 tw-ps-8 rounded-pill group-item"
-              data-block="button">
-              <span class="button__flair"></span>
-              <span class="button__label">Get Started</span>
-              <span
-                class="tw-w-12 tw-h-12 bg-white text-main-600 tw-text-xl rounded-circle d-flex justify-content-center align-items-center position-relative tw-duration-500">
-                <i class="ph-bold ph-arrow-right tw-rotate--45-deg group-hover-item-rotate-0-deg tw-duration-300"></i>
-              </span>
-            </a>
-          </div>
-        </div>
-      </div>
-      <?php endforeach; ?>
-      <?php endif; ?>
-    </div>
-  </div>
-</section>
-<!-- ========================= pricing plan two section end =============================== -->
             
                 <!-- ======================== Experience Year section start =============================== -->
 <section class="experience-year pb-120">
@@ -904,3 +798,33 @@ try {
 </div>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
+                <!-- Pricing CTA: no pricing display here, just a link to the pricing page -->
+<section class="pricing-cta py-120">
+  <div class="container">
+    <div class="max-w-680-px text-center mx-auto" data-aos="fade-up" data-aos-duration="800"
+      data-aos-delay="100">
+      <span class="bg-main-50 text-main-600 fw-medium tw-text-base rounded-pill tw-px-5 tw-py-1 tw-mb-6">
+        Our Pricing Plan</span>
+      <h2 class="splitTextStyleOne cursor-big">
+        Fair, Simple
+        <span class="font-playfair fw-normal font-playfair fst-italic">Start Pricing</span>
+      </h2>
+      <p class="tw-text-lg text-neutral-500 tw-mt-6">
+        Transparent monthly plans and one-off packs &mdash; see every price, credit allowance and feature on one page.
+      </p>
+      <div class="d-flex justify-content-center tw-mt-10">
+        <a href="<?= url('pricing-plan') ?>"
+          class="btn btn-main hover-style-one button--stroke active-scale-094 tw-duration-100 d-inline-flex align-items-center justify-content-center tw-gap-705 group active--translate-y-2 tw-p-1 tw-ps-8 rounded-pill group-item"
+          data-block="button">
+          <span class="button__flair"></span>
+          <span class="button__label">View Pricing Plans</span>
+          <span
+            class="tw-w-12 tw-h-12 bg-white text-main-600 tw-text-xl rounded-circle d-flex justify-content-center align-items-center position-relative tw-duration-500">
+            <i class="ph-bold ph-arrow-right tw-rotate--45-deg group-hover-item-rotate-0-deg tw-duration-300"></i>
+          </span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ========================= pricing plan two section end =============================== -->
