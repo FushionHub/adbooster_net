@@ -10,6 +10,22 @@ $pageTitle = 'Jamachi Mauricennadi - Team - Adsbooster.net';
 require_once __DIR__ . '/includes/header.php';
 
 $portfolioUrl = 'https://jmn.morexweb.com';
+
+// ── Direct contact channels ─────────────────────────────────────────
+// WhatsApp number in international format, digits only (wa.me needs no
+// "+" and no spaces). Replace with the real number when it changes.
+$whatsappNumber = '18005550199';
+$whatsappText   = 'Hello Jamachi, I visited your Adsbooster.net team page and would like to talk.';
+$whatsappUrl    = 'https://wa.me/' . preg_replace('/\D/', '', $whatsappNumber)
+    . '?text=' . rawurlencode($whatsappText);
+
+// Email — follows the site-wide support address configured in site_settings.
+$contactEmail = get_setting('site_email', 'support@adsbooster.net');
+$emailSubject = 'Hello Jamachi — from the Adsbooster team page';
+$emailBody    = "Hello Jamachi,\n\nI visited the Adsbooster.net team page and would like to get in touch.\n\n";
+$emailUrl     = 'mailto:' . rawurlencode($contactEmail)
+    . '?subject=' . rawurlencode($emailSubject)
+    . '&body=' . rawurlencode($emailBody);
 ?>
 
         <!-- ==================== Breadcrumb Start Here ==================== -->
@@ -95,36 +111,20 @@ $portfolioUrl = 'https://jmn.morexweb.com';
                         <div class="col-lg-6">
                             <div class="ps-xl-5 ps-lg-4">
                                 <h2 class="h5 tw-mb-8">Get In Touch</h2>
-                                <form action="#" class="form-submit d-flex flex-column tw-gap-10">
-                                    <div class="">
-                                        <input type="text"
-                                            class="focus-outline-0 bg-transparent border-0 tw-pb-5 w-100 border-bottom border-neutral-200 focus-border-main-600"
-                                            placeholder="Your name" required>
-                                    </div>
-                                    <div class="">
-                                        <input type="email"
-                                            class="focus-outline-0 bg-transparent border-0 tw-pb-5 w-100 border-bottom border-neutral-200 focus-border-main-600"
-                                            placeholder="Your email" required>
-                                    </div>
-                                    <div class="">
-                                        <textarea
-                                            class="focus-outline-0 bg-transparent border-0 tw-pb-5 w-100 border-bottom border-neutral-200 focus-border-main-600 tw-h-120-px"
-                                            placeholder="Your message..." required></textarea>
-                                    </div>
-                                    <div class="">
-                                        <button type="submit"
-                                            class="btn btn-main hover-style-one button--stroke active-scale-094 tw-duration-100 d-inline-flex align-items-center justify-content-center tw-gap-705 group active--translate-y-2 tw-p-1 tw-ps-8 rounded-pill group-item"
-                                            data-block="button">
-                                            <span class="button__flair"></span>
-                                            <span class="button__label">Send Message</span>
-                                            <span
-                                                class="tw-w-12 tw-h-12 bg-white text-main-600 tw-text-xl rounded-circle d-flex justify-content-center align-items-center position-relative tw-duration-500">
-                                                <i
-                                                    class="ph-bold ph-arrow-right tw-rotate--45-deg group-hover-item-rotate-0-deg tw-duration-300"></i>
-                                            </span>
-                                        </button>
-                                    </div>
-                                </form>
+                                <p class="text-neutral-600 tw-text-lg tw-mb-8">Reach Jamachi directly — replies usually come within a day.</p>
+                                <div class="d-flex flex-wrap align-items-center tw-gap-6">
+                                    <a href="<?= $whatsappUrl ?>" target="_blank" rel="noopener noreferrer"
+                                        class="btn button--stroke active-scale-094 tw-duration-100 d-inline-flex align-items-center justify-content-center tw-gap-3 rounded-pill tw-px-8 tw-py-4 fw-bold"
+                                        style="background:#25D366;border-color:#25D366;color:#06251a;">
+                                        <i class="ph-bold ph-whatsapp-logo tw-text-2xl"></i>
+                                        <span>Message on WhatsApp</span>
+                                    </a>
+                                    <a href="<?= $emailUrl ?>"
+                                        class="btn btn-main hover-style-one button--stroke active-scale-094 tw-duration-100 d-inline-flex align-items-center justify-content-center tw-gap-3 rounded-pill tw-px-8 tw-py-4 fw-bold">
+                                        <i class="ph-bold ph-envelope tw-text-2xl"></i>
+                                        <span>Send an Email</span>
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
