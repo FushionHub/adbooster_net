@@ -11,10 +11,16 @@ require_once __DIR__ . '/includes/header.php';
 
 $portfolioUrl = 'https://jmn.morexweb.com';
 
+// ── Phone numbers ───────────────────────────────────────────────────
+$phonePrimary   = '+2349024428551';
+$phoneSecondary = '+2348127560227';
+$phonePrimaryDisplay   = '+234 902 442 8551';
+$phoneSecondaryDisplay = '+234 812 756 0227';
+
 // ── Direct contact channels ─────────────────────────────────────────
 // WhatsApp number in international format, digits only (wa.me needs no
-// "+" and no spaces). Replace with the real number when it changes.
-$whatsappNumber = '18005550199';
+// "+" and no spaces).
+$whatsappNumber = '2349024428551';
 $whatsappText   = 'Hello Jamachi, I visited your Adsbooster.net team page and would like to talk.';
 $whatsappUrl    = 'https://wa.me/' . preg_replace('/\D/', '', $whatsappNumber)
     . '?text=' . rawurlencode($whatsappText);
@@ -119,8 +125,18 @@ $emailUrl     = 'mailto:' . rawurlencode($contactEmail)
                                         <i class="ph-bold ph-whatsapp-logo tw-text-2xl"></i>
                                         <span>Message on WhatsApp</span>
                                     </a>
-                                    <a href="<?= $emailUrl ?>"
+                                    <a href="tel:<?= preg_replace('/\D/', '', $phonePrimary) ?>"
                                         class="btn btn-main hover-style-one button--stroke active-scale-094 tw-duration-100 d-inline-flex align-items-center justify-content-center tw-gap-3 rounded-pill tw-px-8 tw-py-4 fw-bold">
+                                        <i class="ph-bold ph-phone tw-text-2xl"></i>
+                                        <span><?= $phonePrimaryDisplay ?></span>
+                                    </a>
+                                    <a href="tel:<?= preg_replace('/\D/', '', $phoneSecondary) ?>"
+                                        class="btn btn-outline-main button--stroke active-scale-094 tw-duration-100 d-inline-flex align-items-center justify-content-center tw-gap-3 rounded-pill tw-px-8 tw-py-4 fw-bold text-heading">
+                                        <i class="ph-bold ph-phone-call tw-text-2xl"></i>
+                                        <span><?= $phoneSecondaryDisplay ?></span>
+                                    </a>
+                                    <a href="<?= $emailUrl ?>"
+                                        class="btn btn-outline-main button--stroke active-scale-094 tw-duration-100 d-inline-flex align-items-center justify-content-center tw-gap-3 rounded-pill tw-px-8 tw-py-4 fw-bold text-heading">
                                         <i class="ph-bold ph-envelope tw-text-2xl"></i>
                                         <span>Send an Email</span>
                                     </a>

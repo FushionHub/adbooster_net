@@ -583,7 +583,7 @@ try {
             class="team-three-item image-double-animation bg-white tw-rounded-xl tw-p-205 d-flex flex-sm-row align-items-sm-center flex-column tw-gap-6 justify-content-between">
             <div class="tw-ps-705 tw-py-3 flex-grow-1">
               <h2 class="h5 tw-mb-2">
-                <a href="https://jmn.morexweb.com" target="_blank" rel="noopener noreferrer"
+                <a href="<?= url('team/jamachi-mauricennadi') ?>"
                   class="text-heading fw-semibold hover-text-main-600 d-inline-flex align-items-center tw-gap-205 group-item element-double-animation">
                   <span class="element-double-animation__element" data-content="Jamachi Mauricennadi">Jamachi Mauricennadi</span>
                 </a>
@@ -610,11 +610,11 @@ try {
               </ul>
             </div>
             <div class="flex-grow-1">
-              <a href="https://jmn.morexweb.com" target="_blank" rel="noopener noreferrer"
+              <a href="<?= url('team/jamachi-mauricennadi') ?>"
                 class="tw-rounded-xl overflow-hidden d-block position-relative view-cursor-show">
-                <img src="<?= ASSETS_URL ?>/images/thumbs/team-three-img1.png" alt="Jamachi Mauricennadi"
+                <img src="<?= ASSETS_URL ?>/images/thumbs/jamachi-mauricennadi.jpg" alt="Jamachi Mauricennadi"
                   class="image-double-animation__element tw-rounded-xl w-100 object-fit-cover">
-                <img src="<?= ASSETS_URL ?>/images/thumbs/team-three-img1.png" alt="Jamachi Mauricennadi"
+                <img src="<?= ASSETS_URL ?>/images/thumbs/jamachi-mauricennadi.jpg" alt="Jamachi Mauricennadi"
                   class="image-double-animation__element tw-rounded-xl w-100 object-fit-cover">
               </a>
             </div>
@@ -736,7 +736,8 @@ try {
               </span>
               <div class="">
                 <span class="tw-text-sm text-white d-block">Call Us</span>
-                <a href="tel:+49(03)983493999" class="h6 text-white fw-medium hover-underline">+49 (03) 9834 939 99</a>
+                <a href="tel:+2349024428551" class="h6 text-white fw-medium hover-underline d-block">+234 902 442 8551</a>
+                <a href="tel:+2348127560227" class="h6 text-white fw-medium hover-underline d-block">+234 812 756 0227</a>
               </div>
             </div>
             <div class="d-flex align-items-center tw-gap-6 animation-item">
@@ -746,20 +747,19 @@ try {
               </span>
               <div class="">
                 <span class="tw-text-sm text-white d-block">Send Email</span>
-                <a href="mailto:yordomain@gmial.com"
-                  class="h6 text-white fw-medium hover-underline">yordomain@gmial.com</a>
+                <a href="mailto:support@adsbooster.net"
+                  class="h6 text-white fw-medium hover-underline">support@adsbooster.net</a>
               </div>
             </div>
             <div class="d-flex align-items-center tw-gap-6 animation-item">
               <span
                 class="tw-h-17 tw-w-17 bg-white rounded-circle d-flex justify-content-center flex-shrink-0 align-items-center">
-                <img src="<?= ASSETS_URL ?>/images/icons/location.png" alt="Icon" class="animate__heartBeat">
+                <i class="ph-fill ph-whatsapp-logo tw-text-3xl" style="color:#25D366;"></i>
               </span>
               <div class="">
-                <span class="tw-text-sm text-white d-block">Location</span>
-                <p class="h6 text-white fw-medium">
-                  2702 Memory Lane Chicago 53755 NY, USA
-                </p>
+                <span class="tw-text-sm text-white d-block">WhatsApp</span>
+                <a href="https://wa.me/2349024428551?text=Hello%20Adsbooster" target="_blank" rel="noopener noreferrer"
+                  class="h6 text-white fw-medium hover-underline">+234 902 442 8551</a>
               </div>
             </div>
           </div>

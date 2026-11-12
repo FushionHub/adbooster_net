@@ -568,7 +568,7 @@ require_once __DIR__ . '/includes/header.php';
                                 <textarea class="form-control contact-input" rows="4" placeholder="How can we assist you with Adsbooster today?" required></textarea>
                             </div>
                             <div class="col-12 pt-2">
-                                <button type="submit" class="btn btn-main-600 text-dark fw-bold rounded-pill px-4 py-3 d-inline-flex align-items-center gap-2">
+                                <button type="submit" class="btn btn-main text-dark fw-bold rounded-pill px-4 py-3 d-inline-flex align-items-center gap-2">
                                     <span>Send Message to Support</span>
                                     <i class="ph-bold ph-paper-plane-tilt"></i>
                                 </button>
@@ -606,7 +606,7 @@ require_once __DIR__ . '/includes/header.php';
                         <div>
                             <div class="text-white fw-bold font-size-15">WhatsApp Priority Desk</div>
                             <div class="text-white-50 font-size-13 mb-2" style="color: #94a3b8 !important;">Direct escalation for ad account linking and wallet funding.</div>
-                            <a href="https://wa.me/18005550199?text=Hello%20Adsbooster%20Support" target="_blank" class="text-success font-size-13 fw-semibold text-decoration-none hover-underline">
+                            <a href="https://wa.me/2349024428551?text=Hello%20Adsbooster%20Support" target="_blank" class="text-success font-size-13 fw-semibold text-decoration-none hover-underline">
                                 Message on WhatsApp &rarr;
                             </a>
                         </div>

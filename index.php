@@ -1175,7 +1175,7 @@ if (empty($homepageReviews)) {
                 </p>
             </div>
             <div>
-                <a href="<?= url('reviews') ?>" class="btn btn-main-600 text-dark fw-bold rounded-pill px-4 py-2 font-size-14 d-inline-flex align-items-center gap-2">
+                <a href="<?= url('reviews') ?>" class="btn btn-main text-dark fw-bold rounded-pill px-4 py-2 font-size-14 d-inline-flex align-items-center gap-2">
                     <span>View All Reviews</span>
                     <i class="ph-bold ph-arrow-right"></i>
                 </a>

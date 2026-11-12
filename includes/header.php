@@ -196,6 +196,89 @@ function _navSubActive(string $page): string {
       color: #0f172a !important;
       border-color: #cbd5e1 !important;
     }
+    /* ── Dark-theme readability fixes ─────────────────────────────────────
+       The template recolors the body to #171717 but leaves the light-template
+       heading and muted-text classes black, so titles like "About" or
+       "Get In Touch" render black-on-black. Map them to light slate, then
+       re-darken the same classes inside the light containers that must keep
+       dark text (white cards, blue-light sections, amber pills, lime panels). */
+    .fontSizeStyleNew h1, .fontSizeStyleNew .h1,
+    .fontSizeStyleNew h2, .fontSizeStyleNew .h2,
+    .fontSizeStyleNew h3, .fontSizeStyleNew .h3,
+    .fontSizeStyleNew h4, .fontSizeStyleNew .h4,
+    .fontSizeStyleNew h5, .fontSizeStyleNew .h5,
+    .fontSizeStyleNew h6, .fontSizeStyleNew .h6,
+    .fontSizeStyleNew .text-heading {
+      color: #f8fafc !important;
+    }
+    .fontSizeStyleNew .text-neutral-400,
+    .fontSizeStyleNew .text-neutral-500 {
+      color: #94a3b8 !important;
+    }
+    .fontSizeStyleNew .text-neutral-600 {
+      color: #cbd5e1 !important;
+    }
+    /* Light containers keep dark text */
+    .fontSizeStyleNew .bg-white :is(h1, .h1, h2, .h2, h3, .h3, h4, .h4, h5, .h5, h6, .h6, .text-heading),
+    .fontSizeStyleNew .bg-blue-light :is(h1, .h1, h2, .h2, h3, .h3, h4, .h4, h5, .h5, h6, .h6, .text-heading),
+    .fontSizeStyleNew .bg-cream-white :is(h1, .h1, h2, .h2, h3, .h3, h4, .h4, h5, .h5, h6, .h6, .text-heading),
+    .fontSizeStyleNew .bg-main-50 :is(h1, .h1, h2, .h2, h3, .h3, h4, .h4, h5, .h5, h6, .h6, .text-heading),
+    .fontSizeStyleNew .bg-main-40 :is(h1, .h1, h2, .h2, h3, .h3, h4, .h4, h5, .h5, h6, .h6, .text-heading) {
+      color: #0f172a !important;
+    }
+    .fontSizeStyleNew .bg-white :is(.text-neutral-400, .text-neutral-500, .text-neutral-600),
+    .fontSizeStyleNew .bg-blue-light :is(.text-neutral-400, .text-neutral-500, .text-neutral-600),
+    .fontSizeStyleNew .bg-cream-white :is(.text-neutral-400, .text-neutral-500, .text-neutral-600),
+    .fontSizeStyleNew .bg-main-50 :is(.text-neutral-400, .text-neutral-500, .text-neutral-600),
+    .fontSizeStyleNew .bg-main-40 :is(.text-neutral-400, .text-neutral-500, .text-neutral-600) {
+      color: #4b5563 !important;
+    }
+    /* Lime accents inside white cards: dark olive instead of lime-on-white */
+    .fontSizeStyleNew .bg-white .text-main-600 {
+      color: #3f6212 !important;
+    }
+    /* Amber ("Most Popular") pill and lime contact panel keep dark labels */
+    .fontSizeStyleNew .bg-main-two-600 .text-heading {
+      color: #171717 !important;
+    }
+    .fontSizeStyleNew .bg-main-600 .text-white {
+      color: #171717 !important;
+    }
+    /* Lime buttons keep their dark label even when marked .text-heading */
+    .fontSizeStyleNew .btn-main,
+    .fontSizeStyleNew .btn-main .button__label {
+      color: #171717 !important;
+    }
+    /* Pale-lime badges: dark olive label instead of lime-on-lime */
+    .fontSizeStyleNew :is(.bg-main-100, .bg-main-50).text-main-600,
+    .fontSizeStyleNew .bg-main-100 .text-main-600,
+    .fontSizeStyleNew .bg-main-50 .text-main-600 {
+      color: #3f6212 !important;
+    }
+    /* Solid-lime badges (.bg-main-600 renders opaque, so lime text is invisible) */
+    .fontSizeStyleNew .text-main-600[class*="bg-main-600"] {
+      color: #171717 !important;
+    }
+    /* Form options inside white selects need dark text */
+    .fontSizeStyleNew .bg-white option {
+      color: #0f172a;
+    }
+    /* Outlined dark button: light border/label on the dark background */
+    .fontSizeStyleNew .btn-black-outline {
+      color: #f8fafc !important;
+      border-color: rgba(255, 255, 255, 0.4) !important;
+    }
+    /* Inside white cards, amber accents and lime outline buttons need dark text */
+    .fontSizeStyleNew .bg-white .text-main-two-600 {
+      color: #b45309 !important;
+    }
+    .fontSizeStyleNew .bg-white .btn-main-outline {
+      color: #0f172a !important;
+    }
+    /* Pale-lime panels (contact form): dark headings and labels */
+    .fontSizeStyleNew .bg-main-50 :is(h1, .h1, h2, .h2, h3, .h3, h4, .h4, h5, .h5, h6, .h6, .text-heading, .text-white) {
+      color: #0f172a !important;
+    }
   </style>
 </head>
 

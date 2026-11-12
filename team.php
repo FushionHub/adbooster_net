@@ -53,7 +53,7 @@ require_once __DIR__ . '/includes/header.php';
                                 class="team-three-item image-double-animation bg-white tw-rounded-xl tw-p-205 d-flex flex-sm-row align-items-sm-center flex-column tw-gap-6 justify-content-between">
                                 <div class="tw-ps-705 tw-py-3 flex-grow-1">
                                     <h2 class="h5 tw-mb-2">
-                                        <a href="https://jmn.morexweb.com" target="_blank" rel="noopener noreferrer"
+                                        <a href="<?= url('team/jamachi-mauricennadi') ?>"
                                             class="text-heading fw-semibold hover-text-main-600 d-inline-flex align-items-center tw-gap-205 group-item element-double-animation">
                                             <span class="element-double-animation__element"
                                                 data-content="Jamachi Mauricennadi">Jamachi Mauricennadi</span>
@@ -81,7 +81,7 @@ require_once __DIR__ . '/includes/header.php';
                                     </ul>
                                 </div>
                                 <div class="flex-grow-1">
-                                    <a href="https://jmn.morexweb.com" target="_blank" rel="noopener noreferrer"
+                                    <a href="<?= url('team/jamachi-mauricennadi') ?>"
                                         class="tw-rounded-xl overflow-hidden d-block position-relative view-cursor-show">
                                         <img src="<?= ASSETS_URL ?>/images/thumbs/jamachi-mauricennadi.jpg" alt="Jamachi Mauricennadi"
                                             class="image-double-animation__element tw-rounded-xl w-100 object-fit-cover">

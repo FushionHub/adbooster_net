@@ -36,6 +36,8 @@ RewriteRule \.(sql|sqlite|db|bak|old|swp|dist|ini|log)$ - [F,L,NC]
 # 1. Clean Parameterized Routing
 # -------------------------------------------------------------
 RewriteRule ^bounty-details/([0-9]+)/?$ bounty-details.php?id=$1 [QSA,L]
+# Dedicated team profile slug for the founder
+RewriteRule ^team/jamachi-mauricennadi/?$ team-details.php [QSA,L]
 RewriteRule ^blog-details/([a-zA-Z0-9_\-]+)/?$ blog-details.php?slug=$1 [QSA,L]
 RewriteRule ^listing-details/([0-9]+)/?$ listing-details.php?id=$1 [QSA,L]
 RewriteRule ^job-details/([0-9]+)/?$ job-details.php?id=$1 [QSA,L]
