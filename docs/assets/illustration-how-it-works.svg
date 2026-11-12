@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 760" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <linearGradient id="h-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#070b12"/>
+      <stop offset="0.55" stop-color="#0b111e"/>
+      <stop offset="1" stop-color="#0d1424"/>
+    </linearGradient>
+    <linearGradient id="h-lime" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#c8ff00"/>
+      <stop offset="1" stop-color="#7fe80a"/>
+    </linearGradient>
+    <linearGradient id="h-violet" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#a855f7"/>
+      <stop offset="1" stop-color="#6366f1"/>
+    </linearGradient>
+    <linearGradient id="h-card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#131c2e" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#0d1320" stop-opacity="0.95"/>
+    </linearGradient>
+    <radialGradient id="h-glowLime" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#c8ff00" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#c8ff00" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="h-glowViolet" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#a855f7" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#a855f7" stop-opacity="0"/>
+    </radialGradient>
+    <marker id="h-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#5b647a"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1600" height="760" fill="url(#h-bg)"/>
+  <g stroke="#1a2338" stroke-width="1">
+    <path d="M0 108 H1600 M0 216 H1600 M0 324 H1600 M0 432 H1600 M0 540 H1600 M0 648 H1600"/>
+    <path d="M100 0 V760 M220 0 V760 M340 0 V760 M460 0 V760 M580 0 V760 M700 0 V760 M820 0 V760 M940 0 V760 M1060 0 V760 M1180 0 V760 M1300 0 V760 M1420 0 V760 M1540 0 V760"/>
+  </g>
+  <circle cx="1300" cy="150" r="380" fill="url(#h-glowViolet)"/>
+  <circle cx="300" cy="620" r="400" fill="url(#h-glowLime)"/>
+
+  <!-- Title -->
+  <text x="800" y="64" text-anchor="middle" font-size="13" letter-spacing="6" fill="#7fe80a" font-weight="700">HOW ADSBOOSTER WORKS</text>
+  <text x="800" y="94" text-anchor="middle" font-size="26" fill="#f1f5f9" font-weight="800">Create the content — connect the accounts — the platform publishes and optimizes everything</text>
+
+  <!-- Row 1: creation -->
+  <g>
+    <rect x="120" y="140" width="300" height="150" rx="14" fill="url(#h-card)" stroke="#2a3650" stroke-width="1"/>
+    <text x="270" y="172" text-anchor="middle" font-size="15" fill="#d7f36a" font-weight="700">1 · AI Content Studios</text>
+    <text x="270" y="200" text-anchor="middle" font-size="12" fill="#9aa8c4">AI photos &amp; videos of people</text>
+    <text x="270" y="220" text-anchor="middle" font-size="12" fill="#9aa8c4">holding your product — plus the</text>
+    <text x="270" y="240" text-anchor="middle" font-size="12" fill="#9aa8c4">ad copy, edited in the browser.</text>
+    <text x="270" y="268" text-anchor="middle" font-size="11" fill="#5b647a">UGC Studio · Video Studio</text>
+  </g>
+  <g>
+    <rect x="650" y="140" width="300" height="150" rx="14" fill="url(#h-card)" stroke="#2a3650" stroke-width="1"/>
+    <text x="800" y="172" text-anchor="middle" font-size="15" fill="#d7f36a" font-weight="700">2 · Post Creator</text>
+    <text x="800" y="200" text-anchor="middle" font-size="12" fill="#9aa8c4">Write once, pick the networks,</text>
+    <text x="800" y="220" text-anchor="middle" font-size="12" fill="#9aa8c4">send now or pick a date on the</text>
+    <text x="800" y="240" text-anchor="middle" font-size="12" fill="#9aa8c4">content calendar.</text>
+    <text x="800" y="268" text-anchor="middle" font-size="11" fill="#5b647a">Post Creator · Calendar</text>
+  </g>
+  <g>
+    <rect x="1180" y="140" width="300" height="150" rx="14" fill="url(#h-card)" stroke="#2a3650" stroke-width="1"/>
+    <text x="1330" y="172" text-anchor="middle" font-size="15" fill="#d7f36a" font-weight="700">3 · Ad Launcher</text>
+    <text x="1330" y="200" text-anchor="middle" font-size="12" fill="#9aa8c4">Turn the same creative into a</text>
+    <text x="1330" y="220" text-anchor="middle" font-size="12" fill="#9aa8c4">paid ad with a daily budget,</text>
+    <text x="1330" y="240" text-anchor="middle" font-size="12" fill="#9aa8c4">audience and goal.</text>
+    <text x="1330" y="268" text-anchor="middle" font-size="11" fill="#5b647a">Ad Launcher · Campaign Manager</text>
+  </g>
+
+  <!-- Arrows row1 -> row2 -->
+  <path d="M420 215 C 500 215 520 340 560 350" fill="none" stroke="#5b647a" stroke-width="1.5" marker-end="url(#h-arrow)"/>
+  <path d="M950 215 C 1030 215 1050 340 1090 350" fill="none" stroke="#5b647a" stroke-width="1.5" marker-end="url(#h-arrow)"/>
+  <path d="M1330 290 C 1330 330 1290 350 1250 355" fill="none" stroke="#5b647a" stroke-width="1.5" marker-end="url(#h-arrow)"/>
+
+  <!-- Row 2: connection layer -->
+  <g>
+    <rect x="360" y="330" width="430" height="170" rx="14" fill="url(#h-card)" stroke="url(#h-lime)" stroke-width="1.5"/>
+    <text x="575" y="364" text-anchor="middle" font-size="15" fill="#c8ff00" font-weight="800">SOCIAL PUBLISHING GATEWAY</text>
+    <text x="575" y="388" text-anchor="middle" font-size="12" fill="#9aa8c4">Your accounts connect through one official</text>
+    <text x="575" y="408" text-anchor="middle" font-size="12" fill="#9aa8c4">sign-in window — no passwords are ever stored.</text>
+    <text x="575" y="440" text-anchor="middle" font-size="12" fill="#cdd9ee">Facebook · Instagram · TikTok · X · LinkedIn · Pinterest</text>
+    <text x="575" y="474" text-anchor="middle" font-size="11" fill="#5b647a">connect once → publish forever · connect page: Social Connect</text>
+  </g>
+  <g>
+    <rect x="830" y="330" width="430" height="170" rx="14" fill="url(#h-card)" stroke="url(#h-violet)" stroke-width="1.5"/>
+    <text x="1045" y="364" text-anchor="middle" font-size="15" fill="#c4b5fd" font-weight="800">PAID ADS GATEWAY</text>
+    <text x="1045" y="388" text-anchor="middle" font-size="12" fill="#9aa8c4">Your ad accounts connect the same way; the</text>
+    <text x="1045" y="408" text-anchor="middle" font-size="12" fill="#9aa8c4">platform launches, pauses and tracks ads for you.</text>
+    <text x="1045" y="440" text-anchor="middle" font-size="12" fill="#cdd9ee">Meta Ads · TikTok Ads · Google Ads · LinkedIn · Pinterest · Reddit</text>
+    <text x="1045" y="474" text-anchor="middle" font-size="11" fill="#5b647a">one-click pause / resume · budget scaling · results pulled in daily</text>
+  </g>
+
+  <!-- Arrows row2 -> row3 -->
+  <path d="M575 500 C 575 530 620 545 680 552" fill="none" stroke="#5b647a" stroke-width="1.5" marker-end="url(#h-arrow)"/>
+  <path d="M1045 500 C 1045 530 1000 545 940 552" fill="none" stroke="#5b647a" stroke-width="1.5" marker-end="url(#h-arrow)"/>
+
+  <!-- Row 3: background worker -->
+  <g>
+    <rect x="480" y="560" width="640" height="130" rx="14" fill="url(#h-card)" stroke="#2a3650" stroke-width="1"/>
+    <text x="800" y="592" text-anchor="middle" font-size="15" fill="#d7f36a" font-weight="700">4 · Background Worker (runs every minute)</text>
+    <text x="800" y="618" text-anchor="middle" font-size="12" fill="#9aa8c4">A scheduled task sends posts at their exact time, launches paid ads,</text>
+    <text x="800" y="638" text-anchor="middle" font-size="12" fill="#9aa8c4">reports real results back to your dashboard, and emails you reminders</text>
+    <text x="800" y="658" text-anchor="middle" font-size="12" fill="#9aa8c4">before a post goes out.</text>
+    <text x="800" y="680" text-anchor="middle" font-size="11" fill="#5b647a">set up once in your hosting control panel — see docs/installation.md</text>
+  </g>
+
+  <text x="800" y="730" text-anchor="middle" font-size="11" fill="#5b647a">Adsbooster.net — plain-language system overview</text>
+</svg>

@@ -1,439 +1,252 @@
-# Adsbooster.net — Next-Gen AI Ad Optimization, UGC Image Studio & Verified Growth Directory
+# Adsbooster.net — Create it. Connect it. Publish it. Advertise it.
 
 <p align="center">
   <img src="docs/assets/readme-banner.svg" alt="Adsbooster.net — AI Ad Optimization · UGC Creative Studio · Multi-Network Publishing" width="100%"/>
 </p>
 
-[![PHP Version](https://img.shields.io/badge/PHP-8.1%20%7C%208.2%20%7C%208.3%20%7C%208.4-777BB4?style=flat-square&logo=php&logoColor=white)](https://php.net)
+[![PHP Version](https://img.shields.io/badge/PHP-8.3+-777BB4?style=flat-square&logo=php&logoColor=white)](https://php.net)
 [![Database](https://img.shields.io/badge/MySQL-8.0%2B%20%7C%20MariaDB-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://mysql.com)
-[![AI Engines](https://img.shields.io/badge/AI-Google%20Gemini%20(Nano%20Banana%202%20%2B%20Veo)%20%7C%20Groq%20LPU%20%7C%20Firecrawl-f55036?style=flat-square)](https://ai.google.dev)
 [![License](https://img.shields.io/badge/License-Proprietary-blue?style=flat-square)](#)
 
-**Adsbooster.net** is an enterprise-grade digital advertising optimization platform, AI UGC image creative studio, real-time multi-network social publisher, verified business marketplace, and thought leadership platform built with vanilla PHP 8.x, dark luxury aesthetics, and multi-model AI intelligence.
+---
+
+## About the project
+
+**Adsbooster.net** is a complete, self-hosted marketing platform. Everything a business
+or freelancer needs to grow online lives in one place:
+
+1. **Make the content** — AI studios generate photorealistic product photos and videos
+   of people holding your product (no camera, no models), write the ad copy, and let
+   you edit everything in the browser.
+2. **Connect the accounts** — your social networks and ad accounts are linked through
+   two professional connection gateways. You click "connect", sign in at the network's
+   own website, and come back. **No passwords or secret keys are ever stored on your
+   server** — only the connection itself.
+3. **Publish everywhere** — write a post once and send it to Facebook, Instagram,
+   TikTok, X, LinkedIn and Pinterest immediately or at a scheduled date and time.
+4. **Run the ads** — turn the same creative into paid ads on Meta, TikTok, Google,
+   LinkedIn, Pinterest and Reddit with a daily budget, an audience and a goal. Pause,
+   resume or scale any campaign with one click.
+5. **Let the background worker do the waiting** — a scheduled task sends posts at
+   their exact time, launches queued ads, pulls real results back into your dashboard
+   and emails reminders before every scheduled post.
+
+Everything runs on plain PHP and MySQL — no frameworks, no build tools, no Node.js.
+Upload the files, create a database, open the website in a browser: the platform
+installs itself.
 
 ---
 
-## 🌟 Key Platform Capabilities
+## How it works (the big picture)
 
-### 1. 🎨 AI UGC Image Generator & Creative Studio (`ugc-generator.php`)
-- **Photorealistic AI UGC Generation**: Instant creative generation via the **Google Gemini image stack** — Nano Banana 2 (`gemini-3-pro-image-preview`) first, Nano Banana (`gemini-2.5-flash-image`) as fallback — with curated first-party stills when no key is configured. Groq LPU synthesizes the ad copy.
-- **Canva-Style Image Editor**: Filters, badge stamps, headline typography, and canvas export served same-origin through `media-proxy.php` so downloads never fail.
-- **Creator Personas & Shoot Styles**:
-  - *Personas*: Gen Z Creator, SaaS Founder, Fitness Athlete, Everyday Homemaker, Tech Reviewer, Luxury Fashion Model.
-  - *Styles*: Handheld Selfie Product Hold, Unboxing Moment, Lifestyle Kitchen Setting, Influencer Desk Setup, Dramatic Before & After, Minimalist Aesthetic Flatlay.
-  - *Aspect Ratios*: 1:1 Square (Feed), 9:16 Vertical (Stories/Reels/TikTok), 16:9 Landscape (YouTube/Banner), 4:5 Portrait (Instagram Grid).
-- **Interactive HTML5 Canvas Studio**:
-  - Real-time photo filters: Brightness, Contrast, Saturation, Sepia Warmth, and High-Contrast Grayscale.
-  - Badge stamps: `VERIFIED`, `50% OFF SALE`, `⭐ TOP RATED`, `BEST SELLER`, `NEW ARRIVAL`, `LIMITED STOCK`.
-  - Headline typography and subtext overlays with real-time text styling and font size sliders.
-- **1-Click Variation Regeneration**: Synthesizes alternative creative variations using randomized seed generation while preserving the core product concept.
-- **Direct Deployment**: 1-click download in high resolution or instant push into live multi-network social post creator.
+<p align="center">
+  <img src="docs/assets/illustration-how-it-works.svg" alt="How Adsbooster works: create content, connect accounts, the background worker publishes and optimizes" width="100%"/>
+</p>
 
-### 1b. 🎬 AI Video Studio (`ugc-video-studio.php`, `modules/ai_video_engine.php`, `modules/gemini_engine.php`)
-- **FREE default route — Pollinations (`pollinations`)**: keyless, no API key, no account. Renders photoreal scene stills via the free `image.pollinations.ai` Flux endpoint and composites them into a real MP4/WebM in your browser with the built-in Storyboard compositor. Force it with `provider=pollinations`.
-- **Full Google AI Video Pipeline**: Text-to-video via **Google Veo** (`veo-3.1-generate-preview` → `veo-3.0` fallback chain) whenever a `GEMINI_API_KEY` is present; **Nano Banana 2** paints a photoreal still for every storyboard scene, stored same-origin so the canvas compositor never taints.
-- **Premium async cloud routes**: Replicate (Kling / Wan / Minimax), fal.ai (Kling 2.5 / Veo), Runway Gen-3 Alpha Turbo. (Luma has been removed — the free Pollinations route replaces it.)
-- **Storyboard Studio (built-in, always works)**: Browser composites scenes into a real MP4/WebM via `canvas.captureStream()` + MediaRecorder — Ken Burns zoom, TikTok-style bouncing captions, synthesized beat, and Web Speech voice-over. Cloud render rejections automatically fall back to this path, so a render never dead-ends.
-- **Library Actions per video**:
-  - **Edit** — loads the script, hook, CTA, avatar, style, and scenes back into the composer; *Update & re-render* rebuilds in place (same creative id).
-  - **Regenerate** — same script, brand-new AI scene stills (fresh Gemini seed).
-  - **Download** — one-click MP4/WebM export.
-  - **Run ad** — sends the video straight into the ad launcher (`create-ad.php?video_id=…`).
-  - **Post** — sends it to the Post Creator for multi-network publishing.
-- **UGC talking-head and cinematic commercial modes** with creator avatars, voices, caption styles, aspect ratios (9:16 / 1:1 / 16:9), and durations 10-120s.
-
-### 2. 🚀 Dual Third-Party Unified Gateways (`modules/ThirdPartyGateway.php`, `social-connect.php`, `create-ad.php`, `post-creator.php`)
-100% of external platform traffic is routed exclusively through two enterprise-grade third-party gateways. Direct social network API credentials (direct Meta Graph, TikTok Marketing, Google Ads API, Snapchat Marketing API) have been eliminated:
-
-```
-                              +---------------------------------------+
-                              |            ADSBOOSTER.NET             |
-                              |       (Vanilla PHP 8.2+ Core)         |
-                              +-------------------+-------------------+
-                                                  |
-              +-----------------------------------+-----------------------------------+
-              |                                                                       |
-              v                                                                       v
-+-------------------------------+                                       +-------------------------------+
-|   BUNDLE.SOCIAL GATEWAY       |                                       |        ZERNIO GATEWAY         |
-|     (Organic Engine)          |                                       |         (Ads Engine)          |
-+-------------------------------+                                       +-------------------------------+
-| - Organic Post Scheduling     |                                       | - Meta Ads (FB & Instagram)   |
-| - UGC & Reel Publishing       |                                       | - TikTok Video Ads            |
-| - Multi-Account Connections   |                                       | - Google Ads & Search/PMax    |
-| - Comment Moderation & Reply  |                                       | - LinkedIn & Pinterest Ads    |
-| - Per-Post Organic Analytics  |                                       | - Reddit Ads                  |
-| - Multi-Account Content Queue |                                       | - Real-Time Pause / Resume    |
-| - Stored as organic_profile   |                                       | - Google Calendar Events Sync |
-+---------------+---------------+                                       +---------------+---------------+
-|                                                                       |
-v                                                                       v
-[Social Platforms: FB, IG, TT, X, LinkedIn]             [Ad Networks: Meta, TikTok, Google, LinkedIn, Pinterest]
-```
-
-- **Bundle.social Gateway (`https://api.bundle.social`, `/api/v1/...`, `x-api-key` auth) — Organic Engine**:
-  - Powers all multi-account organic publishing across Facebook, Instagram, TikTok, X (Twitter), LinkedIn, Pinterest, YouTube and more (real enum: `POST /api/v1/social-account/connect`).
-  - Generates seamless OAuth connection URLs via `ThirdPartyGateway::getBundleConnectUrl($userId, $platform)` (server route: `dashboard.php?action=connect_bundle&platform=…` → `POST /api/v1/social-account/connect {type, teamId, redirectUrl}` → `{url}`).
-  - Callback landing URI: `https://yourdomain.com/dashboard.php?action=bundle_connected` (Bundle.social redirects back to `redirectUrl` as-is, or with `?error=` appended).
-  - Dispatches immediate and queued posts via `ThirdPartyGateway::createOrganicPost()` → `POST /api/v1/post/` body `{teamId, title, postDate, status: SCHEDULED, socialAccountTypes, data:{PLATFORM:{text, uploadIds}}}` (media pre-uploaded via `POST /api/v1/upload/from-url`); tracks `bundle_post_id` across `scheduled_posts`.
-  - Comment surface: list/reply/moderate via `GET|POST /api/v1/comment/`, `PATCH|DELETE /api/v1/comment/{id}`; per-post analytics via `GET /api/v1/analytics/post?postId=…`.
-  - Direct social access tokens are never stored locally; connections persist in `connected_accounts` with `gateway_provider = 'bundle_social'` and `account_type = 'organic_profile'`.
-
-- **Zernio Gateway (`https://zernio.com/api/v1`, Bearer auth) — Paid Advertising Engine + Calendar**:
-  - Handles campaign launches across Meta Ads (Facebook & Instagram), TikTok Video Ads, Google Ads (Search & Performance Max), LinkedIn, Pinterest, X and Reddit Ads via the unified `POST /v1/ads/create` endpoint (legacy single-creative shape, `Idempotency-Key` header sent on every launch).
-  - Ad-account connect: `dashboard.php?action=connect_zernio&platform=…` → `ThirdPartyGateway::getZernioAdConnectUrl($userId, $network)` → profile ensure (`POST /v1/profiles {externalId}`) then `GET /v1/connect/{platform}/ads?profileId=…&redirect_url=…` → `{authUrl, state}` or `{alreadyConnected: true}`. Zernio has **no completion step**: it completes OAuth on its own callback and redirects the browser to `redirect_url` as-is.
-  - Callback landing URI: `https://yourdomain.com/dashboard.php?action=zernio_connected`.
-  - Dispatches campaigns via `ThirdPartyGateway::launchPaidCampaign()`, persisting `zernio_campaign_id` and `zernio_ad_account_id` in `ad_campaigns`.
-  - Real-time 1-click status synchronization: `ThirdPartyGateway::setAdCampaignStatus($zernioCampaignId, 'active'|'paused', $platform)` → `PUT /v1/ads/campaigns/{id}/status` body `{status, platform}` (both required).
-  - Budget scaling: `ThirdPartyGateway::setCampaignBudget($id, $amount, 'daily'|'lifetime')` → `PUT /v1/ads/campaigns/{id}` body `{budget:{amount,type}}`.
-  - Automated background metrics ingestion: `cron/pull_campaign_metrics.php` queries `ThirdPartyGateway::getCampaignMetrics($zernioCampaignId)` → `GET /v1/ads/campaigns/{id}/analytics` to populate `campaign_metrics_daily`.
-  - Server-side conversion delivery: `ThirdPartyGateway::sendConversionEvent()` → `POST /v1/ads/conversions` (Meta CAPI & TikTok Events via Zernio; `GET /v1/ads/accounts` lists connected ad accounts).
-
-- **Unified Developer & Sandbox Resilience**:
-  - When API keys remain at placeholder defaults (`YOUR_BUNDLE_SOCIAL_API_KEY`, `YOUR_ZERNIO_API_KEY`), `ThirdPartyGateway` automatically activates sandbox simulation, preventing staging crashes and enabling offline testing.
-
-### 3. 🌐 Developer Platform, REST API v1 & SDKs (`api/v1/*`, `developer-docs.php`, `api-settings.php`)
-
-- **One Unified Master API Key**: Single bearer token granting comprehensive access across all platform domains (`read`, `write`, `ads`, `ai`, `social`, `directory`, `wallet`, `ugc`, `reviews`).
-- **Official Multi-Language SDKs**:
-  - **JavaScript / TypeScript SDK** (`sdk/adsbooster-js-sdk/` & `/api/v1/sdk/adsbooster.js`): Zero-dependency Node ≥18 + browser client with full TypeScript typings, automatic 429/5xx retries, rate-limit telemetry, typed errors, and Node webhook signature verification. Includes 1-click campaign controls (`campaigns.pause()`, `campaigns.resume()`), `posts.create()` returning `bundle_post_id`, and `campaigns.create()` returning `zernio_campaign_id`.
-  - **Python SDK / Client**: Modern `requests`-based client for automated ad launching, status toggling, and social scheduling.
-  - **PHP Client**: Native cURL client for rapid server-to-server integration.
-- **Sliding-Window Rate Limiting**: Enforces a strict quota of 60 requests per minute tracked in the `api_rate_limits` table. Exceeded quotas return HTTP 429 Too Many Requests with standard `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` headers.
-- **Public Aggregate Analytics Endpoint** (`/api/v1/public-analytics.php`): Authentication-free, GET-only JSON feed of the SAME aggregate analytics the homepage achievements modal renders — totals, performance ratios, 14-day trend and platform mix, zero user-level data. IP-keyed limit of 30 requests/minute (429 + `Retry-After`), CORS `*`, safe for public widgets and blog embeds.
-- **Real-Time HMAC-SHA256 Webhooks**: Outbound event notifications (`campaign.status_changed`, `post.published`, `payment.completed`, `webhook.test_ping`) signed with cryptographic `X-Adsbooster-Signature` headers.
-- **Interactive Webhook Tester**: Integrated "Ping Test" in the Developer Console (`api-settings.php`) verifying target endpoints in real time with millisecond latency telemetry.
-- **Comprehensive A–Z Documentation**: Full reference manual (`developer-docs.php`) complete with interactive copyable code snippets in cURL, JavaScript (Fetch / SDK), Python, and PHP.
-- **Live System Status Page**: Real-time service uptime, latency tracking, and operational health dashboard (`status.php`).
-
-### 4. ⭐ Community Reviews & Rating System (`reviews.php`, `index.php`, `dashboard.php`, `admin/reviews.php`)
-- **Tiered Eligibility Enforcement**:
-  - **Pro Plan Subscribers**: May submit and update verified platform reviews at any time.
-  - **Free Plan Users**: Unlock review submission after 5 days of registered platform usage. Free members receive an unobtrusive dashboard banner with "Leave Review" or "Skip for now" (dismisses for 7 days via cookie and session).
-- **Dynamic Homepage Showcase**: Top-rated verified reviews dynamically featured on the homepage (`index.php`) displaying user avatars, ratings, review comments, and membership plan badges.
-- **Administrative Review Moderation**: Dedicated admin suite (`admin/reviews.php`) to approve, feature, edit, or reject submitted community feedback.
-
-### 5. 💼 Dedicated Public Portfolios & AI Resume Import (`portfolio.php`, `portfolio-builder.php`)
-- **Dedicated Public Showcase**: Every registered member receives an SEO-indexed, shareable public portfolio link (`/portfolio.php?u=username`) accessible without login.
-- **4 Luxury Design Themes**:
-  - *Dark Luxury Noir* (Obsidian `#080c14` with lime `#c8ff00` accents)
-  - *Creative Cyber Neon* (Vibrant purple & cyan gradient glow)
-  - *Executive Titanium* (Corporate slate and titanium elegance)
-  - *Minimalist Aurora Glass* (Emerald `#10b981` with frosted blur)
-- **Portfolio Studio (`portfolio-builder.php`)**: Full visual editor with dynamic repeaters for Case Studies & Projects (title, highlight metric, description, link), Service Packages (title, price, scope), Core Skills tag manager, social networks, WhatsApp button, and a live card preview.
-- **AI Resume Import (Groq-powered)**: Drag-and-drop `.pdf`, `.docx` (native `ZipArchive`) and `.txt` support alongside raw text pasting. Extracts bio, skills, services and quantified case studies, computes an ATS score, and 1-click syncs into `user_portfolios` and `users`.
-- **Public QR Code**: Each portfolio renders a scannable QR code (fullscreen modal) that opens the public portfolio from any phone camera.
-
-### 6. 💼 Advertising & Creative Talent Marketplace (`jobs.php`, `job-details.php`, `create-job.php`)
-- **Opportunities & Bounties**: Browse and post contracts, retainers, and bounties for media buyers, UGC creators, copywriters, and performance marketers.
-- **Multi-Filter Discovery**: Search by keyword, contract type (Contract, Freelance, Bounty, Full-Time), workplace mode (100% Remote, Hybrid), and budget range.
-- **Direct Employer Connect**: Inquire and apply instantly through P2P Chat (`p2p-chat.php?user=...`) or WhatsApp.
-
-### 7. 🤝 Enhanced P2P Chat with Contract & Deal Proposals (`p2p-chat.php`)
-- **Real-Time Collaboration**: Connect with clients, freelancers, sellers, and platform administrators.
-- **Deal & Contract Proposal Tool**: Propose structured project contracts with agreed amounts ($ USD), milestones, and deliverables stored in `p2p_deals`.
-- **Public Profile Links**: View any chat partner's public portfolio directly from the conversation header.
-- **Safety Tools**: Integrated user reporting, block controls, and 24/7 AI Growth Consultant assistant.
-
-### 8. 🏢 Verified Business & Product Directory (`marketplace.php`)
-- **Dynamic Homepage Showcase**: Embedded directly onto `index.php` with live seller badges and contact channels.
-- **Instant Buyer-Seller Direct Connect**: One-click WhatsApp direct chat (`wa.me`) and instant click-to-call (`tel:`).
-- **Tiered Seller Verification**: Verified merchant badges, category filtering (SaaS, Agency, Ecommerce, Real Estate), and geolocation.
-
-### 9. 🔐 Robust Two-Factor Authentication (2FA) & Admin Gate (`security-2fa.php`, `admin/totp-verify.php`, `admin-login.php`)
-- **RFC 6238 TOTP Standard**: Compatible with Google Authenticator, Authy, Microsoft Authenticator, and 1Password.
-- **Admin Verification Gate**: All administrative sessions require 2FA TOTP verification challenge (`admin/totp-verify.php`) before dashboard access is granted.
-- **Email OTP Verification**: Fallback verification codes dispatched to verified account emails.
-- **Emergency Recovery Codes**: 8 single-use cryptographically hashed backup codes for account retrieval.
-
-### 10. 🛡️ Administrative Control Suite (`/admin/`)
-- 25 administrative modules across 7 sidebar sections (Overview, Users & Access, Content & Marketplace, Revenue, AI & Automation, Communication, Safety & Config), all reachable from the sidebar:
-  - `index.php` — Platform overview, telemetry, financial summary, and audit logs.
-  - `system-health.php` — Worker queues, cron telemetry, and service diagnostics.
-  - `users.php` — **Full user management**: KPI cards, filters (status/role/search), pagination, profile editing, ad **and** AI credit adjustments, plan changes with expiry, suspend/activate, seller verification, one-time password reset, 2FA reset, guarded account deletion (email confirmation), and **impersonation** ("view as user" with a yellow exit banner).
-  - `settings.php` — Site identity, AI keys (Gemini/Groq/NVIDIA NIM/Firecrawl), **default video provider** (Auto/Veo/Pollinations free/Storyboard), **maintenance mode** (public sees a 503 page; admins stay in), **open/closed registration** (invite links still work), and the new-user AI credit grant.
-  - `pricing.php` — Dynamic subscription tiers, credit quotas, and feature flags.
-  - `listings.php` — Marketplace directory moderation and badge assignment.
-  - `jobs.php` — Talent opportunities and bounty moderation.
-  - `reviews.php` — Community review moderation and homepage featuring.
-  - `campaigns.php` — Ad campaign inspection, manual budget adjustment, and status overrides.
-  - `ugc-studio.php` / `ai-media-buyer.php` / `social-media.php` / `server-tracking.php` — AI creative oversight, autonomous buying rules, publishing hub, and CAPI bridge.
-  - `agency-approvals.php` — Whitelabel portals and client content approvals.
-  - `payouts.php` & `transactions.php` — Financial ledger inspection and withdrawal approvals.
-  - `cms.php` & `blogs.php` — Article review and static content manager.
-  - `analytics.php` — Platform-wide conversion, latency, and revenue metrics.
-  - `tickets.php` — Customer support ticket desk and resolution pipeline.
-  - `p2p-chat.php` — Escalated dispute review and chat safety monitoring.
-  - `blogs.php` moderation covers public portfolio SEO fields.
-  - `seo.php` — Meta titles, descriptions, OpenGraph tags, and sitemap settings.
-  - `policy-rules.php` — Platform terms, safety guidelines, and advertising policies.
-  - `referrals.php` — Affiliate tracking, referral tiers, and payout thresholds.
-  - `fraud-watch.php` — Click-fraud detection and IP anomaly telemetry.
-  - `translations.php` — Multilingual dictionary and localization strings.
+The only thing that must be set up **outside** the website itself is the scheduled
+background task ("cron job") described in the installation guide — without it, posts
+wait but never actually go out and queued ads never launch.
 
 ---
 
-## 🛠️ Technology Stack
+## Every feature, in plain words
 
-- **Backend**: Pure PHP 8.1 - 8.4 (Zero framework overhead, extreme performance)
-- **Database**: MySQL 8.0+ / MariaDB 10.3+ (InnoDB, utf8mb4 / utf8mb4_general_ci, indexed relations)
-- **Frontend**: Vanilla CSS Design System (Dark Luxury Palette `#080c14`, `#0d1524`, `#c8ff00`), Phosphor Icons
-- **Rich Text Editor**: CKEditor 5 Classic via official CDN
-- **Mail Engine**: PHPMailer 6.x with custom dark luxury HTML templates
-- **AI Providers**: Google Gemini (Nano Banana 2 image models, Veo 3.x video, Gemini 2.5 Flash), Groq LPUs (`openai/gpt-oss-120b`, `qwen/qwen3.8-27b`), NVIDIA NIM (`meta/llama-3.1-70b-instruct` via integrate.api.nvidia.com), Firecrawl (live web scraping), **Pollinations (FREE keyless video stills)**
-- **Third-Party Gateways (100% Unified Routing)**:
-  - **Bundle.social API** (`https://api.bundle.social/api/v1`, `x-api-key`): Organic Social Media Management (FB, IG, TikTok, X, LinkedIn, Pinterest, YouTube and more; comment moderation; post analytics)
-  - **Zernio API** (`https://zernio.com/api/v1`, Bearer): Paid Advertising Management (Meta Ads, TikTok Ads, Google Ads & PMax, LinkedIn Ads, Pinterest Ads, X Ads, Reddit Ads) + Google Calendar events + server-side conversion delivery (Meta CAPI / TikTok Events)
-- **Billing Gateways**: Paystack & Flutterwave
-- **Client SDKs**: Official JavaScript/TypeScript SDK (`adsbooster-js-sdk` & `/api/v1/sdk/adsbooster.js`), Python, and PHP client integrations
+### The AI studios — make the content
 
----
-
-## 💳 Payments, Webhooks & Referral Rewards
-
-### Payment verification (any registered gateway)
-
-One gateway-agnostic dispatcher handles **every** payment path — the hosted checkout
-callback, the admin **Verify** button and the inbound webhook behave identically:
-
-```php
-PaymentProcessor::verifyGateway($gateway, $reference, $gatewayId = '');
-```
-
-| Gateway | Live verification call |
+| Feature | What it does for you |
 |---|---|
-| **Flutterwave** | `GET /v3/transactions/{flw_ref}/verify` (numeric id) or `GET /v3/transactions/verify_by_reference?tx_ref=…` |
-| **Paystack** | `GET /transaction/verify/{reference}` |
-| **Any new gateway** | `GET {base}/verify/{reference}` → `{status: "success", data: {…}}` (inherited automatically) |
+| **UGC Photo Studio** | Generates photorealistic images of everyday people holding, unboxing or using your product. Pick a creator personality (Gen-Z creator, fitness athlete, homemaker…), a shooting style (selfie hold, kitchen scene, flat lay…) and a size (square for feeds, vertical for Reels/TikTok, wide for banners). Includes a built-in editor with filters, badges like "BEST SELLER" and headline text. One click saves the image or sends it straight into the Post Creator. |
+| **AI Video Studio** | Turns a short script into a real MP4 video: AI-painted scenes, camera zoom, bouncing captions, a music beat and a voice-over. Edit any video later, regenerate the scenes with a fresh look, download it, run it as an ad, or post it — all from one library. A completely **free route needs no API key at all**, so videos work out of the box. |
 
-A verified payment credits the wallet **and** fires the automatic referral reward.
+![UGC Photo Studio](docs/screenshots/ugc-generator.jpg)
+![AI Video Studio](docs/screenshots/ugc-video-studio.jpg)
 
-### Webhook URLs — one per gateway, paste into the dashboard
+### The publishing engine — post everywhere without logging into anything
 
-| Gateway | Webhook URL | Where to paste it | Signature header |
-|---|---|---|---|
-| **Flutterwave** | `https://adsbooster.net/payment/webhook/flutterwave` | Dashboard → **Settings → Webhooks → Webhook URL** | `verif-hash` *(or `x-flw-signature`)* |
-| **Paystack** | `https://adsbooster.net/payment/webhook/paystack` | Dashboard → **Settings → API Keys & Webhooks → URL** | `x-paystack-signature` |
-
-> Local installs follow the install path — here the app runs at `http://localhost/seopp`, so
-> the URLs are `http://localhost/seopp/payment/webhook/flutterwave` and
-> `http://localhost/seopp/payment/webhook/paystack`. **Admin → Transactions** shows the
-> live URLs with a copy button.
-
-**Events to subscribe to** — Flutterwave: `charge.completed`, `transfer.completed` ·
-Paystack: `charge.success`, `transfer.success`.
-
-**Endpoint behaviour** — `401` bad signature · `404` unknown gateway · `422` no reference ·
-`502` gateway unreachable (the provider retries) · `200` understood.
-
-```json
-{
-  "status": true,
-  "result": "successful",
-  "message": "Payment verified and wallet credited successfully!",
-  "gateway": "flutterwave",
-  "reference": "1C5325BE76460FD8ABD153E7",
-  "transaction": 42,
-  "settled_by": "gateway_api",
-  "retry": false
-}
-```
-
-> ⚠ **Flutterwave's `verif-hash` is a static `sha256(secret)`** — it proves the sender knows
-> the secret but does **not** authenticate the body. Any code that trusts the payload itself
-> therefore requires a body-bound signature (`PaymentGateways::webhookSignatureCoversBody()`).
-
-### Admin → checkout on a failed verification
-
-When an admin clicks **Verify** and the payment cannot be confirmed, they are redirected to
-the **checkout page** — not to a blank error — with the order context restored (plan,
-credits, transaction id) and a banner explaining the failure, including when a database
-update is required. The same context-aware redirect is used by the hosted callback.
-
-### Referral rewards — automatic, with full admin control
-
-| Setting | Default | Effect |
-|---|---|---|
-| `referral_reward_credits` | `10` | Ad credits paid to the **referrer** |
-| `referral_referred_bonus` | `5` | Welcome bonus for the **new account** |
-| `referral_auto_reward` | `1` | `1` = pay automatically on the referred user's first successful payment |
-
-- **Automatic** — `PaymentProcessor::completeTransaction()` calls
-  `ReferralService::rewardForPayment()`, so a referral is paid the moment the referred
-  user's payment is verified — by callback, admin button or webhook.
-- **Idempotent** — the payout is guarded by a conditional `pending → rewarded` UPDATE
-  (`rowCount() === 1`); a referral can only ever be paid once, no matter how many
-  verifications or redeliveries happen.
-- **Still fully manageable** — Admin → Referrals can change the programme settings, pay a
-  referral manually, **Pay all pending** in bulk, reset a referral back to pending, or
-  reject one (a rejected referral can never be paid).
-- **Ledgered** — every payout is written to `referral_rewards` (unique per referred
-  account) and both parties are notified.
-
-### SQL repair file
-
-`update-any-error.sql` (project root) is the single idempotent repair file for the payment,
-referral and webhook schema — it backfills the referral columns, removes duplicates, adds
-the missing indexes, creates `payment_webhook_events` and `payout_requests`, and seeds the
-referral settings.
-
-```bash
-mysql -u root adsbooster < update-any-error.sql   # or
-php database/apply_update_any_error.php            # bundled CLI runner
-php database/apply_update_any_error.php --dry-run  # preview only
-```
-
-### Full documentation
-
-- **[docs/payments-webhooks.md](docs/payments-webhooks.md)** — webhook URLs, signature
-  schemes, response codes, the signed-payload fallback, adding a new gateway, local
-  testing with `curl`.
-- **[docs/referrals.md](docs/referrals.md)** — the referral lifecycle, settings, admin
-  actions, API reference and schema.
-
----
-
-## 📸 Screenshots
-
-| | |
+| Feature | What it does for you |
 |---|---|
-| ![Homepage](docs/screenshots/homepage.png) | ![Login](docs/screenshots/login.png) |
-| **Homepage** — platform overview and live showcases | **Login** — authentication entry point |
-| ![Pricing](docs/screenshots/pricing.png) | ![Checkout](docs/screenshots/checkout.png) |
-| **Pricing** — subscription tiers and credit packs | **Checkout** — payment selection and order context |
-| ![Referrals](docs/screenshots/referrals.png) | ![Dashboard](docs/screenshots/dashboard.png) |
-| **Referrals** — user-facing referral dashboard | **Dashboard** — credits, campaigns and activity |
-| ![Admin Transactions](docs/screenshots/admin-transactions.png) | ![Admin Referrals](docs/screenshots/admin-referrals.png) |
-| **Admin → Transactions** — verify, mark failed, webhook URLs | **Admin → Referrals** — programme settings and payouts |
+| **Social Connect** | One page shows every network. Click "connect", sign in at Facebook/TikTok/X/LinkedIn/Pinterest on **their** website, come back — the connection is verified and stored. Disconnect anytime. |
+| **Post Creator** | A studio to write the text, attach photos or videos from the AI studios, preview it, and send it now or later to any connected network at once. |
+| **Content Calendar** | A month view of every planned post. Drag a post to another day, attach notes to any day, and choose how many email reminders you want before the post goes out (up to five, timed from 7 days to 15 minutes before). |
+| **Comments & results** | Read and reply to comments from inside the platform, and see likes, views and reach for every published post. |
 
-> Full-size captures live in [`docs/screenshots/`](docs/screenshots/).
+![Social Connect](docs/screenshots/social-connect.jpg)
+![Post Creator](docs/screenshots/post-creator.jpg)
+![Content Calendar](docs/screenshots/calendar.jpg)
+
+### The ads engine — paid campaigns without touching an ad manager
+
+| Feature | What it does for you |
+|---|---|
+| **Ad Launcher** | Pick your connected ad account, choose the goal (traffic, engagement, awareness…), set a daily budget, write the headline and text, choose the audience age/countries/interests, and launch. The platform translates everything correctly for each network. |
+| **Campaign Manager** | Every campaign on one screen with one-click **pause / resume** (live on the network), budget scaling, and real spend/result numbers pulled in automatically every hour. |
+| **Competitor Ad Spy** | See the ads competitors run, and reverse-engineer what works. |
+| **Audience Builder** | Build detailed audience groups (age, location, interests) and AI "lookalike" audiences from your best customers. |
+| **A/B Test Studio** | Run two versions of a creative against each other; the platform declares the winner and moves the budget to it automatically. |
+| **Anti-burn Auto-Pilot** | Safety rules that watch your spend: if a campaign burns money without results, it is paused automatically. |
+| **Store Import** | Paste your Shopify or WooCommerce store address and the platform imports products and builds ready-to-run campaign packs. |
+
+![Ad Launcher](docs/screenshots/create-ad.jpg)
+
+### The growth toolbox — get seen and get clients
+
+| Feature | What it does for you |
+|---|---|
+| **Public Portfolio** | Every member gets a shareable public page (with a QR code) showing their work, services, prices and case studies — with four luxury design themes and an AI resume importer (drop in a PDF and the page fills itself). |
+| **Business Directory** | A verified directory of businesses and products with direct WhatsApp / call buttons for buyers. |
+| **Talent Marketplace** | Post or find jobs, contracts and bounties for media buyers, creators and copywriters. |
+| **P2P Chat & Deals** | Chat directly with clients or freelancers, and propose structured deals with an agreed amount and milestones. |
+| **Referral Programme** | Every member gets a personal invite link. When a referred person pays for a plan or credits, the referrer is rewarded **automatically** — with full admin control. |
+| **Reviews** | Members review the platform; the best verified reviews are showcased on the homepage. |
+
+![Portfolio Builder](docs/screenshots/portfolio-builder.jpg)
+![Referrals](docs/screenshots/referrals.jpg)
+
+### The business side — plans, payments and safety
+
+| Feature | What it does for you |
+|---|---|
+| **Plans & Credits** | Subscriptions and ad/AI credit packs. Payments run through **Paystack** and **Flutterwave**; every payment is verified with the gateway before anything is credited. |
+| **Billing & Invoices** | Members see their wallet, history and PDF invoices. |
+| **Two-Factor Login** | Standard authenticator-app codes, email codes as fallback, and 8 one-time recovery codes. Admins always must pass the second step. |
+| **Developer API & Webhooks** | One master key lets other tools talk to the platform, with ready-made SDKs, a rate limit and signed webhooks. |
+| **Admin Control Suite** | 25+ admin pages: users (with "view as user"), pricing, campaign inspection, transactions with webhook URLs, referrals, fraud watch, support tickets, SEO, translations, system health and more. |
+
+![Dashboard](docs/screenshots/dashboard.jpg)
+![Admin](docs/screenshots/admin-dashboard.jpg)
+
+> The complete library of **58 page captures** — public, member and admin — lives in
+> [`docs/screenshots/`](docs/screenshots/).
 
 ---
 
-## 🚀 Quickstart Guide
+## Project structure — what lives where
 
-### 1. Local Development (Laragon / XAMPP)
-1. Clone the project into your web directory:
-   ```bash
-   git clone https://github.com/your-org/adsbooster.git C:\laragon\www\seopp
-   ```
-2. Start Apache and MySQL from Laragon.
-3. Create an empty database `adsbooster` — the app **auto-installs the full schema on first page load** (guarded installer in `database/install.php`). Run the gateway migration runner to configure third-party gateways:
-   ```bash
-   php database/migrate_gateways.php
-   # Or import manually: mysql -u root adsbooster < database/adsbooster_master.sql
-   ```
-4. Optional DB overrides — create `config/db.local.php` (never committed):
-   ```php
-   <?php return ['host' => '127.0.0.1', 'name' => 'adsbooster', 'user' => 'root', 'pass' => ''];
-   ```
-5. Add your `BUNDLE_SOCIAL_API_KEY` and `ZERNIO_API_KEY` in Admin → Settings (or `config/apikeys.php`). Add `GEMINI_API_KEY` to enable Nano Banana 2 images + Veo video. Groq powers text generation; Firecrawl powers live store scraping.
-6. Access the application in your browser:
-   ```
-   http://localhost/seopp
-   ```
-   Clean URLs (`/login`, `/dashboard`, `/ugc-video-studio`, `/social-connect`) work via the root `.htaccess`.
+No programming knowledge needed to read this: each folder is described by what it
+*holds*, not how it is coded.
 
-### 2. Live Linux Server Deployment
-Refer to the comprehensive, step-by-step [DEPLOYMENT.md](DEPLOYMENT.md) for Apache VirtualHost, Nginx reverse proxy, SSL configuration, and cron automation.
+```
+adsbooster/
+│
+├── index.php, login.php, register.php, pricing.php   ← the public website pages
+│
+├── dashboard.php, post-creator.php, calendar.php,    ← the member pages
+│   create-ad.php, social-connect.php, portfolio.php
+│
+├── admin/                     ← the admin control suite (25+ management pages)
+│
+├── includes/                  ← shared page pieces (header, footer, popups)
+│
+├── modules/                   ← the "brain": one file per ability
+│   ├── the two connection gateways (social + ads)
+│   ├── the publishing engine and the background job queue
+│   ├── the AI studios (photos, video, text)
+│   ├── payments, referrals, emails and two-factor login
+│   └── audience builder, A/B tests, auto-pilot, store import
+│
+├── cron/                      ← background tasks for the hosting scheduler
+│   ├── queue_worker.php       ← THE IMPORTANT ONE: sends posts & launches ads
+│   ├── publish_scheduled_posts.php, campaign_doctor.php,
+│   ├── auto_refill_check.php, auto_buyer_daemon.php,
+│   └── pull_campaign_metrics.php, ab_test_winner.php
+│
+├── api/                       ← for outside tools connecting to the platform
+├── sdk/                       ← ready-made client libraries for developers
+│
+├── config/                    ← settings files (database access, keys)
+├── database/                  ← the database installer & repair files
+│
+├── assets/                    ← styles, fonts, icons, scripts (the look)
+│
+├── uploads/                   ← everything users create (images, videos, avatars)
+│
+└── docs/                      ← you are here
+    ├── features.md            ← every feature, step by step, with screenshots
+    ├── installation.md        ← the step-by-step install guide (local & cPanel)
+    ├── payments-webhooks.md   ← payment verification & webhook setup
+    ├── referrals.md           ← the referral programme
+    ├── screenshots/           ← captures of 58 pages
+    └── assets/                ← diagrams & illustrations
+```
+
+**The wireframe in one sentence:** public pages pull people in → members create
+content in the studios and connect accounts on the connect page → the calendar and
+post creator schedule the work → the background worker executes it through the two
+connection gateways → results and money flow back to the dashboard → admins watch
+over everything from the admin suite.
 
 ---
 
-## 📂 Project Directory Structure
+## Installation — step by step
 
-```
-seopp/
-├── admin/                     # Administrative management dashboard & moderation
-│   ├── index.php              # Admin overview & system metrics
-│   ├── totp-verify.php        # Admin 2FA TOTP verification challenge
-│   ├── pricing.php            # Subscription & pricing plan manager
-│   ├── listings.php           # Marketplace directory moderation
-│   ├── jobs.php               # Jobs & bounties moderation
-│   ├── reviews.php            # Community reviews moderation
-│   ├── blogs.php              # Blog post moderation
-│   ├── settings.php           # Platform & Dual Third-Party Gateway credentials
-│   ├── campaigns.php          # Ad campaign inspection & Zernio synchronization
-│   ├── social-media.php       # Social publishing hub & Bundle.social force-publish
-│   └── users.php              # User role & permission controls
-├── api/v1/                    # Public REST API v1
-│   ├── bootstrap.php          # Auth, Master API Key verification, Rate limiter
-│   ├── campaigns.php          # Ad campaign endpoints (Zernio Ads Engine backed)
-│   ├── capi-bridge.php        # Meta CAPI / TikTok Events server-side bridge
-│   ├── posts.php              # Social post creation & scheduling (Bundle.social backed)
-│   ├── ugc.php                # AI UGC image generation endpoints
-│   ├── directory.php          # Business directory endpoints
-│   ├── reviews.php            # Community review submission & querying
-│   ├── credits.php            # Balance check & credit transaction endpoints
-│   ├── sdk/adsbooster.js      # Self-hosted JavaScript SDK (UMD) for developers
-│   └── webhooks.php           # Webhook sender & test ping helper
-├── sdk/adsbooster-js-sdk/     # Official JavaScript SDK package (src, dist, types, examples)
-├── assets/                    # Static assets (CSS, JS, Fonts, Images)
-├── config/                    # System configurations
-│   ├── db.php                 # Database PDO singleton connection & DB::getConnection() wrapper
-│   ├── site_setting_and_config.php # Constants & session handlers
-│   └── apikeys.php            # Groq, Gemini, Bundle.social, Zernio, SMTP, & Payment API keys
-├── cron/                      # Automated scheduled background scripts
-│   ├── publish_scheduled_posts.php # Dispatches scheduled queue via Bundle.social
-│   ├── pull_campaign_metrics.php   # Ingests real ROAS/CTR metrics from Zernio
-│   ├── auto_buyer_daemon.php       # Evaluates anti-burn rules & syncs pauses to Zernio
-│   ├── ab_test_winner.php          # Declares A/B test winners & reallocates budget
-│   └── campaign_doctor.php         # Analyzes health & generates auto-pilot recommendations
-├── database/                  # Master migrations and seeders
-│   ├── adsbooster_master.sql  # Dual Third-Party Gateway schema definitions
-│   ├── migrate_gateways.php   # Automated idempotent gateway migration runner
-│   ├── adsbooster_complete.sql# Complete master database dump
-│   ├── export_master_sql.php  # Automated database snapshot generator
-│   └── apply_update_any_error.php # CLI runner for update-any-error.sql
-├── docs/                      # Project documentation & screenshots
-│   ├── payments-webhooks.md   # Payment verification, webhook URLs & signature schemes
-│   ├── referrals.md           # Referral programme: automatic rewards + admin control
-│   ├── output-helpers.md      # e() and dt() output helper conventions
-│   ├── assets/                # Banner + illustration artwork
-│   └── screenshots/           # Website screenshots of the main pages
-├── includes/                  # Reusable layouts, headers, and navigation
-├── modules/                   # Core business logic classes
-│   ├── ThirdPartyGateway.php  # Central unified API gateway (Bundle.social + Zernio)
-│   ├── social_post_engine.php # Real-time multi-network publishing engine
-│   ├── auto_buyer_engine.php  # Autonomous anti-burn kill switch engine
-│   ├── audience_builder.php   # Custom audience segmentation & lookalike models
-│   ├── ab_test.php            # Creative variant testing engine
-│   ├── ai_engine.php          # Groq/Gemini text, UGC images (Nano Banana 2), resume parser
-│   ├── ai_video_engine.php    # Veo + Storyboard Studio video lifecycle (create/edit/regenerate)
-│   ├── gemini_engine.php      # Google Gemini image stack (Nano Banana 2 chain) + Veo model list
-│   ├── firecrawl_scraper.php  # Live web/site scraping for store imports & AI chat context
-│   ├── ecommerce_sync.php     # Shopify/WooCommerce import + campaign auto-packs
-│   ├── email_service.php      # PHPMailer & branded HTML email system
-│   ├── payments.php           # PaymentProcessor — gateway verification, completion, wallet crediting
-│   ├── payment_gateways.php   # Gateway registry, webhook URLs & signature verification
-│   ├── payment_webhook.php    # Webhook decision logic (success detection, replay guard)
-│   ├── referral_service.php   # Referral programme — automatic + manual reward payouts
-│   └── two_factor.php         # RFC 6238 TOTP authentication library
-├── api-settings.php           # Developer console, Master API key & webhook tester
-├── developer-docs.php         # Complete A-Z developer documentation manual
-├── status.php                 # Real-time service uptime & health telemetry
-├── payment-webhook.php        # Inbound payment webhook endpoint (/payment/webhook/<gateway>)
-├── payment-verify.php         # Payment callback + admin verify redirect handling
-├── update-any-error.sql       # Idempotent payment/referral/webhook schema repair file
-├── ugc-generator.php          # AI UGC Image Studio & Canva-style canvas editor
-├── ugc-video-studio.php       # AI Video Studio — Veo/Nano Banana 2, edit, regenerate, run ads
-├── post-creator.php           # Real-time multi-channel post composer & publisher (Bundle.social)
-├── create-ad.php              # Multi-network paid ad campaign launcher (Zernio)
-├── edit-campaign.php          # Campaign manager with 1-click Zernio pause/resume sync
-├── media-proxy.php            # Same-origin image proxy (canvas-safe editor downloads)
-├── ecommerce-sync.php         # Shopify & WooCommerce 1-Click sync
-├── ad-spy.php                 # Competitor ad spy & reverse-engineering engine
-├── ai-media-buyer.php         # Autonomous media buyer & anti-burn kill-switch
-├── social-connect.php         # Dual gateway account manager (Bundle.social + Zernio)
-├── calendar.php               # Interactive content calendar with Google Calendar sync
-├── audience-builder.php       # Demographic cohorts & AI lookalike segment builder
-├── ab-test.php                # Split testing studio for ad variants
-├── portfolio.php              # Dedicated public showcase with QR sharing
-├── portfolio-builder.php      # Showcase Studio, dynamic repeaters & theme designer
-├── reviews.php                # Community review submission portal
-├── marketplace.php            # Verified business & product directory
-├── jobs.php / job-details.php # Advertising talent marketplace
-└── security-2fa.php           # User Two-Factor Authentication manager
-```
+> The complete guide with every detail, troubleshooting and the cPanel setup lives in
+> **[docs/installation.md](docs/installation.md)**. This is the short version.
+
+### What you need
+
+- A computer (local) or a hosting account (live) with **PHP 8.3 or newer** and
+  **MySQL 8 / MariaDB**
+- The project files (clone or download this repository)
+
+### Local installation (Windows — Laragon or XAMPP)
+
+1. **Put the files in your web folder** — e.g. `C:\laragon\www\adsbooster`
+   (Laragon) or `C:\xampp\htdocs\adsbooster` (XAMPP).
+2. **Start Apache and MySQL** from the Laragon / XAMPP control panel.
+3. **Create an empty database** named `adsbooster` — open
+   `http://localhost/phpmyadmin`, click *New*, type the name, click *Create*.
+4. **Open the website** — `http://localhost/adsbooster`. On the first page load the
+   platform **creates all its own tables automatically**. That's it — no SQL to run,
+   nothing to edit.
+5. **Create your account** through the normal register page. To make yourself the
+   administrator, open phpMyAdmin → database `adsbooster` → table `users` → your
+   row → set `role` to `admin`.
+6. **Open the site and sign in** — `http://localhost/adsbooster/login`.
+
+### Going live on cPanel hosting
+
+1. Upload all project files into `public_html`.
+2. Create a database + user in cPanel → *MySQL Databases*, and grant the user
+   **all privileges**.
+3. Visit your domain — the self-installer builds the schema. If your database name,
+   user or password differs from the defaults, create `config/db.local.php`
+   (there is an example inside `docs/installation.md`).
+4. **Add the cron job** (cPanel → *Cron Jobs*) — this is what actually sends posts
+   and launches ads:
+
+   ```
+   /usr/local/bin/ea-php83/root/usr/bin/php /home/YOURUSER/public_html/cron/queue_worker.php --once >> /home/YOURUSER/public_html/crons/queue_worker.log 2>&1
+   ```
+   scheduled **once per minute**. (First create the `crons` folder in File Manager.)
+   The other cron tasks and their schedules are listed in `docs/installation.md`.
+
+### Connecting the accounts (the 10-minute checklist)
+
+1. **Social networks (posting):** Admin → Settings → paste the two gateway keys
+   (Bundle.social and Zernio). Then each user opens **Social Connect**, clicks a
+   network, signs in at the network's own site, and returns — the connection is
+   verified before it is stored.
+2. **Ad accounts (paid ads):** same page, "Google Ads" and other ad networks connect
+   through the Zernio gateway the same way.
+3. **Payments (Paystack / Flutterwave):** paste the API keys in Admin → Settings,
+   then paste the webhook URLs shown in Admin → Transactions into each gateway's
+   dashboard. Full details: [`docs/payments-webhooks.md`](docs/payments-webhooks.md).
+4. **AI studios (optional):** a Gemini key upgrades photos/videos to the premium
+   engines and a Groq key upgrades the copywriting — but both studios already work
+   for free without any key.
+
+---
+
+## Documentation index
+
+| Document | What's inside |
+|---|---|
+| **[docs/installation.md](docs/installation.md)** | The complete step-by-step install: local (Laragon/XAMPP), cPanel live hosting, cron jobs, troubleshooting |
+| **[docs/features.md](docs/features.md)** | Every feature broken down in plain language, with screenshots and usage steps |
+| **[docs/payments-webhooks.md](docs/payments-webhooks.md)** | Payment verification, webhook URLs and security |
+| **[docs/referrals.md](docs/referrals.md)** | The referral programme, automatic rewards and admin controls |
+| **[docs/screenshots/](docs/screenshots/)** | Captures of all 58 pages |
+| **[DEPLOYMENT.md](DEPLOYMENT.md)** | Advanced live-server setup: Apache VirtualHost, Nginx, SSL |
 
 ---
 
