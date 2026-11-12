@@ -92,14 +92,12 @@ wait but never actually go out and queued ads never launch.
 
 | Feature | What it does for you |
 |---|---|
-| **Public Portfolio** | Every member gets a shareable public page (with a QR code) showing their work, services, prices and case studies — with four luxury design themes and an AI resume importer (drop in a PDF and the page fills itself). |
 | **Business Directory** | A verified directory of businesses and products with direct WhatsApp / call buttons for buyers. |
 | **Talent Marketplace** | Post or find jobs, contracts and bounties for media buyers, creators and copywriters. |
 | **P2P Chat & Deals** | Chat directly with clients or freelancers, and propose structured deals with an agreed amount and milestones. |
 | **Referral Programme** | Every member gets a personal invite link. When a referred person pays for a plan or credits, the referrer is rewarded **automatically** — with full admin control. |
 | **Reviews** | Members review the platform; the best verified reviews are showcased on the homepage. |
 
-![Portfolio Builder](docs/screenshots/portfolio-builder.jpg)
 ![Referrals](docs/screenshots/referrals.jpg)
 
 ### The business side — plans, payments and safety
@@ -131,7 +129,7 @@ adsbooster/
 ├── index.php, login.php, register.php, pricing.php   ← the public website pages
 │
 ├── dashboard.php, post-creator.php, calendar.php,    ← the member pages
-│   create-ad.php, social-connect.php, portfolio.php
+│   create-ad.php, social-connect.php
 │
 ├── admin/                     ← the admin control suite (25+ management pages)
 │

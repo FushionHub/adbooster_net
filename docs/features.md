@@ -20,14 +20,13 @@ Screenshots are captured from the running platform. For installation, see
 12. [A/B Test Studio](#12-ab-test-studio)
 13. [Anti-burn Auto-Pilot](#13-anti-burn-auto-pilot)
 14. [Store Import (Shopify / WooCommerce)](#14-store-import)
-15. [Public Portfolio & QR sharing](#15-public-portfolio--qr-sharing)
-16. [Business Directory](#16-business-directory)
-17. [Talent Marketplace & P2P Chat](#17-talent-marketplace--p2p-chat)
-18. [Referral Programme](#18-referral-programme)
-19. [Plans, payments & billing](#19-plans-payments--billing)
-20. [Two-factor login & account safety](#20-two-factor-login--account-safety)
-21. [Developer API & webhooks](#21-developer-api--webhooks)
-22. [Admin control suite](#22-admin-control-suite)
+15. [Business Directory](#15-business-directory)
+16. [Talent Marketplace & P2P Chat](#16-talent-marketplace--p2p-chat)
+17. [Referral Programme](#17-referral-programme)
+18. [Plans, payments & billing](#18-plans-payments--billing)
+19. [Two-factor login & account safety](#19-two-factor-login--account-safety)
+20. [Developer API & webhooks](#20-developer-api--webhooks)
+21. [Admin control suite](#21-admin-control-suite)
 
 ---
 
@@ -216,21 +215,7 @@ logged with the reason.
 
 ![Store Import](screenshots/ecommerce-sync.jpg)
 
-## 15. Public Portfolio & QR sharing
-
-- Every member gets a **public portfolio page** (shareable link, works without
-  login, search-engine friendly).
-- Fill it in the **Portfolio Studio**: bio, skills, services with prices, case
-  studies with result numbers, social links, a WhatsApp button — with a live
-  preview and **four design themes**.
-- **AI resume import**: drop a PDF/Word resume — the page fills itself and you get
-  an ATS score.
-- Every portfolio shows a **QR code** that opens it from any phone camera.
-
-![Portfolio](screenshots/portfolio.jpg)
-![Portfolio Builder](screenshots/portfolio-builder.jpg)
-
-## 16. Business Directory
+## 15. Business Directory
 
 A verified directory of businesses and products. Sellers get verified badges;
 buyers reach them instantly via **WhatsApp** or a **phone call** button. Filter by
@@ -238,7 +223,7 @@ category and location. The best listings are showcased on the homepage.
 
 ![Marketplace](screenshots/marketplace.jpg)
 
-## 17. Talent Marketplace & P2P Chat
+## 16. Talent Marketplace & P2P Chat
 
 - Post or browse **jobs, contracts and bounties** for media buyers, creators,
   copywriters and performance marketers — filter by type, workplace and budget.
@@ -248,7 +233,7 @@ category and location. The best listings are showcased on the homepage.
 
 ![Jobs](screenshots/jobs.jpg)
 
-## 18. Referral Programme
+## 17. Referral Programme
 
 1. On the Referrals page, copy your **personal invite link** and share it.
 2. Your friend registers through it and gets a welcome bonus.
@@ -261,7 +246,7 @@ Full details: [referrals.md](referrals.md).
 
 ![Referrals](screenshots/referrals.jpg)
 
-## 19. Plans, payments & billing
+## 18. Plans, payments & billing
 
 - Choose a **plan** or buy **credit packs** on the pricing page.
 - Pay with **Paystack** or **Flutterwave** (card, bank, mobile money).
@@ -275,7 +260,7 @@ Full details: [payments-webhooks.md](payments-webhooks.md).
 ![Checkout](screenshots/checkout.jpg)
 ![Pricing](screenshots/pricing.jpg)
 
-## 20. Two-factor login & account safety
+## 19. Two-factor login & account safety
 
 - Enable 2FA with any authenticator app (Google Authenticator, Authy, 1Password…).
 - **Email codes** are the fallback if you lose the app.
@@ -284,7 +269,7 @@ Full details: [payments-webhooks.md](payments-webhooks.md).
 
 ![2FA](screenshots/security-2fa.jpg)
 
-## 21. Developer API & webhooks
+## 20. Developer API & webhooks
 
 For teams that want other tools to talk to the platform:
 
@@ -297,7 +282,7 @@ For teams that want other tools to talk to the platform:
 
 ![Developer Console](screenshots/api-settings.jpg)
 
-## 22. Admin control suite
+## 21. Admin control suite
 
 Everything is managed from one sidebar: platform overview and health, users
 (including "view as user" and credit adjustments), pricing plans, marketplace &

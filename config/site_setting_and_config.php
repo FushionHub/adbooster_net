@@ -88,9 +88,6 @@ function url(string $path = '', array $params = []): string
     if ($cleanPath === 'bounty-details' && isset($params['id'])) {
         $cleanPath .= '/' . urlencode((string)$params['id']);
         unset($params['id']);
-    } elseif ($cleanPath === 'portfolio' && isset($params['u'])) {
-        $cleanPath .= '/' . urlencode((string)$params['u']);
-        unset($params['u']);
     } elseif ($cleanPath === 'client-approval' && isset($params['token'])) {
         $cleanPath .= '/' . urlencode((string)$params['token']);
         unset($params['token']);

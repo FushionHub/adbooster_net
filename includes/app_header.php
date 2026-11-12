@@ -1537,9 +1537,6 @@ body.nav-open { overflow: hidden; touch-action: none; }
           <a href="<?= url('jobs') ?>" class="nav-item <?= $_appPage==='jobs'?'active':'' ?>">
             <i class="ph ph-briefcase"></i> <span>Jobs</span>
           </a>
-          <a href="<?= url('portfolio-builder') ?>" class="nav-item <?= $_appPage==='portfolio-builder'?'active':'' ?>">
-            <i class="ph ph-address-book"></i> <span>My portfolio</span>
-          </a>
           <a href="<?= url('blog-manage') ?>" class="nav-item <?= $_appPage==='blog-manage'?'active':'' ?>">
             <i class="ph ph-article"></i> <span>Blog</span>
           </a>

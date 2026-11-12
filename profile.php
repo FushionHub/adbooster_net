@@ -1,13 +1,7 @@
 <?php declare(strict_types=1);
 require_once __DIR__ . '/config/site_setting_and_config.php';
 
-$pageTitle = 'Edit Profile — ' . get_setting('site_name', 'Adsbooster.net');
-
-// If viewing another user's public profile link, delegate to public portfolio
-if (!empty($_GET['u']) || !empty($_GET['id'])) {
-    require_once __DIR__ . '/portfolio.php';
-    exit;
-}
+$pageTitle = 'Edit Profile - ' . get_setting('site_name', 'Adsbooster.net');
 
 $userId = current_user_id();
 $user = current_user();

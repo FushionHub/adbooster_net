@@ -167,8 +167,8 @@ require_once __DIR__ . '/includes/header.php';
                         </div>
                     </div>
                     <div class="d-grid">
-                        <a href="<?= url('profile') ?>?u=<?= urlencode($job['author_email']) ?>" class="btn btn-outline-light rounded-pill font-size-13 py-2">
-                            <i class="ph ph-user me-1"></i> View Public Portfolio
+                        <a href="<?= url('p2p-chat') ?>?user=<?= (int)$job['user_id'] ?>" class="btn btn-outline-light rounded-pill font-size-13 py-2">
+                            <i class="ph ph-chats-circle me-1"></i> Contact Client
                         </a>
                     </div>
                 </div>

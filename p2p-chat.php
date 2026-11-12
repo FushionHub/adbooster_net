@@ -796,9 +796,6 @@ require_once __DIR__ . '/includes/app_header.php';
                     </div>
                     <div style="display:flex; align-items:center; gap:8px;">
                         <?php if (!$isAIBot): ?>
-                            <a href="<?= url('portfolio') ?>?id=<?= $chatUserId ?>" target="_blank" class="btn btn-outline-light rounded-pill btn-sm font-size-12 px-3" title="View Public Portfolio">
-                                <i class="ph ph-address-book me-1"></i> Portfolio
-                            </a>
                             <button type="button" class="btn btn-accent rounded-pill btn-sm font-size-12 fw-bold text-dark px-3" onclick="document.getElementById('dealModal').style.display='flex'">
                                 <i class="ph-bold ph-handshake me-1"></i> Propose Contract
                             </button>
