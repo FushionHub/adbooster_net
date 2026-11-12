@@ -630,8 +630,7 @@ require_once __DIR__ . '/includes/header.php';
               </span>
               <div class="">
                 <span class="tw-text-sm text-white d-block">Call Us</span>
-                <a href="tel:+2349024428551" class="h6 text-white fw-medium hover-underline d-block">+234 902 442 8551</a>
-                <a href="tel:+2348127560227" class="h6 text-white fw-medium hover-underline d-block">+234 812 756 0227</a>
+                <a href="tel:+17853679518" class="h6 text-white fw-medium hover-underline d-block">+1 785-367-9518</a>
               </div>
             </div>
             <div class="d-flex align-items-center tw-gap-6 animation-item">
@@ -643,17 +642,6 @@ require_once __DIR__ . '/includes/header.php';
                 <span class="tw-text-sm text-white d-block">Send Email</span>
                 <a href="mailto:support@adsbooster.net"
                   class="h6 text-white fw-medium hover-underline">support@adsbooster.net</a>
-              </div>
-            </div>
-            <div class="d-flex align-items-center tw-gap-6 animation-item">
-              <span
-                class="tw-h-17 tw-w-17 bg-white rounded-circle d-flex justify-content-center flex-shrink-0 align-items-center">
-                <i class="ph-fill ph-whatsapp-logo tw-text-3xl" style="color:#25D366;"></i>
-              </span>
-              <div class="">
-                <span class="tw-text-sm text-white d-block">WhatsApp</span>
-                <a href="https://wa.me/2349024428551?text=Hello%20Adsbooster" target="_blank" rel="noopener noreferrer"
-                  class="h6 text-white fw-medium hover-underline">+234 902 442 8551</a>
               </div>
             </div>
           </div>

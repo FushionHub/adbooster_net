@@ -16,7 +16,7 @@
                         <div class="d-flex flex-column tw-gap-2 tw-mt-4">
                             <a href="mailto:<?= e(get_setting('site_email', 'support@adsbooster.net')) ?>"
                                 class="h3 text-white hover-text-main-600 mb-0 text-break"><?= e(get_setting('site_email', 'support@adsbooster.net')) ?></a>
-                            <a href="tel:<?= e(get_setting('site_phone', '+234 902 442 8551')) ?>" class="h3 text-white hover-text-main-600 mb-0 text-break"><?= e(get_setting('site_phone', '+234 902 442 8551')) ?></a>
+                            <a href="tel:<?= e(get_setting('site_phone', '+1 785-367-9518')) ?>" class="h3 text-white hover-text-main-600 mb-0 text-break"><?= e(get_setting('site_phone', '+1 785-367-9518')) ?></a>
                         </div>
                     </div>
                 </div>

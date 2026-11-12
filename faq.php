@@ -600,14 +600,14 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
 
                     <div class="d-flex align-items-start gap-3 mb-4">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px; background: rgba(37,211,102,0.15); color: #25D366; font-size: 20px;">
-                            <i class="ph ph-whatsapp-logo"></i>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px; background: rgba(196,240,0,0.15); color: #c4f000; font-size: 20px;">
+                            <i class="ph ph-phone-call"></i>
                         </div>
                         <div>
-                            <div class="text-white fw-bold font-size-15">WhatsApp Priority Desk</div>
+                            <div class="text-white fw-bold font-size-15">Call Support Desk</div>
                             <div class="text-white-50 font-size-13 mb-2" style="color: #94a3b8 !important;">Direct escalation for ad account linking and wallet funding.</div>
-                            <a href="https://wa.me/2349024428551?text=Hello%20Adsbooster%20Support" target="_blank" class="text-success font-size-13 fw-semibold text-decoration-none hover-underline">
-                                Message on WhatsApp &rarr;
+                            <a href="tel:+17853679518" class="text-main-600 font-size-13 fw-semibold text-decoration-none hover-underline">
+                                +1 785-367-9518 &rarr;
                             </a>
                         </div>
                     </div>
