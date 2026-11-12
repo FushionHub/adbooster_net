@@ -30,6 +30,11 @@ class PaymentGateways
             'icon'   => 'ph-bank',
             'colour' => 'var(--accent)',
             'requires' => ['public', 'secret'],
+            // Inbound webhook endpoint (paste this URL into the gateway dashboard).
+            'webhook_path'   => 'payment/webhook/paystack',
+            'webhook_scheme' => 'paystack',
+            'webhook_events' => ['charge.success', 'transfer.success'],
+            'webhook_note'   => 'Paystack Dashboard → Settings → API Keys & Webhooks → "URL" (set as a secret key).',
         ],
         'flutterwave' => [
             'label'  => 'Flutterwave',
@@ -37,8 +42,24 @@ class PaymentGateways
             'icon'   => 'ph-wallet',
             'colour' => 'var(--blue)',
             'requires' => ['public', 'secret'],
+            'webhook_path'   => 'payment/webhook/flutterwave',
+            'webhook_scheme' => 'flutterwave',
+            'webhook_events' => ['charge.completed', 'transfer.completed'],
+            'webhook_note'   => 'Flutterwave Dashboard → Settings → Webhooks → "Webhook URL" (use the public key as the secret hash).',
         ],
     ];
+
+    /**
+     * Signature schemes understood by verifyWebhookSignature().
+     *
+     *  • paystack     — `x-paystack-signature` = HMAC-SHA512(raw body, secret key)
+     *  • flutterwave  — `verif-hash` = sha256(secret key) OR
+     *                  `x-flw-signature` = HMAC-SHA256(raw body, secret key)
+     *  • hmac_sha256  — `x-adsbooster-signature` / `x-webhook-signature`
+     *                  = HMAC-SHA256(raw body, secret) — the generic scheme any
+     *                  newly registered gateway inherits.
+     */
+    public const WEBHOOK_SCHEMES = ['paystack', 'flutterwave', 'hmac_sha256'];
 
     /**
      * Resolve one credential for a gateway.
@@ -54,6 +75,8 @@ class PaymentGateways
                     'secret' => (string)(api_key('PAYSTACK_SECRET_KEY', 'paystack_secret_key', '')
                         ?: api_key('PAYSTACK_LIVE_KEY', 'paystack_live_key', '')),
                     'test'   => api_key('PAYSTACK_TEST_KEY', 'paystack_test_key', ''),
+                    'webhook' => (string)(api_key('PAYSTACK_WEBHOOK_SECRET', 'paystack_webhook_secret', '')
+                        ?: api_key('PAYSTACK_SECRET_KEY', 'paystack_secret_key', '')),
                     default  => '',
                 };
             case 'flutterwave':
@@ -63,6 +86,8 @@ class PaymentGateways
                         ?: api_key('FLUTTERWAVE_LIVE_KEY', 'flutterwave_live_key', '')),
                     'encryption' => api_key('FLUTTERWAVE_ENCRYPTION_KEY', 'flutterwave_encryption_key', ''),
                     'test'       => api_key('FLUTTERWAVE_TEST_KEY', 'flutterwave_test_key', ''),
+                    'webhook'    => (string)(api_key('FLUTTERWAVE_WEBHOOK_SECRET', 'flutterwave_webhook_secret', '')
+                        ?: api_key('FLUTTERWAVE_SECRET_KEY', 'flutterwave_secret_key', '')),
                     default      => '',
                 };
             default:
@@ -223,5 +248,147 @@ class PaymentGateways
             $cfg['missing']
         );
         return 'Missing ' . implode(', ', $parts) . '.';
+    }
+
+    // ================================================================
+    //  Webhooks — one inbound URL per gateway
+    // ================================================================
+
+    /**
+     * The clean path a gateway should call, e.g. `payment/webhook/flutterwave`.
+     */
+    public static function webhookPath(string $gateway): string
+    {
+        $gateway = strtolower(trim($gateway));
+        $meta    = self::REGISTRY[$gateway] ?? [];
+        return (string)($meta['webhook_path'] ?? ('payment/webhook/' . $gateway));
+    }
+
+    /**
+     * The absolute webhook URL to paste into a gateway dashboard.
+     */
+    public static function webhookUrl(string $gateway): string
+    {
+        $base = defined('BASE_URL') ? rtrim((string)BASE_URL, '/') : '';
+        return $base . '/' . self::webhookPath($gateway);
+    }
+
+    /**
+     * Every webhook URL on the platform, keyed by gateway.
+     *
+     * @return array<string,array{url:string,path:string,scheme:string,events:string[],note:string,label:string}>
+     */
+    public static function webhookUrls(): array
+    {
+        $out = [];
+        foreach (self::REGISTRY as $key => $meta) {
+            $out[$key] = [
+                'label'  => (string)$meta['label'],
+                'url'    => self::webhookUrl($key),
+                'path'   => self::webhookPath($key),
+                'scheme' => (string)($meta['webhook_scheme'] ?? 'hmac_sha256'),
+                'events' => (array)($meta['webhook_events'] ?? []),
+                'note'   => (string)($meta['webhook_note'] ?? ''),
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * The secret used to sign/verify this gateway's webhooks.
+     */
+    public static function webhookSecret(string $gateway): string
+    {
+        return trim(self::credential(strtolower(trim($gateway)), 'webhook'));
+    }
+
+    /**
+     * Read a request header regardless of SAPI.
+     */
+    public static function headerValue(array $headers, string $name): string
+    {
+        $name = strtolower($name);
+        foreach ($headers as $key => $value) {
+            if (strtolower((string)$key) === $name) {
+                return trim((string)$value);
+            }
+        }
+        return '';
+    }
+
+    /**
+     * Verify an inbound webhook payload.
+     *
+     * @param string $gateway  Gateway key
+     * @param string $rawBody  Exact raw request body
+     * @param array  $headers  Request headers (any case)
+     * @return bool True when the payload is authentic
+     */
+    public static function verifyWebhookSignature(string $gateway, string $rawBody, array $headers): bool
+    {
+        $gateway = strtolower(trim($gateway));
+        $meta    = self::REGISTRY[$gateway] ?? [];
+        $scheme  = (string)($meta['webhook_scheme'] ?? 'hmac_sha256');
+        $secret  = self::webhookSecret($gateway);
+
+        if ($secret === '') {
+            // Without a configured secret nothing can be verified — refuse.
+            error_log("Payment webhook rejected: no secret configured for {$gateway}");
+            return false;
+        }
+
+        if ($scheme === 'paystack') {
+            $signature = self::headerValue($headers, 'x-paystack-signature');
+            if ($signature === '') {
+                return false;
+            }
+            return hash_equals(hash_hmac('sha512', $rawBody, $secret), $signature);
+        }
+
+        if ($scheme === 'flutterwave') {
+            $verifHash = self::headerValue($headers, 'verif-hash');
+            if ($verifHash !== '' && hash_equals(hash('sha256', $secret), $verifHash)) {
+                return true;
+            }
+            $signature = self::headerValue($headers, 'x-flw-signature');
+            if ($signature !== '') {
+                return hash_equals(hash_hmac('sha256', $rawBody, $secret), $signature);
+            }
+            return false;
+        }
+
+        // Generic HMAC-SHA256 scheme — inherited by any new gateway.
+        $signature = self::headerValue($headers, 'x-adsbooster-signature');
+        if ($signature === '') {
+            $signature = self::headerValue($headers, 'x-webhook-signature');
+        }
+        if ($signature === '') {
+            return false;
+        }
+        return hash_equals(hash_hmac('sha256', $rawBody, $secret), $signature);
+    }
+
+    /**
+     * Collect the incoming request headers in a SAPI-independent array.
+     */
+    public static function requestHeaders(): array
+    {
+        $headers = [];
+        if (function_exists('getallheaders')) {
+            $raw = getallheaders();
+            if (is_array($raw)) {
+                $headers = $raw;
+            }
+        }
+        foreach ($_SERVER as $key => $value) {
+            if (str_starts_with((string)$key, 'HTTP_')) {
+                $name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr((string)$key, 5)))));
+                $headers[$name] = $value;
+            } elseif (in_array($key, ['CONTENT_TYPE', 'CONTENT_LENGTH'], true)) {
+                $name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', (string)$key))));
+                $headers[$name] = $value;
+            }
+        }
+        return $headers;
     }
 }

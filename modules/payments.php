@@ -14,6 +14,7 @@
 
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/payment_gateways.php';
+require_once __DIR__ . '/referral_service.php';
 
 class PaymentProcessor
 {
@@ -235,6 +236,275 @@ class PaymentProcessor
     }
 
     /**
+     * Verify a transaction with ANY configured gateway.
+     *
+     * This is the single entry point used by the hosted-checkout callback,
+     * the admin "Verify" button and the inbound webhook endpoint, so all
+     * three behave identically no matter which gateway is involved.
+     *
+     * @param string $gateway   Gateway key (paystack|flutterwave|…)
+     * @param string $reference Gateway reference, tx_ref or transaction id
+     * @return array{success:bool,status:string,message:string,data:array|null,
+     *               transaction:array|null}
+     */
+    public static function verifyGateway(string $gateway, string $reference): array
+    {
+        $gateway   = strtolower(trim($gateway));
+        $reference = trim($reference);
+
+        $result = [
+            'success'     => false,
+            'status'      => 'failed',
+            'message'     => '',
+            'data'        => null,
+            'transaction' => null,
+        ];
+
+        if ($gateway === '') {
+            $result['message'] = 'No payment gateway was specified.';
+            return $result;
+        }
+        if (!isset(PaymentGateways::REGISTRY[$gateway])) {
+            $result['message'] = 'Unknown payment gateway "' . $gateway . '".';
+            return $result;
+        }
+        if ($reference === '') {
+            $result['message'] = 'Missing payment reference.';
+            return $result;
+        }
+
+        // The local transaction row (if any) — the webhook/callback flow
+        // needs it even when the gateway refuses the verification.
+        $transaction = self::findTransaction($gateway, $reference);
+        $result['transaction'] = $transaction;
+
+        // Gateways without credentials cannot be verified — say so clearly
+        // instead of surfacing a generic failure.
+        if (!PaymentGateways::isEnabled($gateway)) {
+            $result['status']  = 'unconfigured';
+            $result['message'] = PaymentGateways::config($gateway)['label']
+                . ' is not available. ' . PaymentGateways::unavailableReason($gateway);
+            return $result;
+        }
+
+        if ($gateway === 'paystack') {
+            $verified = self::verifyPaystack($reference);
+        } elseif ($gateway === 'flutterwave') {
+            $verified = self::verifyFlutterwave($reference);
+        } else {
+            $verified = self::verifyGenericGateway($gateway, $reference);
+        }
+
+        $result['data']    = $verified['data'];
+        $result['message'] = (string)($verified['message'] ?? '');
+
+        if (!$verified['success']) {
+            $result['status'] = 'failed';
+            return $result;
+        }
+
+        // ── Resolve the internal transaction and complete it ───────
+        $internalId = self::resolveInternalTransactionId($gateway, $verified['data'], $reference, $transaction);
+        if ($internalId <= 0) {
+            $result['status']  = 'missing';
+            $result['message'] = 'Payment verified at ' . PaymentGateways::config($gateway)['label']
+                . ' but no matching local transaction was found. '
+                . 'Run update-any-error.sql and re-verify if this transaction should exist locally.';
+            return $result;
+        }
+
+        $completed = self::completeTransaction($internalId);
+        if ($completed) {
+            $result['success'] = true;
+            $result['status']  = 'successful';
+            $result['message'] = 'Payment verified and wallet credited successfully!';
+        } else {
+            $result['status']  = 'failed';
+            $result['message'] = 'Payment verified but crediting failed. Contact support.';
+        }
+
+        $result['transaction'] = self::findTransactionById($internalId) ?? $result['transaction'];
+
+        return $result;
+    }
+
+    /**
+     * Build the Checkout URL that keeps the order context intact.
+     *
+     * A failed verification lands on the Checkout page — the order summary
+     * and the gateway's error message must appear together, otherwise the
+     * admin only sees "No item selected" and cannot tell which order broke.
+     *
+     * @param array|null $transaction       The local transaction row
+     * @param string     $fallbackReference Reference used when no row exists
+     */
+    public static function checkoutUrlForTransaction(?array $transaction, string $fallbackReference = ''): string
+    {
+        $params = [];
+
+        if ($transaction !== null) {
+            $meta = json_decode((string)($transaction['metadata'] ?? '{}'), true) ?: [];
+
+            if (!empty($meta['plan_id'])) {
+                $params['plan']  = (int)$meta['plan_id'];
+                $params['cycle'] = (string)($meta['cycle'] ?? 'monthly');
+            } elseif (isset($meta['amount_usd']) && (float)$meta['amount_usd'] > 0) {
+                $params['credits'] = (float)$meta['amount_usd'];
+            }
+
+            if (isset($transaction['id'])) {
+                $params['txn'] = (int)$transaction['id'];
+            }
+        }
+
+        if (empty($params) && $fallbackReference !== '') {
+            $params['reference'] = $fallbackReference;
+        }
+
+        return url('checkout', $params);
+    }
+
+    /**
+     * Find the local transaction row for a gateway reference.
+     *
+     * @return array|null
+     */
+    public static function findTransaction(string $gateway, string $reference): ?array
+    {
+        $reference = trim($reference);
+        if ($reference === '') {
+            return null;
+        }
+        return db()->fetchOne(
+            "SELECT * FROM transactions
+              WHERE gateway_reference = ? OR reference = ?
+              ORDER BY id DESC LIMIT 1",
+            [$reference, $reference]
+        );
+    }
+
+    /**
+     * Find a transaction by its internal id.
+     *
+     * @return array|null
+     */
+    public static function findTransactionById(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+        return db()->fetchOne("SELECT * FROM transactions WHERE id = ?", [$id]);
+    }
+
+    /**
+     * Work out which internal transaction the gateway answer refers to.
+     */
+    private static function resolveInternalTransactionId(
+        string $gateway,
+        ?array $data,
+        string $reference,
+        ?array $transaction
+    ): int {
+        // 1. The transaction we already matched locally.
+        if ($transaction !== null && (int)($transaction['id'] ?? 0) > 0) {
+            return (int)$transaction['id'];
+        }
+
+        // 2. Metadata supplied by the gateway at checkout time.
+        $meta = [];
+        if ($gateway === 'flutterwave') {
+            $meta = (array)($data['meta'] ?? []);
+        } elseif ($gateway === 'paystack') {
+            $meta = (array)($data['metadata'] ?? []);
+        }
+        if (isset($meta['transaction_id']) && (int)$meta['transaction_id'] > 0) {
+            $candidate = (int)$meta['transaction_id'];
+            if (self::findTransactionById($candidate) !== null) {
+                return $candidate;
+            }
+        }
+
+        // 3. The gateway reference echoed back by the provider.
+        $echoed = '';
+        if ($gateway === 'flutterwave') {
+            $echoed = (string)($data['tx_ref'] ?? '');
+        } elseif ($gateway === 'paystack') {
+            $echoed = (string)($data['reference'] ?? '');
+        } else {
+            $echoed = (string)($data['reference'] ?? $data['tx_ref'] ?? '');
+        }
+        if ($echoed !== '') {
+            $match = self::findTransaction($gateway, $echoed);
+            if ($match !== null) {
+                return (int)$match['id'];
+            }
+        }
+
+        // 4. The reference the caller handed us.
+        $match = self::findTransaction($gateway, $reference);
+        if ($match !== null) {
+            return (int)$match['id'];
+        }
+
+        return 0;
+    }
+
+    /**
+     * Verify a transaction with a gateway that has no bespoke verifier.
+     *
+     * The generic contract is intentionally simple: the gateway exposes
+     * `GET {base}/verify/{reference}` returning `{status: "success"|true,
+     * data: {...}}`. Any gateway added to the registry inherits this path.
+     */
+    private static function verifyGenericGateway(string $gateway, string $reference): array
+    {
+        $secretKey = PaymentGateways::secretKey($gateway);
+        if ($secretKey === '') {
+            return ['success' => false, 'data' => null, 'message' => ucfirst($gateway) . ' secret key not configured.'];
+        }
+
+        $meta    = PaymentGateways::REGISTRY[$gateway] ?? [];
+        $baseUrl = (string)($meta['base_url'] ?? ('https://api.' . $gateway . '.com/v3'));
+        $url     = rtrim($baseUrl, '/') . '/verify/' . urlencode($reference);
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER     => [
+                'Authorization: Bearer ' . $secretKey,
+                'Accept: application/json',
+            ],
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_SSL_VERIFYPEER => true,
+        ]);
+
+        $response = curl_exec($ch);
+        $error    = curl_error($ch);
+        curl_close($ch);
+
+        if ($response === false) {
+            error_log(ucfirst($gateway) . " verification cURL error: {$error}");
+            return ['success' => false, 'data' => null, 'message' => 'Network error during verification.'];
+        }
+
+        $decoded = json_decode((string)$response, true);
+        if (!is_array($decoded)) {
+            return ['success' => false, 'data' => null, 'message' => 'Invalid response from ' . ucfirst($gateway) . '.'];
+        }
+
+        $ok = ($decoded['status'] ?? '') === 'success' || ($decoded['status'] ?? '') === true;
+        $data = (array)($decoded['data'] ?? []);
+
+        return [
+            'success' => $ok,
+            'data'    => $data,
+            'message' => $ok
+                ? 'Payment verified successfully.'
+                : (string)($decoded['message'] ?? 'Payment verification failed.'),
+        ];
+    }
+
+    /**
      * Mark a transaction as complete and credit the user's balance.
      *
      * Credits the same users.ad_credits / users.ai_credits balances the
@@ -329,43 +599,17 @@ class PaymentProcessor
                 }
             }
 
-            // Check if this user was referred and has a pending referral reward
+            // ── Automatic referral reward ───────────────────────────
+            // The referrer is paid the moment the referred user's payment
+            // is verified. Admin can still pay the same referral manually
+            // from Admin → Referrals if the automatic pass was missed.
             try {
-                $pendingRef = db()->fetch(
-                    "SELECT * FROM referrals WHERE referred_id = ? AND status = 'pending' LIMIT 1",
-                    [$userId]
-                );
-                if ($pendingRef) {
-                    $rewardCredits = (float)($pendingRef['reward_credits'] ?? 10.00);
-                    $referrerId = (int)$pendingRef['referrer_id'];
-
-                    // Credit referrer with ad credits
-                    db()->query(
-                        "UPDATE users SET ad_credits = COALESCE(ad_credits, 0) + ? WHERE id = ?",
-                        [$rewardCredits, $referrerId]
+                $reward = ReferralService::rewardForPayment($userId, $transaction);
+                if ($reward['rewarded']) {
+                    $creditNote = trim(
+                        $creditNote . ($creditNote !== '' ? ' · ' : '')
+                        . 'referral reward ' . number_format((float)$reward['amount'], 2) . ' credits issued'
                     );
-                    // Give referred user a bonus $5.00 ad credit
-                    db()->query(
-                        "UPDATE users SET ad_credits = COALESCE(ad_credits, 0) + 5.00 WHERE id = ?",
-                        [$userId]
-                    );
-                    // Mark referral as rewarded
-                    db()->update('referrals', [
-                        'status'         => 'rewarded',
-                        'reward_credits' => $rewardCredits,
-                        'updated_at'     => date('Y-m-d H:i:s')
-                    ], 'id = ?', [(int)$pendingRef['id']]);
-
-                    // Send notification to referrer
-                    if (class_exists('NotificationService')) {
-                        NotificationService::create(
-                            $referrerId,
-                            'referral_reward',
-                            'Referral Bonus Earned! 🎉',
-                            'Your referral made their first payment! You received ' . number_format((float)$rewardCredits, 2) . ' ad credits.',
-                            '/referrals.php'
-                        );
-                    }
                 }
             } catch (\Throwable $refErr) {
                 error_log("Referral crediting error: " . $refErr->getMessage());

@@ -13,6 +13,13 @@ $currency  = currency_current();
 $cycle     = ($_GET['cycle'] ?? 'monthly') === 'yearly' ? 'yearly' : 'monthly';
 $gateway   = '';
 
+// The transaction a failed verification was working on (set by
+// payment-verify.php so the admin can see exactly which order broke).
+$txnId   = (int)($_GET['txn'] ?? 0);
+$txnRow  = $txnId > 0
+    ? db()->fetchOne("SELECT id, gateway, gateway_reference, amount, currency, type, status, metadata FROM transactions WHERE id = ?", [$txnId])
+    : null;
+
 $planDetails = null;
 if ($planId > 0) {
     $planDetails = db()->fetchOne("SELECT * FROM pricing_plans WHERE id = ? AND status = 'active'", [$planId]);
@@ -44,10 +51,63 @@ if ($planDetails) {
     ];
 }
 
+// Nothing to pay for, but a transaction was attached to this checkout —
+// recover the order from the transaction metadata so the page still shows
+// what is being paid for.
+if (!$planDetails && $txnRow !== null) {
+    $txnMeta = json_decode((string)($txnRow['metadata'] ?? '{}'), true) ?: [];
+    if (!empty($txnMeta['plan_id'])) {
+        $recovered = db()->fetchOne("SELECT * FROM pricing_plans WHERE id = ?", [(int)$txnMeta['plan_id']]);
+        if ($recovered !== null) {
+            $planDetails = $recovered;
+            $planId      = (int)$recovered['id'];
+            $cycle       = ($txnMeta['cycle'] ?? 'monthly') === 'yearly' ? 'yearly' : 'monthly';
+            $usdAmount   = (float)($recovered['price'] ?? 0);
+            $displayCharge = price_convert($usdAmount, $currency);
+        }
+    } elseif (isset($txnMeta['amount_usd']) && (float)$txnMeta['amount_usd'] > 0) {
+        $creditUsd = max(2.5, (float)$txnMeta['amount_usd']);
+        $isCredits = true;
+        $usdAmount = $creditUsd;
+        $displayCharge = price_convert($usdAmount, $currency);
+        $planDetails = [
+            'name'        => number_format($creditUsd * 100) . ' AI Credits',
+            'description' => 'AI credit top-up — charged in ₦ NGN',
+            'price'       => $creditUsd,
+        ];
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify()) {
         $errors[] = 'Invalid security token.';
     } else {
+        // The form re-submits the order context so a failed attempt keeps
+        // the same order on screen.
+        if ($planDetails === null && (int)($_POST['plan_id'] ?? 0) > 0) {
+            $planId = (int)$_POST['plan_id'];
+            $planDetails = db()->fetchOne("SELECT * FROM pricing_plans WHERE id = ? AND status = 'active'", [$planId]);
+            if ($planDetails !== null) {
+                $cycle = (($_POST['cycle'] ?? $cycle) === 'yearly') ? 'yearly' : 'monthly';
+                $usdAmount = (float)($planDetails['price'] ?? 0);
+                if ($cycle === 'yearly' && ($planDetails['billing_cycle'] ?? '') !== 'pay_as_you_go') {
+                    $usdAmount = round($usdAmount * 12 * 0.75, 2);
+                }
+                $displayCharge = price_convert($usdAmount, $currency);
+            }
+        }
+        if ($planDetails === null && (float)($_POST['credits_usd'] ?? 0) > 0) {
+            $creditUsd = max(2.5, (float)$_POST['credits_usd']);
+            $isCredits = true;
+            $usdAmount = $creditUsd;
+            $displayCharge = price_convert($usdAmount, $currency);
+            $planDetails = [
+                'name'        => number_format($creditUsd * 100) . ' AI Credits',
+                'description' => 'AI credit top-up — charged in ₦ NGN',
+                'price'       => $creditUsd,
+            ];
+        }
+
         $gateway = strtolower(trim((string)($_POST['gateway'] ?? '')));
         $enabledGateways = PaymentGateways::enabled();
         $defaultGateway  = PaymentGateways::defaultGateway();
@@ -115,6 +175,37 @@ require_once __DIR__ . '/includes/app_header.php';
             </div>
         <?php endif; ?>
 
+        <?php if ($txnRow !== null): ?>
+            <div class="checkout-card rounded-3 p-4 mb-4">
+                <h5 class="text-white fw-bold mb-3">
+                    <i class="ph-bold ph-receipt me-2 text-main-600"></i>Transaction Under Review
+                </h5>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-white-50 small">Transaction</span>
+                    <span class="text-white fw-bold small">#<?= (int)$txnRow['id'] ?></span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-white-50 small">Gateway</span>
+                    <span class="text-white fw-bold small text-capitalize"><?= e((string)($txnRow['gateway'] ?? '—')) ?></span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-white-50 small">Reference</span>
+                    <span class="text-white fw-bold small" style="font-family:monospace;"><?= e((string)($txnRow['gateway_reference'] ?? '—')) ?></span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-white-50 small">Amount</span>
+                    <span class="text-main-600 fw-bold"><?= e(txn_money((float)$txnRow['amount'], (string)($txnRow['currency'] ?? null))) ?></span>
+                </div>
+                <div class="alert alert-warning mb-0 py-2 px-3" style="font-size:.8rem;">
+                    <i class="ph-bold ph-info me-1"></i>
+                    This payment could not be verified automatically. The gateway reported the error above.
+                    If the order is missing from the database, apply
+                    <code>update-any-error.sql</code> and verify again from
+                    <strong>Admin → Transactions</strong>.
+                </div>
+            </div>
+        <?php endif; ?>
+
         <?php if (!$planDetails): ?>
             <div class="text-center py-5">
                 <i class="ph-bold ph-shopping-cart text-white-50" style="font-size:3rem;"></i>
@@ -146,9 +237,11 @@ require_once __DIR__ . '/includes/app_header.php';
             <!-- Payment Gateway -->
             <form method="POST" id="checkoutForm">
                 <?= csrf_field() ?>
-                <input type="hidden" name="plan" value="<?= e($planSlug) ?>">
                 <?php if ($isCredits): ?>
-                    <input type="hidden" name="credits" value="<?= $creditAmt ?>">
+                    <input type="hidden" name="credits_usd" value="<?= e((string)$creditUsd) ?>">
+                <?php else: ?>
+                    <input type="hidden" name="plan_id" value="<?= (int)($planDetails['id'] ?? $planId) ?>">
+                    <input type="hidden" name="cycle" value="<?= e($cycle) ?>">
                 <?php endif; ?>
                 <input type="hidden" name="currency" value="<?= e($currency) ?>">
 

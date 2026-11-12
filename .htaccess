@@ -58,6 +58,14 @@ RewriteRule ^calendar-reschedule/?$ modules/calendar_reschedule.php [QSA,L]
 # ?status=&tx_ref=&transaction_id= (FLW) / ?reference= (Paystack).
 RewriteRule ^payment/callback/(flutterwave|paystack)/?$ payment-verify.php?gateway=$1 [QSA,L]
 
+# Payment gateway webhooks — the server-to-server URL each gateway calls
+# when a payment settles. One URL per gateway:
+#   /payment/webhook/flutterwave
+#   /payment/webhook/paystack
+# The handler is gateway-agnostic: it verifies the signature with that
+# gateway's scheme and completes the matching transaction.
+RewriteRule ^payment/webhook/([a-z0-9_\-]+)/?$ payment-webhook.php?gateway=$1 [QSA,L]
+
 # -------------------------------------------------------------
 # 2. Redirect explicit .php requests to extensionless clean URLs
 #    (avoids 301 turning POST into GET on the canonical URL)

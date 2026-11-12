@@ -1,6 +1,7 @@
 <?php declare(strict_types=1);
 
 require_once __DIR__ . '/config/site_setting_and_config.php';
+require_once __DIR__ . '/modules/referral_service.php';
 
 $errors = [];
 $old = ['full_name' => '', 'email' => ''];
@@ -81,16 +82,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'ai_credits'         => max(0, (int)get_setting('signup_ai_credits', '100')),
             ]);
 
-            // Link referral if registered via referral code
+            // Link referral if registered via referral code.
+            // The link is created as `pending`: the reward is paid
+            // automatically the moment this account's first payment is
+            // verified (see modules/referral_service.php).
             if ($referrerUser) {
                 try {
-                    db()->update('users', ['referred_by' => (int)$referrerUser['id']], 'id = ?', [$userId]);
-                    db()->insert('referrals', [
-                        'referrer_id'    => (int)$referrerUser['id'],
-                        'referred_id'    => $userId,
-                        'status'         => 'pending',
-                        'reward_credits' => 10.00,
-                    ]);
+                    ReferralService::record((int)$referrerUser['id'], $userId, $refCode !== '' ? $refCode : null);
                 } catch (\Throwable $refInsertErr) {
                     error_log("Referral link error: " . $refInsertErr->getMessage());
                 }

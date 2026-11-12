@@ -1828,3 +1828,9 @@ body.nav-open { overflow: hidden; touch-action: none; }
           <div><?= e($flashError) ?></div>
         </div>
       <?php endif; ?>
+      <?php if ($flashWarning = get_flash('warning')): ?>
+        <div class="alert alert-warning d-flex align-items-start gap-2">
+          <i class="ph ph-warning" style="font-size:18px"></i>
+          <div><?= e($flashWarning) ?></div>
+        </div>
+      <?php endif; ?>
