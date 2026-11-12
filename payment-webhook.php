@@ -14,12 +14,21 @@
  * verifies the payload with that gateway's signature scheme, resolves the
  * matching local transaction and completes it.
  *
+ * Flow:
+ *   1. unknown gateway            → 404
+ *   2. bad / missing signature    → 401
+ *   3. no reference in payload    → 422
+ *   4. log the delivery           → payment_webhook_events
+ *   5. verify with the gateway    → complete the local transaction
+ *   6. transient failure + signed payload → settle from the payload
+ *
  * See `docs/payments-webhooks.md` for the per-gateway setup notes.
  */
 
 require_once __DIR__ . '/config/site_setting_and_config.php';
 require_once __DIR__ . '/modules/payments.php';
 require_once __DIR__ . '/modules/payment_gateways.php';
+require_once __DIR__ . '/modules/payment_webhook.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -72,25 +81,10 @@ if (!is_array($payload)) {
     parse_str($rawBody, $parsed);
     $payload = is_array($parsed) ? $parsed : [];
 }
+$data = (array)($payload['data'] ?? []);
 
 // ── Extract the gateway reference ───────────────────────────────────
-$data = (array)($payload['data'] ?? []);
-$reference = '';
-foreach ([
-    $data['tx_ref']            ?? null,
-    $data['reference']         ?? null,
-    $data['transaction_id']    ?? null,
-    $data['id']                ?? null,
-    $payload['tx_ref']         ?? null,
-    $payload['reference']      ?? null,
-    $payload['transaction_id'] ?? null,
-    $payload['id']             ?? null,
-] as $candidate) {
-    if ($candidate !== null && trim((string)$candidate) !== '') {
-        $reference = trim((string)$candidate);
-        break;
-    }
-}
+$reference = PaymentWebhook::local_reference($payload);
 
 if ($reference === '') {
     webhook_json(422, [
@@ -100,12 +94,16 @@ if ($reference === '') {
     ]);
 }
 
+// The gateway-side transaction id (Flutterwave flw_ref, …) — used for
+// the live API check when present, because it is the strongest handle.
+$gatewayId = PaymentWebhook::gateway_transaction_id($payload, $gateway);
+
 // ── Log the delivery (idempotency ledger) ──────────────────────────
 $eventId = 0;
 try {
     $eventId = db()->insert('payment_webhook_events', [
         'gateway'          => $gateway,
-        'event_type'       => (string)($data['event'] ?? $payload['event'] ?? $payload['event_type'] ?? 'unknown'),
+        'event_type'       => (string)($payload['event'] ?? $payload['event_type'] ?? $data['event'] ?? 'unknown'),
         'gateway_reference'=> $reference,
         'payload'          => $rawBody !== '' ? $rawBody : json_encode($payload),
         'status'           => 'received',
@@ -119,7 +117,7 @@ try {
 
 // ── Verify + complete the transaction ───────────────────────────────
 try {
-    $result = PaymentProcessor::verifyGateway($gateway, $reference);
+    $result = PaymentProcessor::verifyGateway($gateway, $reference, $gatewayId);
 } catch (\Throwable $e) {
     error_log('Payment webhook processing error: ' . $e->getMessage());
     webhook_json(500, [
@@ -127,6 +125,49 @@ try {
         'message' => 'Webhook processing failed. Our team has been notified.',
         'gateway' => $gateway,
     ]);
+}
+
+// ── Trusted-payload fallback ────────────────────────────────────────
+// The signature check above already proved this event came from the
+// gateway — that is what the secret is for. When the gateway could not
+// be reached to confirm the payment (network error, 5xx, unparseable
+// answer) the money has still moved, so a payload that explicitly
+// reports success settles the local pending transaction instead of
+// silently dropping the event.
+//
+// Four conditions must all hold:
+//   1. the failure was TRANSIENT — when the gateway answered and denied
+//      the payment, that answer wins; crediting on a denial would pay
+//      out for a transaction that never settled
+//   2. the signature covers the BODY — Flutterwave's verif-hash is a
+//      static sha256(secret) and does not authenticate the payload, so a
+//      captured delivery could otherwise be replayed with a forged body
+//   3. the payload reports success explicitly
+//   4. the payload agrees with the local order (amount + currency),
+//      which blocks a captured body being replayed onto another order
+//
+// Never fails a transaction here: a "failed" event leaves the row pending
+// for the admin to decide (they can re-verify or mark it failed).
+$fallback = false;
+$localTxn = $result['transaction'] ?? null;
+if (
+    !$result['success']
+    && !empty($result['transient'])
+    && PaymentGateways::webhookSignatureCoversBody($gateway, $headers)
+    && is_array($localTxn)
+    && isset($localTxn['id'])
+    && ($localTxn['status'] ?? '') === 'pending'
+    && PaymentWebhook::payload_reports_success($payload)
+    && PaymentWebhook::payload_matches_order($payload, $localTxn)
+) {
+    if (PaymentProcessor::completeTransaction((int)$localTxn['id'])) {
+        $fallback = true;
+        $result['success']     = true;
+        $result['status']      = 'successful';
+        $result['message']     = 'Payment settled from the signed gateway payload. Live confirmation said: '
+            . ((string)$result['message'] ?: 'none');
+        $result['transaction'] = PaymentProcessor::findTransactionById((int)$localTxn['id']) ?? $localTxn;
+    }
 }
 
 // ── Persist the outcome ────────────────────────────────────────────
@@ -143,7 +184,7 @@ try {
         db()->update('payment_webhook_events', [
             'status'          => $result['success'] ? 'processed' : 'ignored',
             'transaction_id'  => isset($transaction['id']) ? (int)$transaction['id'] : null,
-            'message'         => (string)$result['message'],
+            'message'         => ($fallback ? '[signed-payload fallback] ' : '') . (string)$result['message'],
             'processed_at'    => date('Y-m-d H:i:s'),
         ], 'id = ?', [$eventId]);
     }
@@ -151,11 +192,20 @@ try {
     error_log('Payment webhook persist failed (run update-any-error.sql): ' . $persistErr->getMessage());
 }
 
-webhook_json($result['success'] ? 200 : 200, [
+// ── Answer the gateway ─────────────────────────────────────────────
+// 200 = "understood, stop retrying" (whether or not it paid out).
+// 502 = the gateway could not be reached to confirm, so the provider
+//       should redeliver later instead of silently dropping the event.
+$message   = (string)$result['message'];
+$transient = !$result['success'] && !empty($result['transient']);
+
+webhook_json($transient ? 502 : 200, [
     'status'       => $result['success'],
     'result'       => $result['status'],
-    'message'      => $result['message'],
+    'message'      => $message,
     'gateway'      => $gateway,
     'reference'    => $reference,
     'transaction'  => isset($transaction['id']) ? (int)$transaction['id'] : null,
+    'settled_by'   => $fallback ? 'signed_payload' : ($result['success'] ? 'gateway_api' : null),
+    'retry'        => $transient,
 ]);

@@ -215,4 +215,38 @@ final class PaymentWebhookSignatureTest extends TestCase
             $this->assertContains($scheme, PaymentGateways::WEBHOOK_SCHEMES, "{$gateway} uses an unknown scheme");
         }
     }
+
+    // ---------------------------------------------------------------
+    // webhookSignatureCoversBody()
+    // ---------------------------------------------------------------
+
+    public function testFlutterwaveVerifHashDoesNotCoverTheBody(): void
+    {
+        // verif-hash = sha256(secret): a static value that says nothing
+        // about the payload, so the body must not be trusted from it.
+        $this->assertFalse(
+            PaymentGateways::webhookSignatureCoversBody('flutterwave', ['verif-hash' => 'abc'])
+        );
+    }
+
+    public function testFlutterwaveHmacSignatureCoversTheBody(): void
+    {
+        $this->assertTrue(
+            PaymentGateways::webhookSignatureCoversBody('flutterwave', ['x-flw-signature' => 'abc'])
+        );
+    }
+
+    public function testPaystackSignatureCoversTheBody(): void
+    {
+        $this->assertTrue(
+            PaymentGateways::webhookSignatureCoversBody('paystack', ['x-paystack-signature' => 'abc'])
+        );
+    }
+
+    public function testGenericSignatureCoversTheBody(): void
+    {
+        $this->assertTrue(
+            PaymentGateways::webhookSignatureCoversBody('stripe', ['x-adsbooster-signature' => 'abc'])
+        );
+    }
 }

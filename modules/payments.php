@@ -125,7 +125,7 @@ class PaymentProcessor
     {
         $secretKey = PaymentGateways::secretKey('paystack');
         if (empty($secretKey)) {
-            return ['success' => false, 'data' => null, 'message' => 'Paystack secret key not configured.'];
+            return ['success' => false, 'data' => null, 'message' => 'Paystack secret key not configured.', 'transient' => false];
         }
 
         $url = self::PAYSTACK_BASE . '/transaction/verify/' . urlencode($reference);
@@ -140,6 +140,11 @@ class PaymentProcessor
             CURLOPT_TIMEOUT        => 30,
             CURLOPT_SSL_VERIFYPEER => true,
         ]);
+        // Attach the project CA bundle — without it every gateway call
+        // fails TLS verification on SAPIs where curl.cainfo is empty.
+        if (function_exists('ca_curl_setopt')) {
+            ca_curl_setopt($ch);
+        }
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -148,26 +153,34 @@ class PaymentProcessor
 
         if ($response === false) {
             error_log("Paystack verification cURL error: {$error}");
-            return ['success' => false, 'data' => null, 'message' => 'Network error during verification.'];
+            return ['success' => false, 'data' => null, 'message' => 'Network error during verification.', 'transient' => true];
         }
 
         $decoded = json_decode($response, true);
         if ($decoded === null) {
-            return ['success' => false, 'data' => null, 'message' => 'Invalid response from Paystack.'];
+            return ['success' => false, 'data' => null, 'message' => 'Invalid response from Paystack.', 'transient' => true];
         }
 
         if (!isset($decoded['status']) || $decoded['status'] !== true) {
             $msg = $decoded['message'] ?? 'Verification failed.';
-            return ['success' => false, 'data' => $decoded['data'] ?? null, 'message' => $msg];
+            return [
+                'success'   => false,
+                'data'      => $decoded['data'] ?? null,
+                'message'   => $msg,
+                // A 5xx is Paystack having a bad day, not a verdict on the
+                // payment — only an answered request can deny a payout.
+                'transient' => $httpCode >= 500,
+            ];
         }
 
         $data = $decoded['data'] ?? [];
         $verified = ($data['status'] ?? '') === 'success';
 
         return [
-            'success' => $verified,
-            'data'    => $data,
-            'message' => $verified ? 'Payment verified successfully.' : 'Payment not successful.',
+            'success'   => $verified,
+            'data'      => $data,
+            'message'   => $verified ? 'Payment verified successfully.' : 'Payment not successful.',
+            'transient' => false, // Paystack answered: this is a verdict.
         ];
     }
 
@@ -186,7 +199,7 @@ class PaymentProcessor
     {
         $secretKey = PaymentGateways::secretKey('flutterwave');
         if (empty($secretKey)) {
-            return ['success' => false, 'data' => null, 'message' => 'Flutterwave secret key not configured.'];
+            return ['success' => false, 'data' => null, 'message' => 'Flutterwave secret key not configured.', 'transient' => false];
         }
 
         if (ctype_digit($transactionId)) {
@@ -205,33 +218,47 @@ class PaymentProcessor
             CURLOPT_TIMEOUT        => 30,
             CURLOPT_SSL_VERIFYPEER => true,
         ]);
+        // Attach the project CA bundle — without it every gateway call
+        // fails TLS verification on SAPIs where curl.cainfo is empty.
+        if (function_exists('ca_curl_setopt')) {
+            ca_curl_setopt($ch);
+        }
 
         $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error = curl_error($ch);
         curl_close($ch);
 
         if ($response === false) {
             error_log("Flutterwave verification cURL error: {$error}");
-            return ['success' => false, 'data' => null, 'message' => 'Network error during verification.'];
+            return ['success' => false, 'data' => null, 'message' => 'Network error during verification.', 'transient' => true];
         }
 
         $decoded = json_decode($response, true);
         if ($decoded === null) {
-            return ['success' => false, 'data' => null, 'message' => 'Invalid response from Flutterwave.'];
+            return ['success' => false, 'data' => null, 'message' => 'Invalid response from Flutterwave.', 'transient' => true];
         }
 
         if (!isset($decoded['status']) || $decoded['status'] !== 'success') {
             $msg = $decoded['message'] ?? 'Verification failed.';
-            return ['success' => false, 'data' => $decoded['data'] ?? null, 'message' => $msg];
+            return [
+                'success'   => false,
+                'data'      => $decoded['data'] ?? null,
+                'message'   => $msg,
+                // A 5xx is Flutterwave having a bad day, not a verdict on
+                // the payment — only an answered request can deny a payout.
+                'transient' => $httpCode >= 500,
+            ];
         }
 
         $data = $decoded['data'] ?? [];
         $verified = ($data['status'] ?? '') === 'successful';
 
         return [
-            'success' => $verified,
-            'data'    => $data,
-            'message' => $verified ? 'Payment verified successfully.' : 'Payment not successful.',
+            'success'   => $verified,
+            'data'      => $data,
+            'message'   => $verified ? 'Payment verified successfully.' : 'Payment not successful.',
+            'transient' => false, // Flutterwave answered: this is a verdict.
         ];
     }
 
@@ -244,10 +271,14 @@ class PaymentProcessor
      *
      * @param string $gateway   Gateway key (paystack|flutterwave|…)
      * @param string $reference Gateway reference, tx_ref or transaction id
+     * @param string $gatewayId Gateway-side transaction id (Flutterwave
+     *                           flw_ref / Paystack reference). When given
+     *                           it is used for the live API check, while
+     *                           $reference still resolves the local row.
      * @return array{success:bool,status:string,message:string,data:array|null,
-     *               transaction:array|null}
+     *               transaction:array|null,transient:bool}
      */
-    public static function verifyGateway(string $gateway, string $reference): array
+    public static function verifyGateway(string $gateway, string $reference, string $gatewayId = ''): array
     {
         $gateway   = strtolower(trim($gateway));
         $reference = trim($reference);
@@ -258,6 +289,11 @@ class PaymentProcessor
             'message'     => '',
             'data'        => null,
             'transaction' => null,
+            // True when the gateway could not be reached (network error,
+            // unparseable answer, 5xx) — i.e. no verdict was given. A
+            // caller may then fall back to a signed payload; it must NOT
+            // fall back when the gateway answered and denied the payment.
+            'transient'   => false,
         ];
 
         if ($gateway === '') {
@@ -288,15 +324,16 @@ class PaymentProcessor
         }
 
         if ($gateway === 'paystack') {
-            $verified = self::verifyPaystack($reference);
+            $verified = self::verifyPaystack($gatewayId !== '' ? $gatewayId : $reference);
         } elseif ($gateway === 'flutterwave') {
-            $verified = self::verifyFlutterwave($reference);
+            $verified = self::verifyFlutterwave($gatewayId !== '' ? $gatewayId : $reference);
         } else {
-            $verified = self::verifyGenericGateway($gateway, $reference);
+            $verified = self::verifyGenericGateway($gateway, $gatewayId !== '' ? $gatewayId : $reference);
         }
 
-        $result['data']    = $verified['data'];
-        $result['message'] = (string)($verified['message'] ?? '');
+        $result['data']      = $verified['data'];
+        $result['message']   = (string)($verified['message'] ?? '');
+        $result['transient'] = (bool)($verified['transient'] ?? false);
 
         if (!$verified['success']) {
             $result['status'] = 'failed';
@@ -477,6 +514,11 @@ class PaymentProcessor
             CURLOPT_TIMEOUT        => 30,
             CURLOPT_SSL_VERIFYPEER => true,
         ]);
+        // Attach the project CA bundle — without it every gateway call
+        // fails TLS verification on SAPIs where curl.cainfo is empty.
+        if (function_exists('ca_curl_setopt')) {
+            ca_curl_setopt($ch);
+        }
 
         $response = curl_exec($ch);
         $error    = curl_error($ch);
@@ -484,23 +526,24 @@ class PaymentProcessor
 
         if ($response === false) {
             error_log(ucfirst($gateway) . " verification cURL error: {$error}");
-            return ['success' => false, 'data' => null, 'message' => 'Network error during verification.'];
+            return ['success' => false, 'data' => null, 'message' => 'Network error during verification.', 'transient' => true];
         }
 
         $decoded = json_decode((string)$response, true);
         if (!is_array($decoded)) {
-            return ['success' => false, 'data' => null, 'message' => 'Invalid response from ' . ucfirst($gateway) . '.'];
+            return ['success' => false, 'data' => null, 'message' => 'Invalid response from ' . ucfirst($gateway) . '.', 'transient' => true];
         }
 
         $ok = ($decoded['status'] ?? '') === 'success' || ($decoded['status'] ?? '') === true;
         $data = (array)($decoded['data'] ?? []);
 
         return [
-            'success' => $ok,
-            'data'    => $data,
-            'message' => $ok
+            'success'   => $ok,
+            'data'      => $data,
+            'message'   => $ok
                 ? 'Payment verified successfully.'
                 : (string)($decoded['message'] ?? 'Payment verification failed.'),
+            'transient' => false, // The gateway answered: this is a verdict.
         ];
     }
 
@@ -697,6 +740,11 @@ class PaymentProcessor
             CURLOPT_TIMEOUT        => 30,
             CURLOPT_SSL_VERIFYPEER => true,
         ]);
+        // Attach the project CA bundle — without it every gateway call
+        // fails TLS verification on SAPIs where curl.cainfo is empty.
+        if (function_exists('ca_curl_setopt')) {
+            ca_curl_setopt($ch);
+        }
 
         $response = curl_exec($ch);
         $error = curl_error($ch);
@@ -787,6 +835,11 @@ class PaymentProcessor
             CURLOPT_TIMEOUT        => 30,
             CURLOPT_SSL_VERIFYPEER => true,
         ]);
+        // Attach the project CA bundle — without it every gateway call
+        // fails TLS verification on SAPIs where curl.cainfo is empty.
+        if (function_exists('ca_curl_setopt')) {
+            ca_curl_setopt($ch);
+        }
 
         $response = curl_exec($ch);
         $error = curl_error($ch);

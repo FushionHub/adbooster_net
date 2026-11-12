@@ -73,20 +73,20 @@ class InvoiceGenerator
         $total = $subtotal + $tax;
 
         $html = self::renderInvoice(
-            invoiceNumber: $invoiceNumber,
-            date: $date,
-            dueDate: $dueDate,
-            customerName: $transaction['full_name'],
-            customerEmail: $transaction['email'],
-            customerCompany: $transaction['company_name'] ?? '',
-            customerAddress: $transaction['address'] ?? '',
+            invoiceNumber: (string)$invoiceNumber,
+            date: (string)$date,
+            dueDate: (string)$dueDate,
+            customerName: (string)($transaction['full_name'] ?? ''),
+            customerEmail: (string)($transaction['email'] ?? ''),
+            customerCompany: (string)($transaction['company_name'] ?? ''),
+            customerAddress: (string)($transaction['address'] ?? ''),
             items: $items,
             subtotal: $subtotal,
             tax: $tax,
             total: $total,
-            currency: $transaction['currency'],
-            paymentMethod: ucfirst($transaction['gateway']),
-            transactionRef: $transaction['reference']
+            currency: (string)($transaction['currency'] ?? 'USD'),
+            paymentMethod: ucfirst((string)($transaction['gateway'] ?? 'manual')),
+            transactionRef: (string)($transaction['reference'] ?? '')
         );
 
         $filePath = self::saveInvoice($invoiceNumber, $html);
@@ -111,7 +111,13 @@ class InvoiceGenerator
             'wallet_fund'  => 'Wallet Funding',
         ];
 
-        $description = $typeLabels[$transaction['type']] ?? ucfirst(str_replace('_', ' ', $transaction['type']));
+        // A transaction row may carry no type (a manual/admin credit, or a
+        // legacy row) — fall back to a readable label instead of crashing.
+        $type       = (string)($transaction['type'] ?? '');
+        $description = $typeLabels[$type] ?? ucfirst(str_replace('_', ' ', $type));
+        if ($description === '') {
+            $description = 'Payment';
+        }
 
         $metadata = json_decode($transaction['metadata'] ?? '{}', true);
         if (!empty($metadata['description'])) {

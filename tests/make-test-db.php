@@ -13,7 +13,7 @@ $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $pdo->exec("CREATE DATABASE IF NOT EXISTS adsbooster_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 $pdo->exec("USE adsbooster");
 
-$tables = ['users', 'creator_bounties', 'creator_bounty_submissions', 'transactions', 'site_settings', 'invoices', 'notifications', 'referrals', 'referral_rewards', 'pricing_plans'];
+$tables = ['users', 'creator_bounties', 'creator_bounty_submissions', 'transactions', 'site_settings', 'invoices', 'notifications', 'referrals', 'referral_rewards', 'pricing_plans', 'email_logs'];
 
 $pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
 

@@ -58,6 +58,11 @@ class PaymentGateways
      *  • hmac_sha256  — `x-adsbooster-signature` / `x-webhook-signature`
      *                  = HMAC-SHA256(raw body, secret) — the generic scheme any
      *                  newly registered gateway inherits.
+     *
+     * ⚠ Flutterwave's `verif-hash` is a STATIC value for the account — it
+     * proves the sender knows the secret but does NOT authenticate the
+     * body. Any code that trusts the payload itself (instead of asking
+     * the gateway API) must check webhookSignatureCoversBody() first.
      */
     public const WEBHOOK_SCHEMES = ['paystack', 'flutterwave', 'hmac_sha256'];
 
@@ -366,6 +371,40 @@ class PaymentGateways
             return false;
         }
         return hash_equals(hash_hmac('sha256', $rawBody, $secret), $signature);
+    }
+
+    /**
+     * Does the presented signature authenticate the request BODY?
+     *
+     * Not every gateway signature covers the body:
+     *
+     *   • Paystack    x-paystack-signature = HMAC-SHA512(body, secret) → covers
+     *   • generic     x-adsbooster-signature = HMAC-SHA256(body, secret) → covers
+     *   • Flutterwave x-flw-signature = HMAC-SHA256(body, secret) → covers
+     *   • Flutterwave verif-hash = sha256(secret) → DOES NOT cover the body
+     *
+     * Flutterwave's verif-hash is a static value for the account, so anyone
+     * who has ever seen one delivery can replay it against a forged body.
+     * Code that trusts the payload itself (rather than the gateway API)
+     * must therefore require a body-bound signature.
+     *
+     * @param string $gateway Gateway key
+     * @param array  $headers Request headers (any case)
+     * @return bool True when the body is covered by the signature
+     */
+    public static function webhookSignatureCoversBody(string $gateway, array $headers): bool
+    {
+        $gateway = strtolower(trim($gateway));
+        $meta    = self::REGISTRY[$gateway] ?? [];
+        $scheme  = (string)($meta['webhook_scheme'] ?? 'hmac_sha256');
+
+        if ($scheme === 'flutterwave') {
+            // The HMAC variant covers the body; the static verif-hash does not.
+            return self::headerValue($headers, 'x-flw-signature') !== '';
+        }
+
+        // Paystack and the generic HMAC scheme always sign the body.
+        return true;
     }
 
     /**
