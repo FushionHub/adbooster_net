@@ -56,7 +56,7 @@
 
 ## Known Baseline Constraints
 - `database/adsbooster_complete.sql` and root SQL dumps are absent, although installers and docs require them.
-- `sdk/adsbooster-js-sdk/` is empty; only the UMD SDK at `api/v1/sdk/adsbooster.js` exists.
+- `sdk/adsbooster-js-sdk/` is now only a pointer README — the SDK source lives in `FushionHub/adsbooster-js-sdk` and is published to npm as `adsbooster-js-sdk`. The UMD build served by the app remains at `api/v1/sdk/adsbooster.js`.
 - `vendor/` is absent; Composer currently reports PHPMailer as not installed.
 - PHP 8.3 has the main required extensions but not `zip`; DOCX parsing therefore cannot use `ZipArchive` locally.
 - A sandboxed MySQL 8.4.3 instance (data dir `C:\laragon\data\mysql-8.4.3-winx64`, port 3306, root no password) was initialized for runtime verification. The `adsbooster` database contains the REAL gateway migration output (`third_party_gateways`, restructured `connected_accounts`, `zernio_*`/`bundle_post_id` columns) plus MINIMAL STUB tables (users, ad_campaigns, scheduled_posts, campaign_metrics_daily, cron_run_logs, site_settings) and one smoke-test user. It is not a full production dataset — the complete dump is still missing. `database/smoke_gateways.php` (CLI-only) re-runs the verification suite; Apache is not required for CLI checks.
