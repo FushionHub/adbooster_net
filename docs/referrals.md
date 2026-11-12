@@ -249,3 +249,12 @@ stats.
 | `referrals.php` | The user-facing referral dashboard |
 | `update-any-error.sql` | Idempotent schema repair file |
 | `tests/Integration/ReferralServiceTest.php` | Integration tests for the programme |
+
+---
+
+## Source code
+
+| Resource | URL |
+|---|---|
+| Project repository | <https://github.com/FushionHub/adbooster_net> |
+| Official JS/TS SDK | <https://github.com/FushionHub/adsbooster-js-sdk> |

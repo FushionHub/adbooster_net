@@ -100,7 +100,7 @@ extension=zip
 cd /var/www
 
 # Clone repository
-git clone https://github.com/your-org/adsbooster.git seopp
+git clone https://github.com/FushionHub/adbooster_net.git seopp
 cd seopp
 
 # Set ownership to web user (www-data for Apache/Nginx)

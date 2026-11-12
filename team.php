@@ -3,8 +3,6 @@ declare(strict_types=1);
 
 $pageTitle = 'Team - Adsbooster.net';
 require_once __DIR__ . '/includes/header.php';
-
-$members = db()->fetchAll("SELECT * FROM users WHERE role != 'admin' ORDER BY id ASC");
 ?>
 
         <!-- ==================== Breadcrumb Start Here ==================== -->
@@ -41,72 +39,58 @@ $members = db()->fetchAll("SELECT * FROM users WHERE role != 'admin' ORDER BY id
                             class="bg-main-100 text-main-600 fw-medium tw-text-base rounded-pill tw-px-5 tw-py-1 tw-mb-6">
                             Our Members</span>
                         <h2 class="splitTextStyleOne cursor-big">
-                            Meet With Our Marketing
-                            <span class="font-playfair fw-normal font-playfair fst-italic">Team Members</span>
+                            The Person Behind
+                            <span class="font-playfair fw-normal font-playfair fst-italic">The Platform</span>
                         </h2>
                         <p class="tw-text-lg text-neutral-500 tw-mt-6 max-w-590-px mx-auto">
-                            Our team of advertising specialists and AI engineers builds the tools that power multi-network ad campaigns across Meta, TikTok, Google Ads, and Snapchat.
+                            Adsbooster is built and maintained by a single full-stack engineer who designs, codes and ships the whole platform — the ad engine, the AI studios and the payment infrastructure.
                         </p>
                     </div>
 
-                    <div class="row gy-4">
-                        <?php if (!empty($members)): ?>
-                        <?php foreach ($members as $index => $member): ?>
-                        <div class="col-lg-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="<?= ($index % 2 === 0) ? '100' : '300' ?>">
+                    <div class="row gy-4 justify-content-center">
+                        <div class="col-lg-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="100">
                             <div
                                 class="team-three-item image-double-animation bg-white tw-rounded-xl tw-p-205 d-flex flex-sm-row align-items-sm-center flex-column tw-gap-6 justify-content-between">
                                 <div class="tw-ps-705 tw-py-3 flex-grow-1">
                                     <h2 class="h5 tw-mb-2">
-                                        <a href="<?= url('team-details') ?>?id=<?= $member['id'] ?>"
+                                        <a href="https://jmn.morexweb.com" target="_blank" rel="noopener noreferrer"
                                             class="text-heading fw-semibold hover-text-main-600 d-inline-flex align-items-center tw-gap-205 group-item element-double-animation">
                                             <span class="element-double-animation__element"
-                                                data-content="<?= e($member['full_name'] ?? ($member['name'] ?? 'Team Member')) ?>"><?= e($member['full_name'] ?? ($member['name'] ?? 'Team Member')) ?></span>
+                                                data-content="Jamachi Mauricennadi">Jamachi Mauricennadi</span>
                                         </a>
                                     </h2>
                                     <p class="tw-text-lg text-neutral-400">
-                                        <?= e($member['role'] ?? 'Team Member') ?>
+                                        FullStack Software Developer &amp; Lead Engineer
                                     </p>
                                     <ul class="d-flex align-items-center tw-gap-205 tw-mt-6">
-                                        <?php if (!empty($member['facebook'])): ?>
                                         <li>
-                                            <a href="<?= e($member['facebook']) ?>"
+                                            <a href="https://jmn.morexweb.com" target="_blank" rel="noopener noreferrer" title="Portfolio"
                                                 class="text-heading tw-w-8 tw-h-8 border border-neutral-300 hover-border-main-two-600 rounded-circle d-flex justify-content-center align-items-center tw-text-base tw-leading-none hover-bg-main-two-600 hover-text-heading active-scale-09"><i
-                                                    class="ph-fill ph-facebook-logo"></i></a>
+                                                    class="ph-fill ph-globe"></i></a>
                                         </li>
-                                        <?php endif; ?>
-                                        <?php if (!empty($member['twitter'])): ?>
                                         <li>
-                                            <a href="<?= e($member['twitter']) ?>"
+                                            <a href="https://github.com/FushionHub" target="_blank" rel="noopener noreferrer" title="GitHub"
                                                 class="text-heading tw-w-8 tw-h-8 border border-neutral-300 hover-border-main-two-600 rounded-circle d-flex justify-content-center align-items-center tw-text-base tw-leading-none hover-bg-main-two-600 hover-text-heading active-scale-09">
-                                                <i class="ph-fill ph-twitter-logo"></i></a>
+                                                <i class="ph-fill ph-github-logo"></i></a>
                                         </li>
-                                        <?php endif; ?>
-                                        <?php if (!empty($member['linkedin'])): ?>
                                         <li>
-                                            <a href="<?= e($member['linkedin']) ?>"
+                                            <a href="https://www.linkedin.com" target="_blank" rel="noopener noreferrer" title="LinkedIn"
                                                 class="text-heading tw-w-8 tw-h-8 border border-neutral-300 hover-border-main-two-600 rounded-circle d-flex justify-content-center align-items-center tw-text-base tw-leading-none hover-bg-main-two-600 hover-text-heading active-scale-09"><i
                                                     class="ph-fill ph-linkedin-logo"></i></a>
                                         </li>
-                                        <?php endif; ?>
                                     </ul>
                                 </div>
                                 <div class="flex-grow-1">
-                                    <a href="<?= url('team-details') ?>?id=<?= $member['id'] ?>"
+                                    <a href="https://jmn.morexweb.com" target="_blank" rel="noopener noreferrer"
                                         class="tw-rounded-xl overflow-hidden d-block position-relative view-cursor-show">
-                                        <img src="<?= ASSETS_URL ?>/images/thumbs/<?= e($member['avatar'] ?? 'team-three-img' . (($index % 8) + 1) . '.png') ?>" alt="Image"
+                                        <img src="<?= ASSETS_URL ?>/images/thumbs/team-three-img1.png" alt="Jamachi Mauricennadi"
                                             class="image-double-animation__element tw-rounded-xl w-100 object-fit-cover">
-                                        <img src="<?= ASSETS_URL ?>/images/thumbs/<?= e($member['avatar'] ?? 'team-three-img' . (($index % 8) + 1) . '.png') ?>" alt="Image"
+                                        <img src="<?= ASSETS_URL ?>/images/thumbs/team-three-img1.png" alt="Jamachi Mauricennadi"
                                             class="image-double-animation__element tw-rounded-xl w-100 object-fit-cover">
                                     </a>
                                 </div>
                             </div>
                         </div>
-                        <?php endforeach; ?>
-                        <?php else: ?>
-                        <div class="col-12">
-                            <p class="text-center text-neutral-500">No team members found.</p>
-                        </div>
-                        <?php endif; ?>
                     </div>
 
                 </div>

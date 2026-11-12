@@ -4,6 +4,18 @@ declare(strict_types=1);
 $pageTitle = 'About Us - Adsbooster.net';
 $pageDescription = 'Learn about Adsbooster.net - Your multi-network advertising platform.';
 require_once __DIR__ . '/includes/header.php';
+
+/** Real, current pricing — rendered straight from the pricing_plans table. */
+$aboutPlans = [];
+try {
+    $aboutPlans = db()->fetchAll(
+        "SELECT * FROM pricing_plans
+         WHERE status = 'active' AND billing_cycle = 'monthly'
+         ORDER BY price ASC"
+    );
+} catch (\Throwable $e) {
+    $aboutPlans = [];
+}
 ?>
 
 <div id="smooth-wrapper" class="">
@@ -56,7 +68,7 @@ require_once __DIR__ . '/includes/header.php';
               <span class="text-neutral-500 d-block tw-mt-2">Review 4.9/5.0</span>
             </div>
           </div>
-          <div class="d-flex align-items-center tw-gap-705 flex-sm-nowrap flex-wrap tw-mt-15">
+              <div class="d-flex align-items-center tw-gap-705 flex-sm-nowrap flex-wrap tw-mt-15">
             <div class="d-flex align-items-center">
               <div
                 class="pointer-events-auto tw-w-17 tw-h-17 rounded-circle overflow-hidden tw-duration-300 hover-scale-14 tw-hover-z-4 border border-white border-2 position-relative z-0">
@@ -70,13 +82,9 @@ require_once __DIR__ . '/includes/header.php';
                 class="pointer-events-auto tw-w-17 tw-h-17 rounded-circle overflow-hidden tw-duration-300 hover-scale-14 tw-hover-z-4 border border-white border-2 position-relative tw--ms-20-px z-1">
                 <img src="<?= ASSETS_URL ?>/images/thumbs/client-img3.png" alt="Client Image" class="w-100 h-100 object-fit-cover">
               </div>
-              <div
-                class="pointer-events-auto tw-w-17 tw-h-17 rounded-circle overflow-hidden tw-duration-300 hover-scale-14 tw-hover-z-4 border border-white border-2 position-relative tw--ms-20-px z-1 text-white fw-semibold tw-text-lg d-flex justify-content-center align-items-center bg-main-600 counter">
-                <span class=""> 32+ </span>
-              </div>
             </div>
             <p class="fw-normal text-neutral-600 max-w-200-px text-balance">
-              We have 40k+ customers word-wide
+              Ad credits, AI creatives and referrals — all manageable from one account.
             </p>
           </div>
 
@@ -87,12 +95,12 @@ require_once __DIR__ . '/includes/header.php';
       <div class="col-xl-7">
         <div class="d-flex justify-content-between flex-sm-row flex-column tw-gap-8 ps-xxl-5">
           <div class="text-center" data-aos="fade-up" data-aos-duration="800" data-aos-delay="150">
-            <h2 class="h6 fw-medium text-heading tw-mb-1">Years of Experience</h2>
+            <h2 class="h6 fw-medium text-heading tw-mb-1">Ad Networks Supported</h2>
             <h2 class="fw-medium text-main-600 counter text-120-px cursor-big">
-              35+
+              7
             </h2>
             <p class="text-neutral-600 tw-text-lg max-w-280-px mx-auto">
-              Dolor sit amet, adipiscing elit. Nibh ullamcorper arcu elementum.
+              Meta, Instagram, TikTok, Google Ads, Snapchat, X and LinkedIn — one dashboard for all of them.
             </p>
           </div>
           <div class="d-lg-block d-none aos-init aos-animate" data-aos="fade-up" data-aos-duration="800"
@@ -100,12 +108,12 @@ require_once __DIR__ . '/includes/header.php';
             <span class="tw-w-px h-100 bg-neutral-200"></span>
           </div>
           <div class="text-center" data-aos="fade-up" data-aos-duration="800" data-aos-delay="250">
-            <h2 class="h6 fw-medium text-heading tw-mb-1">Project Completed</h2>
+            <h2 class="h6 fw-medium text-heading tw-mb-1">AI UGC Creatives / Month</h2>
             <h2 class="fw-medium text-main-600 counter text-120-px cursor-big">
-              46K+
+              2,980
             </h2>
             <p class="text-neutral-600 tw-text-lg max-w-280-px mx-auto">
-              Dolor sit amet, adipiscing elit. Nibh ullamcorper arcu elementum.
+              Generated with the Image Studio and the AI storyboard video studio on the Scale plan.
             </p>
           </div>
         </div>
@@ -259,56 +267,66 @@ require_once __DIR__ . '/includes/header.php';
     <!-- Section heading end -->
 
     <div class="row g-0 align-items-center pricing-plan-two-wrapper">
+      <?php if (empty($aboutPlans)): ?>
+      <div class="col-12">
+        <p class="text-center text-neutral-500 tw-text-lg">
+          Our current plans are being updated — please check the <a href="<?= url('billing') ?>" class="text-main-600 fw-semibold">pricing page</a> or contact us.
+        </p>
+      </div>
+      <?php else: ?>
+      <?php foreach ($aboutPlans as $aboutIndex => $aboutPlan): ?>
+      <?php
+        $aboutFeatures = json_decode((string)($aboutPlan['features_json'] ?? '[]'), true);
+        if (!is_array($aboutFeatures)) {
+            $aboutFeatures = [];
+        }
+        $aboutFeatured  = !empty($aboutPlan['is_featured']);
+        $aboutPlanPrice = (float)($aboutPlan['price'] ?? 0);
+        $aboutPlanId    = (int)($aboutPlan['id'] ?? 0);
+        // Show at most six features per card on this overview page.
+        $aboutFeatures  = array_slice($aboutFeatures, 0, 6);
+      ?>
       <div class="col-xl-4 col-md-6 p-0 pricing-plan-two-item">
-        <div class="tw-p-48-px bg-white tw-rounded-32-px common-shadow-3 border border-neutral-200">
-          <h2 class="text-22-px tw-mb-5">Starter Plan</h2>
+        <div class="tw-p-48-px bg-white tw-rounded-32-px common-shadow-3 <?= $aboutFeatured ? 'border border-main-two-600' : 'border border-neutral-200' ?>">
+          <?php if ($aboutFeatured): ?>
+          <div class="text-center bg-main-two-600 tw-py-2 tw-px-4 tw-rounded-pill tw-mb-5">
+            <span class="text-heading fw-semibold tw-text-base">Most Popular</span>
+          </div>
+          <?php endif; ?>
+          <h2 class="text-22-px tw-mb-5"><?= e((string)($aboutPlan['name'] ?? 'Plan')) ?> Plan</h2>
           <p class="text-neutral-500 fw-medium">
-            Perfect for individuals and small businesses getting started with multi-platform advertising.
+            <?= e((string)($aboutPlan['description'] ?? '')) ?>
           </p>
 
           <div class="tw-mt-8 d-flex align-items-end tw-gap-1">
-            <h2 class="cursor-big">$29</h2>
+            <h2 class="cursor-big">$<?= number_format($aboutPlanPrice, 0) ?></h2>
             <span class="text-neutral-600 fw-medium tw-mb-2"> / Per Month</span>
           </div>
           <div class="d-flex flex-column tw-gap-5 tw-mt-11">
+            <?php if (!empty($aboutPlan['ad_credits_included']) || !empty($aboutPlan['ai_credits_included'])): ?>
             <div class="d-flex align-items-center tw-gap-2">
               <span
                 class="tw-w-4 tw-h-4 bg-main-600 tw-text-xs text-white d-flex justify-content-center align-items-center rounded-circle flex-shrink-0">
                 <i class="ph-bold ph-check"></i>
               </span>
-              <span class="tw-text-lg text-neutral-600">Flexible Subscription</span>
+              <span class="tw-text-lg text-neutral-600">
+                <?= number_format((float)($aboutPlan['ad_credits_included'] ?? 0)) ?> ad credits
+                &amp; <?= number_format((int)($aboutPlan['ai_credits_included'] ?? 0)) ?> AI credits every month
+              </span>
             </div>
+            <?php endif; ?>
+            <?php foreach ($aboutFeatures as $aboutFeature): ?>
             <div class="d-flex align-items-center tw-gap-2">
               <span
                 class="tw-w-4 tw-h-4 bg-main-600 tw-text-xs text-white d-flex justify-content-center align-items-center rounded-circle flex-shrink-0">
                 <i class="ph-bold ph-check"></i>
               </span>
-              <span class="tw-text-lg text-neutral-600">Customizable Service Packages</span>
+              <span class="tw-text-lg text-neutral-600"><?= e(is_string($aboutFeature) ? $aboutFeature : json_encode($aboutFeature)) ?></span>
             </div>
-            <div class="d-flex align-items-center tw-gap-2">
-              <span
-                class="tw-w-4 tw-h-4 bg-main-600 tw-text-xs text-white d-flex justify-content-center align-items-center rounded-circle flex-shrink-0">
-                <i class="ph-bold ph-check"></i>
-              </span>
-              <span class="tw-text-lg text-neutral-600">24/7 Support Included</span>
-            </div>
-            <div class="d-flex align-items-center tw-gap-2">
-              <span
-                class="tw-w-4 tw-h-4 bg-main-600 tw-text-xs text-white d-flex justify-content-center align-items-center rounded-circle flex-shrink-0">
-                <i class="ph-bold ph-check"></i>
-              </span>
-              <span class="tw-text-lg text-neutral-600">No Hidden Fees </span>
-            </div>
-            <div class="d-flex align-items-center tw-gap-2">
-              <span
-                class="tw-w-4 tw-h-4 bg-main-600 tw-text-xs text-white d-flex justify-content-center align-items-center rounded-circle flex-shrink-0">
-                <i class="ph-bold ph-check"></i>
-              </span>
-              <span class="tw-text-lg text-neutral-600">Cancel Anytime, No Penalties</span>
-            </div>
+            <?php endforeach; ?>
           </div>
           <div class="tw-mt-8">
-            <a href="<?= url('contact') ?>"
+            <a href="<?= url('billing') ?>?plan=<?= $aboutPlanId ?>&amp;cycle=monthly"
               class="btn btn-main hover-style-one button--stroke active-scale-094 tw-duration-100 d-inline-flex align-items-center justify-content-center tw-gap-705 group active--translate-y-2 tw-p-1 tw-ps-8 rounded-pill group-item"
               data-block="button">
               <span class="button__flair"></span>
@@ -321,145 +339,8 @@ require_once __DIR__ . '/includes/header.php';
           </div>
         </div>
       </div>
-
-      <div class="col-xl-4 col-md-6 p-0 pricing-plan-two-item">
-        <div class="tw-rounded-32-px common-shadow-3 border border-main-two-600 overflow-hidden">
-          <div class="text-center bg-main-two-600 tw-py-2 tw-px-4">
-            <span class="text-heading fw-semibold tw-text-lg">Most Popular</span>
-          </div>
-          <div class="tw-p-48-px bg-white">
-            <h2 class="text-22-px tw-mb-5">Growth Plan</h2>
-            <p class="text-neutral-500 fw-medium">
-              For growing businesses that need more ad credits, AI generations, and multi-network reach.
-            </p>
-
-            <div class="tw-mt-8 d-flex align-items-end tw-gap-1">
-              <h2 class="cursor-big">$79</h2>
-              <span class="text-neutral-600 fw-medium tw-mb-2">
-                / Per Month</span>
-            </div>
-            <div class="d-flex flex-column tw-gap-5 tw-mt-11">
-              <div class="d-flex align-items-center tw-gap-2">
-                <span
-                  class="tw-w-4 tw-h-4 bg-main-600 tw-text-xs text-white d-flex justify-content-center align-items-center rounded-circle flex-shrink-0">
-                  <i class="ph-bold ph-check"></i>
-                </span>
-                <span class="tw-text-lg text-neutral-600">Flexible Subscription</span>
-              </div>
-              <div class="d-flex align-items-center tw-gap-2">
-                <span
-                  class="tw-w-4 tw-h-4 bg-main-600 tw-text-xs text-white d-flex justify-content-center align-items-center rounded-circle flex-shrink-0">
-                  <i class="ph-bold ph-check"></i>
-                </span>
-                <span class="tw-text-lg text-neutral-600">Customizable Service Packages</span>
-              </div>
-              <div class="d-flex align-items-center tw-gap-2">
-                <span
-                  class="tw-w-4 tw-h-4 bg-main-600 tw-text-xs text-white d-flex justify-content-center align-items-center rounded-circle flex-shrink-0">
-                  <i class="ph-bold ph-check"></i>
-                </span>
-                <span class="tw-text-lg text-neutral-600">24/7 Support Included</span>
-              </div>
-              <div class="d-flex align-items-center tw-gap-2">
-                <span
-                  class="tw-w-4 tw-h-4 bg-main-600 tw-text-xs text-white d-flex justify-content-center align-items-center rounded-circle flex-shrink-0">
-                  <i class="ph-bold ph-check"></i>
-                </span>
-                <span class="tw-text-lg text-neutral-600">No Hidden Fees </span>
-              </div>
-              <div class="d-flex align-items-center tw-gap-2">
-                <span
-                  class="tw-w-4 tw-h-4 bg-main-600 tw-text-xs text-white d-flex justify-content-center align-items-center rounded-circle flex-shrink-0">
-                  <i class="ph-bold ph-check"></i>
-                </span>
-                <span class="tw-text-lg text-neutral-600">Cancel Anytime, No Penalties</span>
-              </div>
-              <div class="d-flex align-items-center tw-gap-2">
-                <span
-                  class="tw-w-4 tw-h-4 bg-main-600 tw-text-xs text-white d-flex justify-content-center align-items-center rounded-circle flex-shrink-0">
-                  <i class="ph-bold ph-check"></i>
-                </span>
-                <span class="tw-text-lg text-neutral-600">Free Platform Access</span>
-              </div>
-            </div>
-            <div class="tw-mt-8">
-              <a href="<?= url('contact') ?>"
-                class="btn btn-main hover-style-one button--stroke active-scale-094 tw-duration-100 d-inline-flex align-items-center justify-content-center tw-gap-705 group active--translate-y-2 tw-p-1 tw-ps-8 rounded-pill group-item"
-                data-block="button">
-                <span class="button__flair"></span>
-                <span class="button__label">Get Started</span>
-                <span
-                  class="tw-w-12 tw-h-12 bg-white text-main-600 tw-text-xl rounded-circle d-flex justify-content-center align-items-center position-relative tw-duration-500">
-                  <i class="ph-bold ph-arrow-right tw-rotate--45-deg group-hover-item-rotate-0-deg tw-duration-300"></i>
-                </span>
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-xl-4 col-md-6 p-0 pricing-plan-two-item">
-        <div class="tw-p-48-px bg-white tw-rounded-32-px common-shadow-3 border border-neutral-200">
-          <h2 class="text-22-px tw-mb-5">Agency Plan</h2>
-          <p class="text-neutral-500 fw-medium">
-            For agencies managing multiple client accounts with white-label support and team access.
-          </p>
-
-          <div class="tw-mt-8 d-flex align-items-end tw-gap-1">
-            <h2 class="cursor-big">$199</h2>
-            <span class="text-neutral-600 fw-medium tw-mb-2"> / Per Month</span>
-          </div>
-          <div class="d-flex flex-column tw-gap-5 tw-mt-11">
-            <div class="d-flex align-items-center tw-gap-2">
-              <span
-                class="tw-w-4 tw-h-4 bg-main-600 tw-text-xs text-white d-flex justify-content-center align-items-center rounded-circle flex-shrink-0">
-                <i class="ph-bold ph-check"></i>
-              </span>
-              <span class="tw-text-lg text-neutral-600">Flexible Subscription</span>
-            </div>
-            <div class="d-flex align-items-center tw-gap-2">
-              <span
-                class="tw-w-4 tw-h-4 bg-main-600 tw-text-xs text-white d-flex justify-content-center align-items-center rounded-circle flex-shrink-0">
-                <i class="ph-bold ph-check"></i>
-              </span>
-              <span class="tw-text-lg text-neutral-600">Customizable Service Packages</span>
-            </div>
-            <div class="d-flex align-items-center tw-gap-2">
-              <span
-                class="tw-w-4 tw-h-4 bg-main-600 tw-text-xs text-white d-flex justify-content-center align-items-center rounded-circle flex-shrink-0">
-                <i class="ph-bold ph-check"></i>
-              </span>
-              <span class="tw-text-lg text-neutral-600">24/7 Support Included</span>
-            </div>
-            <div class="d-flex align-items-center tw-gap-2">
-              <span
-                class="tw-w-4 tw-h-4 bg-main-600 tw-text-xs text-white d-flex justify-content-center align-items-center rounded-circle flex-shrink-0">
-                <i class="ph-bold ph-check"></i>
-              </span>
-              <span class="tw-text-lg text-neutral-600">No Hidden Fees </span>
-            </div>
-            <div class="d-flex align-items-center tw-gap-2">
-              <span
-                class="tw-w-4 tw-h-4 bg-main-600 tw-text-xs text-white d-flex justify-content-center align-items-center rounded-circle flex-shrink-0">
-                <i class="ph-bold ph-check"></i>
-              </span>
-              <span class="tw-text-lg text-neutral-600">Cancel Anytime, No Penalties</span>
-            </div>
-          </div>
-          <div class="tw-mt-8">
-            <a href="<?= url('contact') ?>"
-              class="btn btn-main hover-style-one button--stroke active-scale-094 tw-duration-100 d-inline-flex align-items-center justify-content-center tw-gap-705 group active--translate-y-2 tw-p-1 tw-ps-8 rounded-pill group-item"
-              data-block="button">
-              <span class="button__flair"></span>
-              <span class="button__label">Get Started</span>
-              <span
-                class="tw-w-12 tw-h-12 bg-white text-main-600 tw-text-xl rounded-circle d-flex justify-content-center align-items-center position-relative tw-duration-500">
-                <i class="ph-bold ph-arrow-right tw-rotate--45-deg group-hover-item-rotate-0-deg tw-duration-300"></i>
-              </span>
-            </a>
-          </div>
-        </div>
-      </div>
+      <?php endforeach; ?>
+      <?php endif; ?>
     </div>
   </div>
 </section>
@@ -480,8 +361,8 @@ require_once __DIR__ . '/includes/header.php';
           <div class="col-sm-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="200">
             <div
               class="tw-rounded-xl bg-white-54 tw-p-40-px text-center h-100 d-flex flex-column justify-content-center align-items-center">
-              <h2 class="h1 counter cursor-big">55+</h2>
-              <p class="text-heading fw-medium">Business from Referrals</p>
+              <h2 class="h1 counter cursor-big">30%</h2>
+              <p class="text-heading fw-medium">Saving With Yearly Billing</p>
             </div>
           </div>
         </div>
@@ -490,11 +371,10 @@ require_once __DIR__ . '/includes/header.php';
         <div class="d-flex align-items-center tw-gap-8 flex-sm-nowrap flex-wrap">
           <div class="max-w-410-px" data-aos="fade-up" data-aos-duration="800" data-aos-delay="300">
             <h2 class="h5">
-              With years of experience and a dedication to innovation.
+              Built for the way paid advertising works today.
             </h2>
             <p class="tw-mt-4 text-neutral-600">
-              Paid advertising is evolving rapidly in 2024, driven by
-              advancements in AI, integration of influencer
+              Paid advertising now runs on AI-generated creatives, server-side conversion tracking and multi-network publishing — Adsbooster ships all three out of the box, with transparent per-month pricing and no hidden fees.
             </p>
           </div>
           <div class="flex-shrink-0" data-aos="fade-up" data-aos-duration="800" data-aos-delay="400">
@@ -689,194 +569,54 @@ require_once __DIR__ . '/includes/header.php';
         <span class="bg-main-100 text-main-600 fw-medium tw-text-base rounded-pill tw-px-5 tw-py-1 tw-mb-6">
           Our Members</span>
         <h2 class="splitTextStyleOne cursor-big">
-          Meet With Our Marketing
-          <span class="font-playfair fw-normal font-playfair fst-italic">Team Members</span>
+          The Person Behind
+          <span class="font-playfair fw-normal font-playfair fst-italic">The Platform</span>
         </h2>
         <p class="tw-text-lg text-neutral-500 tw-mt-6 max-w-590-px mx-auto">
-          Our team of advertising specialists and AI engineers builds the tools that power multi-network ad campaigns across Meta, TikTok, Google Ads, and Snapchat.
+          Adsbooster is built and maintained by a single full-stack engineer who designs, codes and ships the whole platform — the ad engine, the AI studios and the payment infrastructure.
         </p>
       </div>
 
-      <div class="row gy-4">
+      <div class="row gy-4 justify-content-center">
         <div class="col-lg-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="100">
           <div
             class="team-three-item image-double-animation bg-white tw-rounded-xl tw-p-205 d-flex flex-sm-row align-items-sm-center flex-column tw-gap-6 justify-content-between">
             <div class="tw-ps-705 tw-py-3 flex-grow-1">
               <h2 class="h5 tw-mb-2">
-                <a href="<?= url('team-details') ?>"
+                <a href="https://jmn.morexweb.com" target="_blank" rel="noopener noreferrer"
                   class="text-heading fw-semibold hover-text-main-600 d-inline-flex align-items-center tw-gap-205 group-item element-double-animation">
-                  <span class="element-double-animation__element" data-content="Sofia Martin">Sofia Martin</span>
+                  <span class="element-double-animation__element" data-content="Jamachi Mauricennadi">Jamachi Mauricennadi</span>
                 </a>
               </h2>
               <p class="tw-text-lg text-neutral-400">
-                Client Relationship Manager
+                FullStack Software Developer &amp; Lead Engineer
               </p>
               <ul class="d-flex align-items-center tw-gap-205 tw-mt-6">
                 <li>
-                  <a href="https://www.facebook.com"
+                  <a href="https://jmn.morexweb.com" target="_blank" rel="noopener noreferrer" title="Portfolio"
                     class="text-heading tw-w-8 tw-h-8 border border-neutral-300 hover-border-main-two-600 rounded-circle d-flex justify-content-center align-items-center tw-text-base tw-leading-none hover-bg-main-two-600 hover-text-heading active-scale-09"><i
-                      class="ph-fill ph-facebook-logo"></i></a>
+                      class="ph-fill ph-globe"></i></a>
                 </li>
                 <li>
-                  <a href="https://www.twitter.com"
+                  <a href="https://github.com/FushionHub" target="_blank" rel="noopener noreferrer" title="GitHub"
                     class="text-heading tw-w-8 tw-h-8 border border-neutral-300 hover-border-main-two-600 rounded-circle d-flex justify-content-center align-items-center tw-text-base tw-leading-none hover-bg-main-two-600 hover-text-heading active-scale-09">
-                    <i class="ph-fill ph-twitter-logo"></i></a>
+                    <i class="ph-fill ph-github-logo"></i></a>
                 </li>
                 <li>
-                  <a href="https://www.linkedin.com"
+                  <a href="https://www.linkedin.com" target="_blank" rel="noopener noreferrer" title="LinkedIn"
                     class="text-heading tw-w-8 tw-h-8 border border-neutral-300 hover-border-main-two-600 rounded-circle d-flex justify-content-center align-items-center tw-text-base tw-leading-none hover-bg-main-two-600 hover-text-heading active-scale-09"><i
-                      class="ph-fill ph-instagram-logo"></i></a>
-                </li>
-                <li>
-                  <a href="https://www.pinterest.com"
-                    class="text-heading tw-w-8 tw-h-8 border border-neutral-300 hover-border-main-two-600 rounded-circle d-flex justify-content-center align-items-center tw-text-base tw-leading-none hover-bg-main-two-600 hover-text-heading active-scale-09"><i
-                      class="ph-fill ph-pinterest-logo"></i></a>
+                      class="ph-fill ph-linkedin-logo"></i></a>
                 </li>
               </ul>
             </div>
             <div class="flex-grow-1">
-              <a href="<?= url('team-details') ?>"
+              <a href="https://jmn.morexweb.com" target="_blank" rel="noopener noreferrer"
                 class="tw-rounded-xl overflow-hidden d-block position-relative view-cursor-show">
-                <img src="<?= ASSETS_URL ?>/images/thumbs/team-three-img1.png" alt="Image"
+                <img src="<?= ASSETS_URL ?>/images/thumbs/team-three-img1.png" alt="Jamachi Mauricennadi"
                   class="image-double-animation__element tw-rounded-xl w-100 object-fit-cover">
-                <img src="<?= ASSETS_URL ?>/images/thumbs/team-three-img1.png" alt="Image"
+                <img src="<?= ASSETS_URL ?>/images/thumbs/team-three-img1.png" alt="Jamachi Mauricennadi"
                   class="image-double-animation__element tw-rounded-xl w-100 object-fit-cover">
               </a>
-            </div>
-          </div>
-        </div>
-        <div class="col-lg-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="300">
-          <div
-            class="team-three-item image-double-animation bg-white tw-rounded-xl tw-p-205 d-flex flex-sm-row align-items-sm-center flex-column tw-gap-6 justify-content-between">
-            <div class="tw-ps-705 tw-py-3 flex-grow-1">
-              <h2 class="h5 tw-mb-2">
-                <a href="<?= url('team-details') ?>"
-                  class="text-heading fw-semibold hover-text-main-600 d-inline-flex align-items-center tw-gap-205 group-item element-double-animation">
-                  <span class="element-double-animation__element" data-content="Liam Patel">Liam Patel</span>
-                </a>
-              </h2>
-              <p class="tw-text-lg text-neutral-400">PPC Campaign Manager</p>
-              <ul class="d-flex align-items-center tw-gap-205 tw-mt-6">
-                <li>
-                  <a href="https://www.facebook.com"
-                    class="text-heading tw-w-8 tw-h-8 border border-neutral-300 hover-border-main-two-600 rounded-circle d-flex justify-content-center align-items-center tw-text-base tw-leading-none hover-bg-main-two-600 hover-text-heading active-scale-09"><i
-                      class="ph-fill ph-facebook-logo"></i></a>
-                </li>
-                <li>
-                  <a href="https://www.twitter.com"
-                    class="text-heading tw-w-8 tw-h-8 border border-neutral-300 hover-border-main-two-600 rounded-circle d-flex justify-content-center align-items-center tw-text-base tw-leading-none hover-bg-main-two-600 hover-text-heading active-scale-09">
-                    <i class="ph-fill ph-twitter-logo"></i></a>
-                </li>
-                <li>
-                  <a href="https://www.linkedin.com"
-                    class="text-heading tw-w-8 tw-h-8 border border-neutral-300 hover-border-main-two-600 rounded-circle d-flex justify-content-center align-items-center tw-text-base tw-leading-none hover-bg-main-two-600 hover-text-heading active-scale-09"><i
-                      class="ph-fill ph-instagram-logo"></i></a>
-                </li>
-                <li>
-                  <a href="https://www.pinterest.com"
-                    class="text-heading tw-w-8 tw-h-8 border border-neutral-300 hover-border-main-two-600 rounded-circle d-flex justify-content-center align-items-center tw-text-base tw-leading-none hover-bg-main-two-600 hover-text-heading active-scale-09"><i
-                      class="ph-fill ph-pinterest-logo"></i></a>
-                </li>
-              </ul>
-            </div>
-            <div class="flex-grow-1">
-              <a href="<?= url('team-details') ?>"
-                class="tw-rounded-xl overflow-hidden d-block position-relative view-cursor-show">
-                <img src="<?= ASSETS_URL ?>/images/thumbs/team-three-img2.png" alt="Image"
-                  class="image-double-animation__element tw-rounded-xl w-100 object-fit-cover">
-                <img src="<?= ASSETS_URL ?>/images/thumbs/team-three-img2.png" alt="Image"
-                  class="image-double-animation__element tw-rounded-xl w-100 object-fit-cover">
-              </a>
-            </div>
-          </div>
-        </div>
-        <div class="col-lg-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="100">
-          <div
-            class="team-three-item image-double-animation bg-white tw-rounded-xl tw-p-205 d-flex flex-sm-row align-items-sm-center flex-column tw-gap-42-px">
-            <div class="flex-grow-1">
-              <a href="<?= url('team-details') ?>"
-                class="tw-rounded-xl overflow-hidden d-block position-relative view-cursor-show">
-                <img src="<?= ASSETS_URL ?>/images/thumbs/team-three-img3.png" alt="Image"
-                  class="image-double-animation__element tw-rounded-xl w-100 object-fit-cover">
-                <img src="<?= ASSETS_URL ?>/images/thumbs/team-three-img3.png" alt="Image"
-                  class="image-double-animation__element tw-rounded-xl w-100 object-fit-cover">
-              </a>
-            </div>
-            <div class="tw-py-3 flex-grow-1">
-              <h2 class="h5 tw-mb-2">
-                <a href="<?= url('team-details') ?>"
-                  class="text-heading fw-semibold hover-text-main-600 d-inline-flex align-items-center tw-gap-205 group-item element-double-animation">
-                  <span class="element-double-animation__element" data-content="Mia Johnson">Mia Johnson</span>
-                </a>
-              </h2>
-              <p class="tw-text-lg text-neutral-400">Email Marketing Expert</p>
-              <ul class="d-flex align-items-center tw-gap-205 tw-mt-6">
-                <li>
-                  <a href="https://www.facebook.com"
-                    class="text-heading tw-w-8 tw-h-8 border border-neutral-300 hover-border-main-two-600 rounded-circle d-flex justify-content-center align-items-center tw-text-base tw-leading-none hover-bg-main-two-600 hover-text-heading active-scale-09"><i
-                      class="ph-fill ph-facebook-logo"></i></a>
-                </li>
-                <li>
-                  <a href="https://www.twitter.com"
-                    class="text-heading tw-w-8 tw-h-8 border border-neutral-300 hover-border-main-two-600 rounded-circle d-flex justify-content-center align-items-center tw-text-base tw-leading-none hover-bg-main-two-600 hover-text-heading active-scale-09">
-                    <i class="ph-fill ph-twitter-logo"></i></a>
-                </li>
-                <li>
-                  <a href="https://www.linkedin.com"
-                    class="text-heading tw-w-8 tw-h-8 border border-neutral-300 hover-border-main-two-600 rounded-circle d-flex justify-content-center align-items-center tw-text-base tw-leading-none hover-bg-main-two-600 hover-text-heading active-scale-09"><i
-                      class="ph-fill ph-instagram-logo"></i></a>
-                </li>
-                <li>
-                  <a href="https://www.pinterest.com"
-                    class="text-heading tw-w-8 tw-h-8 border border-neutral-300 hover-border-main-two-600 rounded-circle d-flex justify-content-center align-items-center tw-text-base tw-leading-none hover-bg-main-two-600 hover-text-heading active-scale-09"><i
-                      class="ph-fill ph-pinterest-logo"></i></a>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-        <div class="col-lg-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="300">
-          <div
-            class="team-three-item image-double-animation bg-white tw-rounded-xl tw-p-205 d-flex flex-sm-row align-items-sm-center flex-column tw-gap-42-px">
-            <div class="flex-grow-1">
-              <a href="<?= url('team-details') ?>"
-                class="tw-rounded-xl overflow-hidden d-block position-relative view-cursor-show">
-                <img src="<?= ASSETS_URL ?>/images/thumbs/team-three-img4.png" alt="Image"
-                  class="image-double-animation__element tw-rounded-xl w-100 object-fit-cover">
-                <img src="<?= ASSETS_URL ?>/images/thumbs/team-three-img4.png" alt="Image"
-                  class="image-double-animation__element tw-rounded-xl w-100 object-fit-cover">
-              </a>
-            </div>
-            <div class="tw-py-3 flex-grow-1">
-              <h2 class="h5 tw-mb-2">
-                <a href="<?= url('team-details') ?>"
-                  class="text-heading fw-semibold hover-text-main-600 d-inline-flex align-items-center tw-gap-205 group-item element-double-animation">
-                  <span class="element-double-animation__element" data-content="Ethan Brooks">Ethan Brooks</span>
-                </a>
-              </h2>
-              <p class="tw-text-lg text-neutral-400">Campaign Optimization Specialist</p>
-              <ul class="d-flex align-items-center tw-gap-205 tw-mt-6">
-                <li>
-                  <a href="https://www.facebook.com"
-                    class="text-heading tw-w-8 tw-h-8 border border-neutral-300 hover-border-main-two-600 rounded-circle d-flex justify-content-center align-items-center tw-text-base tw-leading-none hover-bg-main-two-600 hover-text-heading active-scale-09"><i
-                      class="ph-fill ph-facebook-logo"></i></a>
-                </li>
-                <li>
-                  <a href="https://www.twitter.com"
-                    class="text-heading tw-w-8 tw-h-8 border border-neutral-300 hover-border-main-two-600 rounded-circle d-flex justify-content-center align-items-center tw-text-base tw-leading-none hover-bg-main-two-600 hover-text-heading active-scale-09">
-                    <i class="ph-fill ph-twitter-logo"></i></a>
-                </li>
-                <li>
-                  <a href="https://www.linkedin.com"
-                    class="text-heading tw-w-8 tw-h-8 border border-neutral-300 hover-border-main-two-600 rounded-circle d-flex justify-content-center align-items-center tw-text-base tw-leading-none hover-bg-main-two-600 hover-text-heading active-scale-09"><i
-                      class="ph-fill ph-instagram-logo"></i></a>
-                </li>
-                <li>
-                  <a href="https://www.pinterest.com"
-                    class="text-heading tw-w-8 tw-h-8 border border-neutral-300 hover-border-main-two-600 rounded-circle d-flex justify-content-center align-items-center tw-text-base tw-leading-none hover-bg-main-two-600 hover-text-heading active-scale-09"><i
-                      class="ph-fill ph-pinterest-logo"></i></a>
-                </li>
-              </ul>
             </div>
           </div>
         </div>

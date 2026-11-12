@@ -262,3 +262,12 @@ php -d extension=php_pdo_mysql.dll vendor/bin/phpunit --filter PaymentWebhook
 | `payment-verify.php` | Checkout callback + admin verify redirect handling. |
 | `update-any-error.sql` | Idempotent schema repair file. |
 | `database/apply_update_any_error.php` | CLI runner for the repair file. |
+
+---
+
+## Source code
+
+| Resource | URL |
+|---|---|
+| Project repository | <https://github.com/FushionHub/adbooster_net> |
+| Official JS/TS SDK | <https://github.com/FushionHub/adsbooster-js-sdk> |

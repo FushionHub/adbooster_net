@@ -250,4 +250,19 @@ over everything from the admin suite.
 
 ---
 
-*© 2026 Adsbooster.net Engineering Team. All rights reserved.*
+## Repository & SDK
+
+| Resource | URL |
+|---|---|
+| **Project repository** | <https://github.com/FushionHub/adbooster_net> |
+| **Official JavaScript/TypeScript SDK** | <https://github.com/FushionHub/adsbooster-js-sdk> |
+| SDK on npm | <https://www.npmjs.com/package/adsbooster-js-sdk> |
+| Browsable UMD SDK served by the app | `/api/v1/sdk/adsbooster.js` |
+
+The SDK is the official way to drive Adsbooster from JavaScript or TypeScript —
+campaigns, posts, credits and webhooks — and is documented in
+[llms-full.md](llms-full.md) and the in-app developer docs (`developer-docs.php`).
+
+---
+
+*© 2026 Jamachi Mauricennadi · Adsbooster.net. All rights reserved.*
