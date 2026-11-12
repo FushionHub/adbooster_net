@@ -86,6 +86,9 @@ defined('PAYSTACK_PUBLIC_KEY') or define('PAYSTACK_PUBLIC_KEY', '');
 defined('PAYSTACK_SECRET_KEY') or define('PAYSTACK_SECRET_KEY', '');
 defined('PAYSTACK_TEST_KEY')   or define('PAYSTACK_TEST_KEY', '');
 defined('PAYSTACK_LIVE_KEY')   or define('PAYSTACK_LIVE_KEY', '');
+// Optional dedicated webhook signing secret. When empty the API secret
+// key is used to verify the `x-paystack-signature` HMAC-SHA512 header.
+defined('PAYSTACK_WEBHOOK_SECRET') or define('PAYSTACK_WEBHOOK_SECRET', '');
 
 // ── Payments: Flutterwave ──
 defined('FLUTTERWAVE_PUBLIC_KEY') or define('FLUTTERWAVE_PUBLIC_KEY', 'FLWPUBK-ddc6f50bb7c5587ffe46326dc4299484-X');
@@ -93,6 +96,9 @@ defined('FLUTTERWAVE_SECRET_KEY') or define('FLUTTERWAVE_SECRET_KEY', 'FLWSECK-b
 defined('FLUTTERWAVE_ENCRYPTION_KEY') or define('FLUTTERWAVE_ENCRYPTION_KEY', 'becf82df5cc253e3a267fb3e');
 defined('FLUTTERWAVE_TEST_KEY')   or define('FLUTTERWAVE_TEST_KEY', '');
 defined('FLUTTERWAVE_LIVE_KEY')   or define('FLUTTERWAVE_LIVE_KEY', '');
+// Optional dedicated webhook signing secret. When empty the API secret
+// key is used to verify the `verif-hash` / `x-flw-signature` headers.
+defined('FLUTTERWAVE_WEBHOOK_SECRET') or define('FLUTTERWAVE_WEBHOOK_SECRET', '');
 
 // ── Email / SMTP (Email-first architecture) ──
 defined('SMTP_HOST')  or define('SMTP_HOST', 'mail.adsbooster.net');

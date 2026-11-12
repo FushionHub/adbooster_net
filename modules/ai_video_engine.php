@@ -716,16 +716,19 @@ class AIVideoEngine
                 }
             }
 
-            // Unified engine fallback: Gemini (when a key exists), the NVIDIA
-            // NIM image route, and a final keyless Pollinations attempt — so
-            // scene stills render photoreal on every route configuration.
+            // Unified engine fallback: Gemini (when a key exists) and the
+            // NVIDIA NIM image route — so scene stills render photoreal on
+            // every route configuration. Pollinations is skipped on the
+            // `pollinations` route (already tried above — burning the
+            // free-tier quota twice helps nobody).
             if ($generated === null) {
                 try {
                     $generated = GeminiEngine::generateImage(
                         $sc['visual_prompt'],
                         $res['w'],
                         $res['h'],
-                        'scene_' . $seed . '_' . ($i + 1)
+                        'scene_' . $seed . '_' . ($i + 1),
+                        $route !== 'pollinations'
                     );
                 } catch (\Throwable $e) {
                     error_log('Gemini scene still failed: ' . $e->getMessage());
@@ -1616,13 +1619,8 @@ class AIVideoEngine
 
     private static function absoluteUrl(string $path): string
     {
-        if ($path === '') {
-            return '';
-        }
-        if (preg_match('#^https?://#i', $path)) {
-            return $path;
-        }
-        return rtrim(BASE_URL, '/') . '/' . ltrim($path, '/');
+        // Single source of truth for media URL resolution.
+        return function_exists('media_url') ? media_url($path) : $path;
     }
 
     private static function groqChat(string $prompt, string $key, float $temperature = 0.7, int $maxTokens = 800): string

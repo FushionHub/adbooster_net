@@ -533,16 +533,29 @@ function e(?string $value): string
  * against the current directory), and blindly prefixing BASE_URL breaks
  * absolute URLs. This helper handles both.
  */
-function media_url(?string $path): string
+function media_url(mixed $path): string
 {
-    $path = trim((string)($path ?? ''));
-    if ($path === '') {
+    $p = trim((string)($path ?? ''));
+    if ($p === '') {
         return '';
     }
-    if (preg_match('#^(https?:)?//#i', $path)) {
-        return $path;
+    // Absolute remote URLs (Replicate/fal CDN links) are used as-is.
+    if (preg_match('#^https?://#i', $p)) {
+        return $p;
     }
-    return rtrim(BASE_URL, '/') . '/' . ltrim($path, '/');
+    // Protocol-relative URLs are resolved against the site scheme/host so a
+    // stored "//evil.example/x" can never become an off-site target.
+    if (str_starts_with($p, '//')) {
+        $scheme = (string)(parse_url(rtrim(BASE_URL, '/'), PHP_URL_SCHEME) ?: 'https');
+        return $scheme . ':' . $p;
+    }
+    // Idempotent: a stored path that already includes the BASE_URL path
+    // prefix must not be prefixed twice.
+    $basePath = rtrim((string)(parse_url(BASE_URL, PHP_URL_PATH) ?? ''), '/');
+    if ($basePath !== '' && str_starts_with($p, $basePath . '/')) {
+        $p = ltrim(substr($p, strlen($basePath)), '/');
+    }
+    return rtrim(BASE_URL, '/') . '/' . ltrim($p, '/');
 }
 
 /**
