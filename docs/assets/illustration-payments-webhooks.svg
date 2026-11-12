@@ -1,0 +1,165 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 620" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <linearGradient id="p-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#070b12"/>
+      <stop offset="0.55" stop-color="#0b111e"/>
+      <stop offset="1" stop-color="#0d1424"/>
+    </linearGradient>
+    <linearGradient id="p-lime" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#c8ff00"/>
+      <stop offset="1" stop-color="#7fe80a"/>
+    </linearGradient>
+    <linearGradient id="p-card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#131c2e" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#0d1320" stop-opacity="0.95"/>
+    </linearGradient>
+    <linearGradient id="p-flow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#c8ff00" stop-opacity="0.1"/>
+      <stop offset="0.5" stop-color="#c8ff00" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#3b82f6" stop-opacity="0.1"/>
+    </linearGradient>
+    <radialGradient id="p-glowLime" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#c8ff00" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#c8ff00" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="p-glowBlue" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#3b82f6" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#3b82f6" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="p-soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1600" height="620" fill="url(#p-bg)"/>
+  <g stroke="#1a2338" stroke-width="1">
+    <path d="M0 103 H1600 M0 206 H1600 M0 309 H1600 M0 412 H1600 M0 515 H1600"/>
+    <path d="M100 0 V620 M220 0 V620 M340 0 V620 M460 0 V620 M580 0 V620 M700 0 V620 M820 0 V620 M940 0 V620 M1060 0 V620 M1180 0 V620 M1300 0 V620 M1420 0 V620 M1540 0 V620"/>
+  </g>
+  <circle cx="1230" cy="170" r="360" fill="url(#p-glowBlue)"/>
+  <circle cx="420" cy="470" r="380" fill="url(#p-glowLime)"/>
+
+  <!-- ══ Title ══ -->
+  <g>
+    <rect x="70" y="62" width="64" height="6" rx="3" fill="url(#p-lime)"/>
+    <text x="70" y="132" fill="#ffffff" font-size="52" font-weight="800">One Webhook URL <tspan fill="#c8ff00">per Gateway</tspan></text>
+    <text x="72" y="172" fill="#9aa4b8" font-size="21">Signature-verified &#183; gateway-agnostic &#183; credited without the payer returning</text>
+  </g>
+
+  <!-- ══ Left: checkout device ══ -->
+  <g transform="translate(96 236)">
+    <g filter="url(#p-soft)" opacity="0.5"><rect x="14" y="18" width="228" height="316" rx="24" fill="#000" opacity="0.6"/></g>
+    <rect x="0" y="0" width="228" height="316" rx="24" fill="url(#p-card)" stroke="#26334d"/>
+    <rect x="84" y="14" width="60" height="8" rx="4" fill="#26334d"/>
+
+    <!-- amount row -->
+    <text x="22" y="56" fill="#5b647a" font-size="12" font-weight="600" letter-spacing="1">AMOUNT DUE</text>
+    <text x="22" y="88" fill="#ffffff" font-size="30" font-weight="800">$50.00</text>
+
+    <!-- card form -->
+    <rect x="22" y="108" width="184" height="34" rx="8" fill="#101828" stroke="#26334d"/>
+    <text x="34" y="130" fill="#5b647a" font-size="12">4242 &#183;&#183;&#183;&#183; &#183;&#183;&#183;&#183; &#183;&#183;&#183;&#183; &#183;&#183;&#183;&#183;</text>
+    <rect x="22" y="152" width="86" height="30" rx="8" fill="#101828" stroke="#26334d"/>
+    <text x="34" y="172" fill="#5b647a" font-size="12">12/29</text>
+    <rect x="120" y="152" width="86" height="30" rx="8" fill="#101828" stroke="#26334d"/>
+    <text x="132" y="172" fill="#5b647a" font-size="12">123</text>
+
+    <!-- pay button -->
+    <rect x="22" y="198" width="184" height="38" rx="19" fill="url(#p-lime)"/>
+    <text x="114" y="223" fill="#08110a" font-size="14" font-weight="800" text-anchor="middle">PAY NOW</text>
+
+    <!-- gateway pills -->
+    <g font-size="11" font-weight="700">
+      <rect x="22" y="252" width="88" height="26" rx="13" fill="#101828" stroke="#26334d"/>
+      <circle cx="40" cy="265" r="5" fill="#f59e0b"/>
+      <text x="52" y="269" fill="#dbe3f0">Flutterwave</text>
+      <rect x="118" y="252" width="88" height="26" rx="13" fill="#101828" stroke="#26334d"/>
+      <circle cx="136" cy="265" r="5" fill="#3b82f6"/>
+      <text x="148" y="269" fill="#dbe3f0">Paystack</text>
+    </g>
+
+    <text x="114" y="300" fill="#5b647a" font-size="11" text-anchor="middle">Verified by 3 independent paths</text>
+  </g>
+
+  <!-- ══ Center: verification hub ══ -->
+  <g transform="translate(660 300)">
+    <circle cx="0" cy="0" r="150" fill="url(#p-glowLime)"/>
+    <circle cx="0" cy="0" r="96" fill="#0e1626" stroke="#26334d"/>
+    <circle cx="0" cy="0" r="96" fill="none" stroke="#c8ff00" stroke-opacity="0.35" stroke-width="1.5" stroke-dasharray="6 10"/>
+
+    <!-- shield -->
+    <path d="M0 -54 C26 -42 44 -36 58 -32 V4 C58 38 32 62 0 74 C-32 62 -58 38 -58 4 V-32 C-44 -36 -26 -42 0 -54 Z" fill="#131c2e" stroke="url(#p-lime)" stroke-width="3"/>
+    <path d="M-20 6 L-6 22 L22 -12" fill="none" stroke="#c8ff00" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <text x="0" y="122" fill="#ffffff" font-size="17" font-weight="700" text-anchor="middle">verifyGateway()</text>
+    <text x="0" y="146" fill="#5b647a" font-size="13" text-anchor="middle">one dispatcher &#183; every path</text>
+  </g>
+
+  <!-- ══ Flow: checkout → hub → gateways ══ -->
+  <g stroke="url(#p-flow)" stroke-width="2.5" fill="none" stroke-linecap="round">
+    <path d="M348 396 C 450 396, 500 330, 552 308"/>
+    <path d="M772 300 C 850 250, 900 218, 986 218"/>
+    <path d="M772 300 C 850 350, 900 386, 986 386"/>
+  </g>
+  <!-- travelling packet -->
+  <circle cx="540" cy="320" r="5" fill="#c8ff00"/>
+  <circle cx="540" cy="320" r="11" fill="#c8ff00" opacity="0.22"/>
+  <circle cx="962" cy="228" r="5" fill="#c8ff00"/>
+  <circle cx="962" cy="228" r="11" fill="#c8ff00" opacity="0.22"/>
+  <circle cx="962" cy="376" r="5" fill="#3b82f6"/>
+  <circle cx="962" cy="376" r="11" fill="#3b82f6" opacity="0.22"/>
+
+  <!-- inbound webhook arrows (gateway → hub) -->
+  <g stroke="#3b82f6" stroke-opacity="0.55" stroke-width="2" fill="none" stroke-dasharray="7 7" stroke-linecap="round">
+    <path d="M1180 218 C 1060 232, 940 280, 780 296"/>
+    <path d="M1180 386 C 1060 372, 940 324, 780 306"/>
+  </g>
+  <g font-size="11" font-weight="700" fill="#3b82f6">
+    <text x="1080" y="204" text-anchor="middle">webhook</text>
+    <text x="1080" y="420" text-anchor="middle">webhook</text>
+  </g>
+
+  <!-- ══ Right: gateway cards ══ -->
+  <g transform="translate(1196 152)">
+    <g filter="url(#p-soft)" opacity="0.5"><rect x="12" y="16" width="300" height="126" rx="18" fill="#000" opacity="0.55"/></g>
+    <rect x="0" y="0" width="300" height="126" rx="18" fill="url(#p-card)" stroke="#26334d"/>
+    <circle cx="34" cy="34" r="13" fill="#f59e0b" opacity="0.22"/>
+    <path d="M26 34 h16 M34 26 v16" stroke="#f59e0b" stroke-width="2.4" stroke-linecap="round"/>
+    <text x="58" y="39" fill="#ffffff" font-size="16" font-weight="700">Flutterwave</text>
+    <text x="24" y="70" fill="#5b647a" font-size="11" font-weight="600" letter-spacing="0.8">WEBHOOK URL</text>
+    <rect x="24" y="80" width="252" height="28" rx="7" fill="#0a1120" stroke="#1f2b42"/>
+    <text x="36" y="98" fill="#c8ff00" font-size="11.5" font-family="Consolas, monospace">/payment/webhook/flutterwave</text>
+  </g>
+
+  <g transform="translate(1196 320)">
+    <g filter="url(#p-soft)" opacity="0.5"><rect x="12" y="16" width="300" height="126" rx="18" fill="#000" opacity="0.55"/></g>
+    <rect x="0" y="0" width="300" height="126" rx="18" fill="url(#p-card)" stroke="#26334d"/>
+    <circle cx="34" cy="34" r="13" fill="#3b82f6" opacity="0.22"/>
+    <rect x="27" y="29" width="14" height="10" rx="2" fill="none" stroke="#3b82f6" stroke-width="2.2"/>
+    <path d="M27 30 l7 5 l7 -5" fill="none" stroke="#3b82f6" stroke-width="2.2" stroke-linejoin="round"/>
+    <text x="58" y="39" fill="#ffffff" font-size="16" font-weight="700">Paystack</text>
+    <text x="24" y="70" fill="#5b647a" font-size="11" font-weight="600" letter-spacing="0.8">WEBHOOK URL</text>
+    <rect x="24" y="80" width="252" height="28" rx="7" fill="#0a1120" stroke="#1f2b42"/>
+    <text x="36" y="98" fill="#3b82f6" font-size="11.5" font-family="Consolas, monospace">/payment/webhook/paystack</text>
+  </g>
+
+  <!-- ══ Bottom status strip ══ -->
+  <g transform="translate(96 566)" font-size="13" font-weight="600">
+    <rect x="0" y="-24" width="1400" height="52" rx="14" fill="#0e1626" stroke="#223050"/>
+    <g>
+      <circle cx="30" cy="2" r="6" fill="#c8ff00"/>
+      <text x="46" y="7" fill="#dbe3f0">200 &#183; understood &#8212; credited</text>
+      <circle cx="256" cy="2" r="6" fill="#f59e0b"/>
+      <text x="272" y="7" fill="#dbe3f0">401 &#183; bad signature &#8212; refused</text>
+      <circle cx="512" cy="2" r="6" fill="#ef4444"/>
+      <text x="528" y="7" fill="#dbe3f0">404 &#183; unknown gateway</text>
+      <circle cx="738" cy="2" r="6" fill="#a855f7"/>
+      <text x="754" y="7" fill="#dbe3f0">422 &#183; no reference</text>
+      <circle cx="936" cy="2" r="6" fill="#3b82f6"/>
+      <text x="952" y="7" fill="#dbe3f0">502 &#183; gateway unreachable &#8212; provider retries</text>
+    </g>
+  </g>
+
+  <rect x="0" y="608" width="1600" height="12" fill="url(#p-lime)" opacity="0.35"/>
+</svg>

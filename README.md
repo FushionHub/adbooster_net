@@ -189,6 +189,127 @@ v                                                                       v
 
 ---
 
+## 💳 Payments, Webhooks & Referral Rewards
+
+### Payment verification (any registered gateway)
+
+One gateway-agnostic dispatcher handles **every** payment path — the hosted checkout
+callback, the admin **Verify** button and the inbound webhook behave identically:
+
+```php
+PaymentProcessor::verifyGateway($gateway, $reference, $gatewayId = '');
+```
+
+| Gateway | Live verification call |
+|---|---|
+| **Flutterwave** | `GET /v3/transactions/{flw_ref}/verify` (numeric id) or `GET /v3/transactions/verify_by_reference?tx_ref=…` |
+| **Paystack** | `GET /transaction/verify/{reference}` |
+| **Any new gateway** | `GET {base}/verify/{reference}` → `{status: "success", data: {…}}` (inherited automatically) |
+
+A verified payment credits the wallet **and** fires the automatic referral reward.
+
+### Webhook URLs — one per gateway, paste into the dashboard
+
+| Gateway | Webhook URL | Where to paste it | Signature header |
+|---|---|---|---|
+| **Flutterwave** | `https://adsbooster.net/payment/webhook/flutterwave` | Dashboard → **Settings → Webhooks → Webhook URL** | `verif-hash` *(or `x-flw-signature`)* |
+| **Paystack** | `https://adsbooster.net/payment/webhook/paystack` | Dashboard → **Settings → API Keys & Webhooks → URL** | `x-paystack-signature` |
+
+> Local installs follow the install path — here the app runs at `http://localhost/seopp`, so
+> the URLs are `http://localhost/seopp/payment/webhook/flutterwave` and
+> `http://localhost/seopp/payment/webhook/paystack`. **Admin → Transactions** shows the
+> live URLs with a copy button.
+
+**Events to subscribe to** — Flutterwave: `charge.completed`, `transfer.completed` ·
+Paystack: `charge.success`, `transfer.success`.
+
+**Endpoint behaviour** — `401` bad signature · `404` unknown gateway · `422` no reference ·
+`502` gateway unreachable (the provider retries) · `200` understood.
+
+```json
+{
+  "status": true,
+  "result": "successful",
+  "message": "Payment verified and wallet credited successfully!",
+  "gateway": "flutterwave",
+  "reference": "1C5325BE76460FD8ABD153E7",
+  "transaction": 42,
+  "settled_by": "gateway_api",
+  "retry": false
+}
+```
+
+> ⚠ **Flutterwave's `verif-hash` is a static `sha256(secret)`** — it proves the sender knows
+> the secret but does **not** authenticate the body. Any code that trusts the payload itself
+> therefore requires a body-bound signature (`PaymentGateways::webhookSignatureCoversBody()`).
+
+### Admin → checkout on a failed verification
+
+When an admin clicks **Verify** and the payment cannot be confirmed, they are redirected to
+the **checkout page** — not to a blank error — with the order context restored (plan,
+credits, transaction id) and a banner explaining the failure, including when a database
+update is required. The same context-aware redirect is used by the hosted callback.
+
+### Referral rewards — automatic, with full admin control
+
+| Setting | Default | Effect |
+|---|---|---|
+| `referral_reward_credits` | `10` | Ad credits paid to the **referrer** |
+| `referral_referred_bonus` | `5` | Welcome bonus for the **new account** |
+| `referral_auto_reward` | `1` | `1` = pay automatically on the referred user's first successful payment |
+
+- **Automatic** — `PaymentProcessor::completeTransaction()` calls
+  `ReferralService::rewardForPayment()`, so a referral is paid the moment the referred
+  user's payment is verified — by callback, admin button or webhook.
+- **Idempotent** — the payout is guarded by a conditional `pending → rewarded` UPDATE
+  (`rowCount() === 1`); a referral can only ever be paid once, no matter how many
+  verifications or redeliveries happen.
+- **Still fully manageable** — Admin → Referrals can change the programme settings, pay a
+  referral manually, **Pay all pending** in bulk, reset a referral back to pending, or
+  reject one (a rejected referral can never be paid).
+- **Ledgered** — every payout is written to `referral_rewards` (unique per referred
+  account) and both parties are notified.
+
+### SQL repair file
+
+`update-any-error.sql` (project root) is the single idempotent repair file for the payment,
+referral and webhook schema — it backfills the referral columns, removes duplicates, adds
+the missing indexes, creates `payment_webhook_events` and `payout_requests`, and seeds the
+referral settings.
+
+```bash
+mysql -u root adsbooster < update-any-error.sql   # or
+php database/apply_update_any_error.php            # bundled CLI runner
+php database/apply_update_any_error.php --dry-run  # preview only
+```
+
+### Full documentation
+
+- **[docs/payments-webhooks.md](docs/payments-webhooks.md)** — webhook URLs, signature
+  schemes, response codes, the signed-payload fallback, adding a new gateway, local
+  testing with `curl`.
+- **[docs/referrals.md](docs/referrals.md)** — the referral lifecycle, settings, admin
+  actions, API reference and schema.
+
+---
+
+## 📸 Screenshots
+
+| | |
+|---|---|
+| ![Homepage](docs/screenshots/homepage.png) | ![Login](docs/screenshots/login.png) |
+| **Homepage** — platform overview and live showcases | **Login** — authentication entry point |
+| ![Pricing](docs/screenshots/pricing.png) | ![Checkout](docs/screenshots/checkout.png) |
+| **Pricing** — subscription tiers and credit packs | **Checkout** — payment selection and order context |
+| ![Referrals](docs/screenshots/referrals.png) | ![Dashboard](docs/screenshots/dashboard.png) |
+| **Referrals** — user-facing referral dashboard | **Dashboard** — credits, campaigns and activity |
+| ![Admin Transactions](docs/screenshots/admin-transactions.png) | ![Admin Referrals](docs/screenshots/admin-referrals.png) |
+| **Admin → Transactions** — verify, mark failed, webhook URLs | **Admin → Referrals** — programme settings and payouts |
+
+> Full-size captures live in [`docs/screenshots/`](docs/screenshots/).
+
+---
+
 ## 🚀 Quickstart Guide
 
 ### 1. Local Development (Laragon / XAMPP)
@@ -261,7 +382,14 @@ seopp/
 │   ├── adsbooster_master.sql  # Dual Third-Party Gateway schema definitions
 │   ├── migrate_gateways.php   # Automated idempotent gateway migration runner
 │   ├── adsbooster_complete.sql# Complete master database dump
-│   └── export_master_sql.php  # Automated database snapshot generator
+│   ├── export_master_sql.php  # Automated database snapshot generator
+│   └── apply_update_any_error.php # CLI runner for update-any-error.sql
+├── docs/                      # Project documentation & screenshots
+│   ├── payments-webhooks.md   # Payment verification, webhook URLs & signature schemes
+│   ├── referrals.md           # Referral programme: automatic rewards + admin control
+│   ├── output-helpers.md      # e() and dt() output helper conventions
+│   ├── assets/                # Banner + illustration artwork
+│   └── screenshots/           # Website screenshots of the main pages
 ├── includes/                  # Reusable layouts, headers, and navigation
 ├── modules/                   # Core business logic classes
 │   ├── ThirdPartyGateway.php  # Central unified API gateway (Bundle.social + Zernio)
@@ -275,10 +403,17 @@ seopp/
 │   ├── firecrawl_scraper.php  # Live web/site scraping for store imports & AI chat context
 │   ├── ecommerce_sync.php     # Shopify/WooCommerce import + campaign auto-packs
 │   ├── email_service.php      # PHPMailer & branded HTML email system
+│   ├── payments.php           # PaymentProcessor — gateway verification, completion, wallet crediting
+│   ├── payment_gateways.php   # Gateway registry, webhook URLs & signature verification
+│   ├── payment_webhook.php    # Webhook decision logic (success detection, replay guard)
+│   ├── referral_service.php   # Referral programme — automatic + manual reward payouts
 │   └── two_factor.php         # RFC 6238 TOTP authentication library
 ├── api-settings.php           # Developer console, Master API key & webhook tester
 ├── developer-docs.php         # Complete A-Z developer documentation manual
 ├── status.php                 # Real-time service uptime & health telemetry
+├── payment-webhook.php        # Inbound payment webhook endpoint (/payment/webhook/<gateway>)
+├── payment-verify.php         # Payment callback + admin verify redirect handling
+├── update-any-error.sql       # Idempotent payment/referral/webhook schema repair file
 ├── ugc-generator.php          # AI UGC Image Studio & Canva-style canvas editor
 ├── ugc-video-studio.php       # AI Video Studio — Veo/Nano Banana 2, edit, regenerate, run ads
 ├── post-creator.php           # Real-time multi-channel post composer & publisher (Bundle.social)
