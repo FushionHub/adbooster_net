@@ -132,7 +132,7 @@ curl -s "https://adsbooster.net/api/v1/campaigns.php?limit=5" \
 - Repository: <https://github.com/FushionHub/adsbooster-js-sdk>
 - Platform build (always latest): <https://adsbooster.net/api/v1/sdk/adsbooster.js>
 
-Current version: **1.1.0**.
+Current version: **1.1.0** (npm) — the repository tracks **1.2.0**, which adds the optional Flutterwave / Gemini / Groq integrations.
 
 ### Install
 
@@ -195,8 +195,43 @@ const balance = await client.credits.balance();
 | `client.capi` | `scriptUrl()`, `track(payload)` |
 | `client.webhooks` | `list()`, `test(targetUrl)`, `verify(rawBody, signature, secret)`, `sign(rawBody, secret)`, `testPingUrl(targetUrl)` *(deprecated)* |
 | `client.publicAnalytics` | `feed(view)`, `totals()` |
+| `client.integrations` | `detect()`, `geminiGenerateText(payload)`, `groqChat(payload)`, `flutterwaveClient(payload)` |
 
 `client.webhooks.testPingUrl(url)` is deprecated: it only returns a URL string. Use `client.webhooks.list()` to see registered endpoints and `client.webhooks.test(url)` to fire a signed ping.
+
+### Optional integrations (Node.js)
+
+The SDK ships with the integration packages the platform uses — `flutterwave`,
+`@google/genai` and `groq-sdk` — as optional dependencies. They install with the
+package but are **never imported by the core client**, so the browser build stays
+dependency-free and nothing loads until you call an integration.
+
+```bash
+npm install adsbooster-js-sdk          # installs the optional integrations too
+npm install adsbooster-js-sdk --omit=optional   # core client only
+```
+
+| Method | Purpose |
+| --- | --- |
+| `client.integrations.detect()` | `{ gemini, flutterwave, groq }` — which optional packages are present |
+| `client.integrations.geminiGenerateText({ prompt, apiKey, model? })` | Google Gemini text generation (`@google/genai`) |
+| `client.integrations.groqChat({ messages, apiKey, model? })` | Groq chat completion (`groq-sdk`) |
+| `client.integrations.flutterwaveClient({ publicKey?, secretKey })` | Flutterwave client for server-side payment tooling |
+
+```js
+const { text } = await client.integrations.geminiGenerateText({
+  prompt: 'Write 3 ad headlines for running shoes',
+  apiKey: process.env.GEMINI_API_KEY,
+});
+
+const completion = await client.integrations.groqChat({
+  messages: [{ role: 'user', content: 'Summarise this campaign report' }],
+  apiKey: process.env.GROQ_API_KEY,
+});
+```
+
+Checkout payments are still verified **on the platform** — `flutterwaveClient()`
+is for building your own Flutterwave tooling next to the SDK.
 
 ---
 
