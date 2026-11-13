@@ -1,12 +1,17 @@
 -- =====================================================================
 -- ADSBOOSTER.NET — COMPREHENSIVE MASTER DATABASE SCHEMA & INITIAL DATA
--- Version: 6.0 (Asynchronous Dual Third-Party Gateway Edition)
+-- Version: 6.1 (Asynchronous Dual Third-Party Gateway Edition)
 --          Bundle.social (organic engine) + Zernio (ads engine)
 --          + the high-throughput `async_job_queue` processed by
 --          `cron/queue_worker.php`. 100% of external platform traffic
 --          routes through the two gateways; no direct platform tokens.
 -- Engine: InnoDB | Charset: utf8mb4 / utf8mb4_general_ci
 -- Compatible with: MySQL 8.0+, MySQL 5.7+, MariaDB 10.3+
+-- Regenerated: 2026-11-13 with corrected reference data:
+--   * site_settings: phone = +17853679518, site_phone = +1 785-367-9518
+--   * pricing_plans: current NGN-converted plans (Starter/Growth/Pro/Scale
+--     monthly + Launch Kit/Power Pack pay-as-you-go)
+--   * referral settings: auto_reward on, referred_bonus 5.00, reward 10.00
 --
 -- IDEMPOTENT / UPGRADE-SAFE:
 --   * `CREATE TABLE IF NOT EXISTS`  → existing tables are NEVER touched
@@ -159,7 +164,7 @@ CREATE TABLE IF NOT EXISTS `agency_portals` (
 
 -- Seed data for `agency_portals` (INSERT IGNORE — existing rows win)
 INSERT IGNORE INTO `agency_portals` (`id`, `agency_user_id`, `custom_subdomain`, `custom_domain`, `portal_name`, `portal_logo_url`, `brand_primary_color`, `brand_secondary_color`, `welcome_headline`, `is_whitelabel_active`, `created_at`) VALUES
-(1, 4, 'agency-4', NULL, 'E2E Check Marketing Agency', 'assets/images/logo/logo.png', '#c8ff00', '#080c14', 'Welcome to Your Client Growth & ROI Dashboard', 1, '2026-11-02 07:29:29');
+(1, 4, 'agency-4', NULL, 'E2E Check Marketing Agency', 'assets/images/logo/logo.png', '#c8ff00', '#080c14', 'Welcome to Your Client Growth & ROI Dashboard', 1, '2026-11-02 11:29:29');
 
 -- -----------------------------------------------------
 -- Table structure for `ai_creatives`
@@ -216,14 +221,14 @@ CREATE TABLE IF NOT EXISTS `ai_media_buyer_rules` (
 
 -- Seed data for `ai_media_buyer_rules` (INSERT IGNORE — existing rows win)
 INSERT IGNORE INTO `ai_media_buyer_rules` (`id`, `user_id`, `campaign_id`, `rule_name`, `condition_metric`, `condition_operator`, `condition_value`, `action_type`, `action_value`, `is_active`, `last_triggered_at`, `created_at`) VALUES
-(1, 4, NULL, 'ðŸš¨ Anti-Burn: Pause if CPA > $30 after spend', 'cpa', '>', '30.00', 'pause_campaign', '0.00', 1, NULL, '2026-11-02 15:40:59'),
-(2, 4, NULL, 'âš¡ Auto-Scale: Boost Winner Budget +20% if ROAS > 3.0', 'roas', '>=', '3.00', 'scale_budget_pct', '20.00', 1, NULL, '2026-11-02 15:40:59'),
-(3, 4, NULL, 'ðŸ“‰ Stop Fatigue: Reduce Budget -25% if CTR < 0.8%', 'ctr', '<', '0.80', 'reduce_budget_pct', '25.00', 1, NULL, '2026-11-02 15:40:59'),
-(4, 4, NULL, 'ðŸ”„ Creative Refresh: Trigger AI Variant if Spend > $50 with 0 Conv', 'spend_without_conv', '>=', '50.00', 'trigger_creative_refresh', '0.00', 1, NULL, '2026-11-02 15:40:59'),
-(5, 3, NULL, 'ðŸš¨ Anti-Burn: Pause if CPA > $30 after spend', 'cpa', '>', '30.00', 'pause_campaign', '0.00', 1, NULL, '2026-11-02 17:54:32'),
-(6, 3, NULL, 'âš¡ Auto-Scale: Boost Winner Budget +20% if ROAS > 3.0', 'roas', '>=', '3.00', 'scale_budget_pct', '20.00', 1, NULL, '2026-11-02 17:54:33'),
-(7, 3, NULL, 'ðŸ“‰ Stop Fatigue: Reduce Budget -25% if CTR < 0.8%', 'ctr', '<', '0.80', 'reduce_budget_pct', '25.00', 1, NULL, '2026-11-02 17:54:33'),
-(8, 3, NULL, 'ðŸ”„ Creative Refresh: Trigger AI Variant if Spend > $50 with 0 Conv', 'spend_without_conv', '>=', '50.00', 'trigger_creative_refresh', '0.00', 1, NULL, '2026-11-02 17:54:33');
+(1, 4, NULL, 'ðŸš¨ Anti-Burn: Pause if CPA > $30 after spend', 'cpa', '>', '30.00', 'pause_campaign', '0.00', 1, NULL, '2026-11-02 19:40:59'),
+(2, 4, NULL, 'âš¡ Auto-Scale: Boost Winner Budget +20% if ROAS > 3.0', 'roas', '>=', '3.00', 'scale_budget_pct', '20.00', 1, NULL, '2026-11-02 19:40:59'),
+(3, 4, NULL, 'ðŸ“‰ Stop Fatigue: Reduce Budget -25% if CTR < 0.8%', 'ctr', '<', '0.80', 'reduce_budget_pct', '25.00', 1, NULL, '2026-11-02 19:40:59'),
+(4, 4, NULL, 'ðŸ”„ Creative Refresh: Trigger AI Variant if Spend > $50 with 0 Conv', 'spend_without_conv', '>=', '50.00', 'trigger_creative_refresh', '0.00', 1, NULL, '2026-11-02 19:40:59'),
+(5, 3, NULL, 'ðŸš¨ Anti-Burn: Pause if CPA > $30 after spend', 'cpa', '>', '30.00', 'pause_campaign', '0.00', 1, NULL, '2026-11-02 21:54:32'),
+(6, 3, NULL, 'âš¡ Auto-Scale: Boost Winner Budget +20% if ROAS > 3.0', 'roas', '>=', '3.00', 'scale_budget_pct', '20.00', 1, NULL, '2026-11-02 21:54:33'),
+(7, 3, NULL, 'ðŸ“‰ Stop Fatigue: Reduce Budget -25% if CTR < 0.8%', 'ctr', '<', '0.80', 'reduce_budget_pct', '25.00', 1, NULL, '2026-11-02 21:54:33'),
+(8, 3, NULL, 'ðŸ”„ Creative Refresh: Trigger AI Variant if Spend > $50 with 0 Conv', 'spend_without_conv', '>=', '50.00', 'trigger_creative_refresh', '0.00', 1, NULL, '2026-11-02 21:54:33');
 
 -- -----------------------------------------------------
 -- Table structure for `ai_video_creatives`
@@ -348,6 +353,21 @@ CREATE TABLE IF NOT EXISTS `blog_posts` (
   UNIQUE KEY `uq_blog_slug` (`slug`),
   KEY `idx_blog_status_pub` (`status`,`published_at`),
   KEY `idx_blog_author` (`author_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_general_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `calendar_notes`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `calendar_notes` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `note_date` date NOT NULL,
+  `note` text COLLATE utf8mb4_general_ci,
+  `color` varchar(20) COLLATE utf8mb4_general_ci DEFAULT 'lime',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_calendar_notes_user` (`user_id`,`note_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_general_ci;
 
 -- -----------------------------------------------------
@@ -503,10 +523,10 @@ CREATE TABLE IF NOT EXISTS `creator_bounties` (
 
 -- Seed data for `creator_bounties` (INSERT IGNORE — existing rows win)
 INSERT IGNORE INTO `creator_bounties` (`id`, `brand_user_id`, `title`, `description`, `platform`, `content_type`, `deliverables_req`, `bounty_amount`, `platform_fee_pct`, `total_escrow_held`, `escrow_status`, `claimed_creator_id`, `status`, `submission_deadline`, `created_at`) VALUES
-(1, 3, '15s UGC Talking Head Review for Hydrating Skincare Brand', 'Looking for a female creator (20-35) to test our glow serum and record an authentic selfie-style talking head review.', 'tiktok', 'ugc_talking_head', '1x 9:16 vertical video, 1080p, clear audio, with hook & CTA.', '120.00', '10.00', '120.00', 'funded', NULL, 'open', '2026-11-08 18:45:52', '2026-11-01 15:45:52'),
-(2, 3, 'SaaS Productivity App Unboxing & Workflow Demo', 'Tech creator needed to record a screen-share and face-cam walkthrough of our AI automation tool.', 'instagram_reels', 'tutorial', '1x Reel (30s) highlighting 3 core features.', '200.00', '10.00', '200.00', 'funded', NULL, 'open', '2026-11-08 18:45:52', '2026-11-01 15:45:52'),
-(3, 3, 'Athletic Compression Gym Wear Try-On Haul', 'Fitness influencer needed to showcase workout durability and squat-proof fit.', 'youtube_shorts', 'lifestyle_testimonial', '1x Short with trending audio beat.', '150.00', '10.00', '150.00', 'funded', NULL, 'open', '2026-11-08 18:45:52', '2026-11-01 15:45:52'),
-(5, 3, 'js', 'js', 'tiktok', 'ugc_talking_head', 'jhh', '100.00', '10.00', '100.00', 'funded', NULL, 'open', '2026-11-12 20:52:17', '2026-11-05 17:52:17');
+(1, 3, '15s UGC Talking Head Review for Hydrating Skincare Brand', 'Looking for a female creator (20-35) to test our glow serum and record an authentic selfie-style talking head review.', 'tiktok', 'ugc_talking_head', '1x 9:16 vertical video, 1080p, clear audio, with hook & CTA.', '120.00', '10.00', '120.00', 'funded', NULL, 'open', '2026-11-08 18:45:52', '2026-11-01 19:45:52'),
+(2, 3, 'SaaS Productivity App Unboxing & Workflow Demo', 'Tech creator needed to record a screen-share and face-cam walkthrough of our AI automation tool.', 'instagram_reels', 'tutorial', '1x Reel (30s) highlighting 3 core features.', '200.00', '10.00', '200.00', 'funded', NULL, 'open', '2026-11-08 18:45:52', '2026-11-01 19:45:52'),
+(3, 3, 'Athletic Compression Gym Wear Try-On Haul', 'Fitness influencer needed to showcase workout durability and squat-proof fit.', 'youtube_shorts', 'lifestyle_testimonial', '1x Short with trending audio beat.', '150.00', '10.00', '150.00', 'funded', NULL, 'open', '2026-11-08 18:45:52', '2026-11-01 19:45:52'),
+(5, 3, 'js', 'js', 'tiktok', 'ugc_talking_head', 'jhh', '100.00', '10.00', '100.00', 'funded', NULL, 'open', '2026-11-12 20:52:17', '2026-11-05 21:52:17');
 
 -- -----------------------------------------------------
 -- Table structure for `creator_bounty_submissions`
@@ -882,6 +902,26 @@ CREATE TABLE IF NOT EXISTS `p2p_messages` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_general_ci;
 
 -- -----------------------------------------------------
+-- Table structure for `payment_webhook_events`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `payment_webhook_events` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `gateway` varchar(40) COLLATE utf8mb4_general_ci NOT NULL,
+  `event_type` varchar(80) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `gateway_reference` varchar(190) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `transaction_id` int DEFAULT NULL,
+  `payload` longtext COLLATE utf8mb4_general_ci,
+  `status` varchar(20) COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'received',
+  `message` varchar(500) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `received_at` datetime DEFAULT NULL,
+  `processed_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_webhook_gateway_ref` (`gateway`,`gateway_reference`),
+  KEY `idx_webhook_status` (`status`),
+  KEY `idx_webhook_received` (`received_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_general_ci;
+
+-- -----------------------------------------------------
 -- Table structure for `payout_requests`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `payout_requests` (
@@ -952,12 +992,12 @@ CREATE TABLE IF NOT EXISTS `pricing_plans` (
 
 -- Seed data for `pricing_plans` (INSERT IGNORE — existing rows win)
 INSERT IGNORE INTO `pricing_plans` (`id`, `name`, `description`, `price`, `billing_cycle`, `ad_credits_included`, `ai_credits_included`, `features_json`, `is_featured`, `status`, `created_at`) VALUES
-(1, 'Starter', 'Everything a solo creator needs to publish consistently and run small paid tests.', '9.00', 'monthly', 5, 900, '[\"2 connected social accounts (Meta, Instagram, TikTok, X, LinkedIn, Pinterest, Snapchat)\", \"5 paid campaigns per month across every ad network\", \"Unlimited scheduled organic posts with the content calendar\", \"Image Studio — 180 AI UGC creatives per month (5 AI credits each)\", \"AI script writer — 900 scripts per month (1 AI credit each)\", \"Conversion tracking with the Server Tracking pixel + CAPI bridge\", \"1 team seat · developer API access at 60 requests/minute\"]', 0, 'active', '2026-11-05 15:54:22'),
-(2, 'Growth', 'For growing brands: more networks, A/B testing, audiences and a bigger creative budget.', '24.00', 'monthly', 15, 2400, '[\"5 connected social accounts across every supported network\", \"25 paid campaigns per month — launch, pause and resume from one dashboard\", \"A/B creative testing with up to 4 variants per campaign\", \"Audience Builder — demographic, geo and interest cohorts\", \"Unlimited scheduled posts + content calendar rescheduling\", \"Image Studio — 480 AI UGC creatives per month\", \"AI storyboard video studio and script writer\", \"Server-side conversion tracking with the CAPI bridge\", \"3 team seats · developer API access at 60 requests/minute\", \"Priority email support\"]', 1, 'active', '2026-11-05 15:54:22'),
-(3, 'Pro', 'For agencies and scaling brands running multi-network funnels every single day.', '59.00', 'monthly', 45, 5900, '[\"15 connected social accounts and unlimited ad accounts\", \"Unlimited paid campaigns with the Campaign Doctor recommendations\", \"A/B creative testing, Audience Builder and advanced targeting\", \"Unlimited scheduled posts across every connected profile\", \"Image Studio — 1,180 AI UGC creatives per month\", \"AI storyboard video studio, script writer and batch generation\", \"Server-side conversion tracking with the CAPI bridge\", \"Marketplace & directory listing + creator bounty participation\", \"10 team seats · developer API access at 60 requests/minute\", \"Webhooks for campaign, post and payment events\", \"Priority support with a 24-hour response target\"]', 0, 'active', '2026-11-05 15:54:23'),
-(4, 'Scale', 'The full platform for high-volume teams, agencies and white-label operations.', '149.00', 'monthly', 120, 14900, '[\"Unlimited connected social accounts, ad accounts and team seats\", \"Unlimited paid campaigns with the Campaign Doctor and auto-optimisation\", \"Full A/B testing matrix, Audience Builder and advanced targeting\", \"Unlimited scheduled posts, bulk actions and content calendar\", \"Image Studio — 2,980 AI UGC creatives per month\", \"AI storyboard video studio, script writer and batch generation\", \"Server-side conversion tracking with the CAPI bridge\", \"Priority marketplace & directory listing + creator bounty management\", \"White-label reports and branded client portals\", \"Developer API access with the highest rate limit and webhooks\", \"Dedicated account manager and 4-hour response target\"]', 0, 'active', '2026-11-05 15:54:23'),
-(5, 'Launch Kit', 'A single payment that unlocks the whole platform for 30 days. No card on file, no renewal.', '9.00', 'pay_as_you_go', 5, 900, '[\"30 days of full platform access — every feature unlocked\", \"2 connected social accounts\", \"5 paid campaigns during the window\", \"Unlimited scheduled organic posts\", \"Image Studio — 180 AI UGC creatives\", \"AI script writer — 900 scripts\", \"Server-side conversion tracking + CAPI bridge\", \"Never renews — you are only charged once\"]', 0, 'active', '2026-11-05 15:54:23'),
-(6, 'Power Pack', 'Our most popular one-off pack: everything unlocked for 30 days with a serious creative budget.', '29.00', 'pay_as_you_go', 20, 2900, '[\"30 days of full platform access — every feature unlocked\", \"5 connected social accounts and 25 paid campaigns\", \"A/B creative testing and Audience Builder included\", \"Unlimited scheduled posts + content calendar\", \"Image Studio — 580 AI UGC creatives\", \"AI storyboard video studio and script writer\", \"Server-side conversion tracking + CAPI bridge\", \"Marketplace & directory listing for the full window\", \"Never renews — you are only charged once\"]', 1, 'active', '2026-11-05 15:54:23');
+(1, 'Starter', 'Everything a solo creator needs to publish consistently and run small paid tests.', '9.00', 'monthly', 5, 900, '[\"2 connected social accounts (Meta, Instagram, TikTok, X, LinkedIn, Pinterest, Snapchat)\", \"5 paid campaigns per month across every ad network\", \"Unlimited scheduled organic posts with the content calendar\", \"Image Studio — 180 AI UGC creatives per month (5 AI credits each)\", \"AI script writer — 900 scripts per month (1 AI credit each)\", \"Conversion tracking with the Server Tracking pixel + CAPI bridge\", \"1 team seat · developer API access at 60 requests/minute\"]', 0, 'active', '2026-11-05 19:54:22'),
+(2, 'Growth', 'For growing brands: more networks, A/B testing, audiences and a bigger creative budget.', '24.00', 'monthly', 15, 2400, '[\"5 connected social accounts across every supported network\", \"25 paid campaigns per month — launch, pause and resume from one dashboard\", \"A/B creative testing with up to 4 variants per campaign\", \"Audience Builder — demographic, geo and interest cohorts\", \"Unlimited scheduled posts + content calendar rescheduling\", \"Image Studio — 480 AI UGC creatives per month\", \"AI storyboard video studio and script writer\", \"Server-side conversion tracking with the CAPI bridge\", \"3 team seats · developer API access at 60 requests/minute\", \"Priority email support\"]', 1, 'active', '2026-11-05 19:54:22'),
+(3, 'Pro', 'For agencies and scaling brands running multi-network funnels every single day.', '59.00', 'monthly', 45, 5900, '[\"15 connected social accounts and unlimited ad accounts\", \"Unlimited paid campaigns with the Campaign Doctor recommendations\", \"A/B creative testing, Audience Builder and advanced targeting\", \"Unlimited scheduled posts across every connected profile\", \"Image Studio — 1,180 AI UGC creatives per month\", \"AI storyboard video studio, script writer and batch generation\", \"Server-side conversion tracking with the CAPI bridge\", \"Marketplace & directory listing + creator bounty participation\", \"10 team seats · developer API access at 60 requests/minute\", \"Webhooks for campaign, post and payment events\", \"Priority support with a 24-hour response target\"]', 0, 'active', '2026-11-05 19:54:23'),
+(4, 'Scale', 'The full platform for high-volume teams, agencies and white-label operations.', '149.00', 'monthly', 120, 14900, '[\"Unlimited connected social accounts, ad accounts and team seats\", \"Unlimited paid campaigns with the Campaign Doctor and auto-optimisation\", \"Full A/B testing matrix, Audience Builder and advanced targeting\", \"Unlimited scheduled posts, bulk actions and content calendar\", \"Image Studio — 2,980 AI UGC creatives per month\", \"AI storyboard video studio, script writer and batch generation\", \"Server-side conversion tracking with the CAPI bridge\", \"Priority marketplace & directory listing + creator bounty management\", \"White-label reports and branded client portals\", \"Developer API access with the highest rate limit and webhooks\", \"Dedicated account manager and 4-hour response target\"]', 0, 'active', '2026-11-05 19:54:23'),
+(5, 'Launch Kit', 'A single payment that unlocks the whole platform for 30 days. No card on file, no renewal.', '9.00', 'pay_as_you_go', 5, 900, '[\"30 days of full platform access — every feature unlocked\", \"2 connected social accounts\", \"5 paid campaigns during the window\", \"Unlimited scheduled organic posts\", \"Image Studio — 180 AI UGC creatives\", \"AI script writer — 900 scripts\", \"Server-side conversion tracking + CAPI bridge\", \"Never renews — you are only charged once\"]', 0, 'active', '2026-11-05 19:54:23'),
+(6, 'Power Pack', 'Our most popular one-off pack: everything unlocked for 30 days with a serious creative budget.', '29.00', 'pay_as_you_go', 20, 2900, '[\"30 days of full platform access — every feature unlocked\", \"5 connected social accounts and 25 paid campaigns\", \"A/B creative testing and Audience Builder included\", \"Unlimited scheduled posts + content calendar\", \"Image Studio — 580 AI UGC creatives\", \"AI storyboard video studio and script writer\", \"Server-side conversion tracking + CAPI bridge\", \"Marketplace & directory listing for the full window\", \"Never renews — you are only charged once\"]', 1, 'active', '2026-11-05 19:54:23');
 
 -- -----------------------------------------------------
 -- Table structure for `referral_rewards`
@@ -970,6 +1010,7 @@ CREATE TABLE IF NOT EXISTS `referral_rewards` (
   `referred_reward` decimal(10,2) NOT NULL DEFAULT '0.00',
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_referral_rewards_referred` (`referred_user_id`),
   KEY `idx_referral_rewards_referrer` (`referrer_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_general_ci;
 
@@ -989,9 +1030,11 @@ CREATE TABLE IF NOT EXISTS `referrals` (
   `updated_at` datetime DEFAULT NULL,
   `referrer_reward` decimal(10,2) DEFAULT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_referrals_referred` (`referred_id`),
   KEY `idx_referrals_referrer` (`referrer_id`),
   KEY `idx_referrals_referred` (`referred_id`),
-  KEY `idx_referrals_status` (`status`)
+  KEY `idx_referrals_status` (`status`),
+  KEY `idx_referrals_referred_user` (`referred_user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_general_ci;
 
 -- -----------------------------------------------------
@@ -1011,6 +1054,8 @@ CREATE TABLE IF NOT EXISTS `scheduled_posts` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `publish_error` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `reminder_count` int DEFAULT '3',
+  `reminders_sent` int DEFAULT '0',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_general_ci;
 
@@ -1136,10 +1181,15 @@ CREATE TABLE IF NOT EXISTS `site_settings` (
 
 -- Seed data for `site_settings` (INSERT IGNORE — existing rows win)
 INSERT IGNORE INTO `site_settings` (`id`, `setting_key`, `setting_value`, `created_at`, `setting_group`) VALUES
-(1, 'bundle_social_api_key', 'YOUR_BUNDLE_SOCIAL_API_KEY', '2026-10-31 03:36:48', 'general'),
-(2, 'bundle_social_base_url', 'https://api.bundle.social/v1', '2026-10-31 03:36:48', 'general'),
-(3, 'zernio_api_key', 'YOUR_ZERNIO_API_KEY', '2026-10-31 03:36:48', 'general'),
-(4, 'zernio_base_url', 'https://api.zernio.com/v1', '2026-10-31 03:36:48', 'general');
+(1, 'bundle_social_api_key', 'YOUR_BUNDLE_SOCIAL_API_KEY', '2026-10-31 07:36:48', 'general'),
+(2, 'bundle_social_base_url', 'https://api.bundle.social/v1', '2026-10-31 07:36:48', 'general'),
+(3, 'zernio_api_key', 'YOUR_ZERNIO_API_KEY', '2026-10-31 07:36:48', 'general'),
+(4, 'zernio_base_url', 'https://api.zernio.com/v1', '2026-10-31 07:36:48', 'general'),
+(5, 'referral_reward_credits', '10.00', '2026-11-12 12:52:46', 'referrals'),
+(6, 'referral_referred_bonus', '5.00', '2026-11-12 12:52:47', 'referrals'),
+(7, 'referral_auto_reward', '1', '2026-11-12 12:52:47', 'referrals'),
+(8, 'phone', '+17853679518', '2026-11-12 20:46:31', 'general'),
+(9, 'site_phone', '+1 785-367-9518', '2026-11-12 20:46:31', 'general');
 
 -- -----------------------------------------------------
 -- Table structure for `social_inbox_messages`
@@ -1292,7 +1342,8 @@ CREATE TABLE IF NOT EXISTS `transactions` (
   `invoice_path` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_tx_user` (`user_id`),
-  KEY `idx_tx_gateway_reference` (`gateway_reference`)
+  KEY `idx_tx_gateway_reference` (`gateway_reference`),
+  KEY `idx_tx_gateway_ref_pair` (`gateway`,`gateway_reference`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_general_ci;
 
 -- -----------------------------------------------------
@@ -1415,17 +1466,21 @@ CREATE TABLE IF NOT EXISTS `users` (
   `email_2fa_code` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `email_2fa_expires_at` datetime DEFAULT NULL,
   `2fa_attempts` tinyint unsigned NOT NULL DEFAULT '0',
+  `onboarding_popup_dismissed` tinyint unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `email` (`email`)
+  UNIQUE KEY `email` (`email`),
+  UNIQUE KEY `uq_users_referral_code` (`referral_code`),
+  KEY `idx_users_referred_by` (`referred_by`),
+  KEY `idx_users_referral_code` (`referral_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_general_ci;
 
 -- Seed data for `users` (INSERT IGNORE — existing rows win)
-INSERT IGNORE INTO `users` (`id`, `full_name`, `email`, `ad_credits`, `ai_credits`, `ai_preferred_provider`, `avatar`, `company`, `user_role`, `plan_id`, `status`, `is_admin`, `password`, `role`, `phone`, `facebook`, `twitter`, `linkedin`, `account_type`, `google_id`, `referral_code`, `referred_by`, `onboarding_completed`, `two_factor_secret`, `two_factor_enabled`, `totp_enabled`, `created_at`, `achievement_points`, `billing_cycle`, `plan_expiry`, `auto_refill_enabled`, `auto_refill_threshold`, `auto_refill_amount`, `auto_refill_gateway`, `parent_user_id`, `username`, `headline`, `bio`, `two_factor_backup`, `fa_attempts`, `is_verified_seller`, `totp_secret`, `two_factor_type`, `two_factor_setup_at`, `remember_token`, `remember_token_expires_at`, `email_2fa_code`, `email_2fa_expires_at`, `2fa_attempts`) VALUES
-(1, 'Smoke Tester', 'smoke@adsbooster.net', '500.00', 500, 'nvidia', NULL, NULL, 'user', NULL, 'active', 0, '$2y$10$S4.kmWp6AnyMgi6d.unA4ewBqlNvVXAKPvM01Jx7/H92YYc1XWSke', 'user', NULL, NULL, NULL, NULL, 'individual', NULL, NULL, NULL, 0, NULL, 0, 0, '2020-06-23 00:00:00', 0, 'monthly', NULL, 0, '10.00', '50.00', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0),
-(2, 'Adsbooster Administrator', 'admin@adsbooster.net', '101000000.00', 10000100, NULL, NULL, NULL, 'admin', NULL, 'active', 1, '$2y$10$13/LrXmsiXa38XcsEluRHONZ1oiPWms/Cqmy.9Y622gZSqt/Mbisy', 'admin', NULL, NULL, NULL, NULL, 'individual', NULL, NULL, NULL, 0, NULL, 0, 0, '2019-11-29 00:00:00', 0, 'monthly', NULL, 0, '10.00', '50.00', NULL, NULL, NULL, NULL, NULL, NULL, 0, 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0),
-(3, 'Jamachi Maurice Mauricennadi', 'jotahecomng@gmail.com', '109999989.00', 1111911206, 'nvidia', NULL, 'MOREX WEB ENT.', 'user', NULL, 'active', 0, '$2y$10$1OGZYLBBprChu8fF2CONle1ZMgi77x5c6FLC1DfumCdE7eA7pQBNG', 'user', '', NULL, NULL, NULL, 'individual', NULL, '488651a1e3b454ea', NULL, 1, NULL, 0, 0, '2019-02-10 00:00:00', 0, 'monthly', NULL, 0, '10.00', '50.00', NULL, NULL, NULL, NULL, NULL, NULL, 0, 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0),
-(4, 'E2E Check', 'e2e-check@adsbooster.net', '100.00', 100, NULL, NULL, NULL, 'user', NULL, 'active', 0, '$2y$10$L88/48fz57ARb.cgoMilz..ppvrPk9c8mZrMzof1WaOQ.S9G52SPK', 'user', NULL, NULL, NULL, NULL, 'individual', NULL, 'B8B3A514', NULL, 0, NULL, 0, 0, '2023-09-02 00:00:00', 0, 'monthly', NULL, 0, '10.00', '50.00', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0),
-(99999, 'Adsbooster AI Consultant', 'ai@adsbooster.net', '0.00', 0, NULL, NULL, NULL, 'user', NULL, 'active', 0, 'ai_bot_protected', 'admin', NULL, NULL, NULL, NULL, 'individual', NULL, NULL, NULL, 0, NULL, 0, 0, '2026-11-01 21:47:10', 0, 'monthly', NULL, 0, '10.00', '50.00', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0);
+INSERT IGNORE INTO `users` (`id`, `full_name`, `email`, `ad_credits`, `ai_credits`, `ai_preferred_provider`, `avatar`, `company`, `user_role`, `plan_id`, `status`, `is_admin`, `password`, `role`, `phone`, `facebook`, `twitter`, `linkedin`, `account_type`, `google_id`, `referral_code`, `referred_by`, `onboarding_completed`, `two_factor_secret`, `two_factor_enabled`, `totp_enabled`, `created_at`, `achievement_points`, `billing_cycle`, `plan_expiry`, `auto_refill_enabled`, `auto_refill_threshold`, `auto_refill_amount`, `auto_refill_gateway`, `parent_user_id`, `username`, `headline`, `bio`, `two_factor_backup`, `fa_attempts`, `is_verified_seller`, `totp_secret`, `two_factor_type`, `two_factor_setup_at`, `remember_token`, `remember_token_expires_at`, `email_2fa_code`, `email_2fa_expires_at`, `2fa_attempts`, `onboarding_popup_dismissed`) VALUES
+(1, 'Smoke Tester', 'smoke@adsbooster.net', '510.00', 500, 'nvidia', NULL, NULL, 'user', NULL, 'active', 0, '$2y$10$S4.kmWp6AnyMgi6d.unA4ewBqlNvVXAKPvM01Jx7/H92YYc1XWSke', 'user', NULL, NULL, NULL, NULL, 'individual', NULL, 'SMOKE2026', NULL, 0, NULL, 0, 0, '2020-06-23 00:00:00', 0, 'monthly', NULL, 0, '10.00', '50.00', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0),
+(2, 'Adsbooster Administrator', 'admin@adsbooster.net', '101000000.00', 10000083, 'nvidia', NULL, NULL, 'admin', NULL, 'active', 1, '$2y$10$rmRYB295/JJfv.Jp5APktu7sqyqvtVWedHR7gnBeUOEA9M6iaDeMe', 'admin', NULL, NULL, NULL, NULL, 'individual', NULL, 'A1A04CDD', NULL, 0, NULL, 0, 0, '2019-11-29 00:00:00', 0, 'monthly', NULL, 0, '10.00', '50.00', NULL, NULL, NULL, NULL, NULL, NULL, 0, 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0),
+(3, 'Jamachi Maurice Mauricennadi', 'jotahecomng@gmail.com', '109999989.00', 1111911206, 'nvidia', NULL, 'MOREX WEB ENT.', 'user', NULL, 'active', 0, '$2y$10$rmRYB295/JJfv.Jp5APktu7sqyqvtVWedHR7gnBeUOEA9M6iaDeMe', 'user', '+2348127560227', NULL, NULL, NULL, 'individual', NULL, 'JOTA2026', 1, 1, NULL, 0, 0, '2019-02-10 00:00:00', 0, 'monthly', NULL, 0, '10.00', '50.00', NULL, NULL, NULL, NULL, NULL, NULL, 0, 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0),
+(4, 'E2E Check', 'e2e-check@adsbooster.net', '100.00', 100, NULL, NULL, NULL, 'user', NULL, 'active', 0, '$2y$10$L88/48fz57ARb.cgoMilz..ppvrPk9c8mZrMzof1WaOQ.S9G52SPK', 'user', NULL, NULL, NULL, NULL, 'individual', NULL, 'E2ECHECK26', NULL, 0, NULL, 0, 0, '2023-09-02 00:00:00', 0, 'monthly', NULL, 0, '10.00', '50.00', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0),
+(99999, 'Adsbooster AI Consultant', 'ai@adsbooster.net', '0.00', 0, NULL, NULL, NULL, 'user', NULL, 'active', 0, 'ai_bot_protected', 'admin', NULL, NULL, NULL, NULL, 'individual', NULL, 'D0F34452', NULL, 0, NULL, 0, 0, '2026-11-01 21:47:10', 0, 'monthly', NULL, 0, '10.00', '50.00', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0);
 
 -- -----------------------------------------------------
 -- Table structure for `visitor_logs`

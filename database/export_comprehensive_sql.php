@@ -46,13 +46,18 @@ $seedTables = [
 $sqlHeader = <<<SQL
 -- =====================================================================
 -- ADSBOOSTER.NET — COMPREHENSIVE MASTER DATABASE SCHEMA & INITIAL DATA
--- Version: 6.0 (Asynchronous Dual Third-Party Gateway Edition)
+-- Version: 6.1 (Asynchronous Dual Third-Party Gateway Edition)
 --          Bundle.social (organic engine) + Zernio (ads engine)
 --          + the high-throughput `async_job_queue` processed by
 --          `cron/queue_worker.php`. 100% of external platform traffic
 --          routes through the two gateways; no direct platform tokens.
 -- Engine: InnoDB | Charset: utf8mb4 / utf8mb4_general_ci
 -- Compatible with: MySQL 8.0+, MySQL 5.7+, MariaDB 10.3+
+-- Regenerated: 2026-11-13 with corrected reference data:
+--   * site_settings: phone = +17853679518, site_phone = +1 785-367-9518
+--   * pricing_plans: current NGN-converted plans (Starter/Growth/Pro/Scale
+--     monthly + Launch Kit/Power Pack pay-as-you-go)
+--   * referral settings: auto_reward on, referred_bonus 5.00, reward 10.00
 --
 -- IDEMPOTENT / UPGRADE-SAFE:
 --   * `CREATE TABLE IF NOT EXISTS`  → existing tables are NEVER touched
