@@ -1063,19 +1063,27 @@ media_type=image
                 <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
                     <span class="badge bg-accent bg-opacity-25 text-accent font-size-10 fw-bold">OFFICIAL SDK</span>
                     <code class="text-white fw-bold font-size-15">adsbooster-js-sdk</code>
+                    <a href="https://www.npmjs.com/package/adsbooster-js-sdk" target="_blank" class="badge bg-danger bg-opacity-25 text-white font-size-10 fw-bold text-decoration-none">
+                        <i class="ph ph-package me-1"></i> ON NPM
+                    </a>
                     <a href="<?= BASE_URL ?>/api/v1/sdk/adsbooster.js" download class="btn btn-outline-light btn-sm rounded-pill px-3 font-size-11 ms-auto">
                         <i class="ph ph-download-simple me-1"></i> Download (self-hosted)
                     </a>
                 </div>
                 <p class="text-white-50 font-size-13 mb-3">
-                    Zero-dependency JavaScript / TypeScript client for the full REST API — AI UGC creatives, campaigns, multi-network publishing, server-side CAPI tracking, credits and signed webhooks. Works in Node ≥18 and modern browsers, with automatic retries on rate limits and full typings.
-                    <a href="https://github.com/FushionHub/adsbooster-js-sdk" target="_blank" class="text-accent">SDK repository (github.com/FushionHub/adsbooster-js-sdk) <i class="ph ph-arrow-square-out"></i></a>
+                    Zero-dependency JavaScript / TypeScript client for the full REST API — AI UGC creatives, campaigns, multi-network publishing, server-side CAPI tracking, credits and signed webhooks. Works in Node ≥18 and modern browsers, with automatic retries on rate limits and full typings. Ships optional Flutterwave / Gemini / Groq integrations that load lazily (see below).
+                    <a href="https://www.npmjs.com/package/adsbooster-js-sdk" target="_blank" class="text-accent">npmjs.com/package/adsbooster-js-sdk <i class="ph ph-arrow-square-out"></i></a> ·
+                    <a href="https://github.com/FushionHub/adsbooster-js-sdk" target="_blank" class="text-accent">SDK repository <i class="ph ph-arrow-square-out"></i></a>
                 </p>
 
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
-                        <div class="text-white-50 font-size-11 fw-bold text-uppercase mb-1">Install (npm · ESM · UMD · typings included)</div>
-                        <div class="code-block">npm install adsbooster-js-sdk
+                        <div class="text-white-50 font-size-11 fw-bold text-uppercase mb-1">Install from npm (package manager · ESM · UMD · typings included)</div>
+                        <div class="code-block"># npm — installs the SDK + optional Flutterwave/Gemini/Groq packages
+npm install adsbooster-js-sdk
+
+# core client only (skip the optional integration packages)
+npm install adsbooster-js-sdk --omit=optional
 
 # or self-hosted, straight from this deployment:
 # <script src="<?= BASE_URL ?>/api/v1/sdk/adsbooster.js"></script></div>
@@ -1106,6 +1114,7 @@ await client.posts.create({ platform: 'tiktok', caption: 'New drop 🚀 #ad', me
                             <tr><td><code>client.capi</code></td><td><code>scriptUrl()</code> · <code>track({pixel_token,event_name,custom_data})</code></td></tr>
                             <tr><td><code>client.webhooks</code></td><td><code>list()</code> · <code>test(url)</code> — signed ping to YOUR registered https:// endpoint · <code>Adsbooster.webhooks.verify(rawBody, signature, secret)</code> (Node)</td></tr>
                             <tr><td><code>client.publicAnalytics</code></td><td><code>feed(view?)</code> · <code>totals()</code> — public aggregate analytics, no auth</td></tr>
+                            <tr><td><code>client.integrations</code></td><td><code>detect()</code> · <code>geminiGenerateText({prompt,apiKey,model?})</code> · <code>groqChat({messages,apiKey,model?})</code> · <code>flutterwaveClient({publicKey?,secretKey})</code> — optional Node.js helpers for the Flutterwave / Gemini / Groq packages installed with the SDK</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1113,6 +1122,17 @@ await client.posts.create({ platform: 'tiktok', caption: 'New drop 🚀 #ad', me
                 <p class="text-white-50 font-size-12 mb-0">
                     <i class="ph ph-shield-check text-success me-1"></i>
                     The SDK auto-retries <code>429</code>/<code>5xx</code>, honors <code>Retry-After</code>, exposes the live quota on <code>client.lastRateLimit</code>, and throws typed <code>AdsboosterError</code> objects (<code>err.status</code>, <code>err.code</code>). Verify inbound webhooks with <code>Adsbooster.webhooks.verify()</code> using the RAW request body.
+                </p>
+                <p class="text-white-50 font-size-12 mt-2 mb-0">
+                    <i class="ph ph-plugs-connected text-accent me-1"></i>
+                    <strong>Optional integrations (Node.js):</strong> <code>flutterwave</code>, <code>@google/genai</code> and <code>groq-sdk</code> install with the package but are never imported by the core client — the browser build stays dependency-free and nothing loads until you call it:
+                    <span class="code-block d-block mt-1">const { text } = await client.integrations.geminiGenerateText({
+  prompt: 'Write 3 ad headlines for running shoes',
+  apiKey: process.env.GEMINI_API_KEY,
+});
+
+client.integrations.detect(); // { gemini: true, flutterwave: true, groq: true }</span>
+                    Checkout payments are still verified <strong>on the platform</strong> — <code>flutterwaveClient()</code> is for building your own Flutterwave tooling next to the SDK.
                 </p>
             </div>
 
