@@ -132,7 +132,7 @@ curl -s "https://adsbooster.net/api/v1/campaigns.php?limit=5" \
 - Repository: <https://github.com/FushionHub/adsbooster-js-sdk>
 - Platform build (always latest): <https://adsbooster.net/api/v1/sdk/adsbooster.js>
 
-Current version: **1.1.0** (npm) — the repository tracks **1.2.0**, which adds the optional Flutterwave / Gemini / Groq integrations.
+Current version: **1.2.0** (npm) — adds the optional Flutterwave / Gemini / Groq integrations and a `.mjs` ESM entry.
 
 ### Install
 
@@ -180,7 +180,7 @@ const balance = await client.credits.balance();
 | `baseUrl` | `https://adsbooster.net/api/v1` | API root. Override for testing. |
 | `timeout` | `30000` | Request timeout in milliseconds. |
 | `maxRetries` | `2` | Retries on `429` and `5xx` (the initial attempt is not counted). |
-| `userAgent` | `adsbooster-js-sdk/1.1.0` | User-Agent header. |
+| `userAgent` | `adsbooster-js-sdk/1.2.0` | User-Agent header. |
 
 ### SDK surface
 
