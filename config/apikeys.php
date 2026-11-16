@@ -84,18 +84,14 @@ defined('FIRECRAWL_API_KEY') or define('FIRECRAWL_API_KEY', 'fc-13aec1b670b34fc3
 // and it activates automatically.
 defined('PAYSTACK_PUBLIC_KEY') or define('PAYSTACK_PUBLIC_KEY', '');
 defined('PAYSTACK_SECRET_KEY') or define('PAYSTACK_SECRET_KEY', '');
-defined('PAYSTACK_TEST_KEY')   or define('PAYSTACK_TEST_KEY', '');
-defined('PAYSTACK_LIVE_KEY')   or define('PAYSTACK_LIVE_KEY', '');
 // Optional dedicated webhook signing secret. When empty the API secret
 // key is used to verify the `x-paystack-signature` HMAC-SHA512 header.
 defined('PAYSTACK_WEBHOOK_SECRET') or define('PAYSTACK_WEBHOOK_SECRET', '');
 
-// ── Payments: Flutterwave ──
-defined('FLUTTERWAVE_PUBLIC_KEY') or define('FLUTTERWAVE_PUBLIC_KEY', 'FLWPUBK-ddc6f50bb7c5587ffe46326dc4299484-X');
-defined('FLUTTERWAVE_SECRET_KEY') or define('FLUTTERWAVE_SECRET_KEY', 'FLWSECK-becf82df5cc2313d31fb26fc3ec0b9db-1a1a5ef151bvt-X');
-defined('FLUTTERWAVE_ENCRYPTION_KEY') or define('FLUTTERWAVE_ENCRYPTION_KEY', 'becf82df5cc253e3a267fb3e');
-defined('FLUTTERWAVE_TEST_KEY')   or define('FLUTTERWAVE_TEST_KEY', '');
-defined('FLUTTERWAVE_LIVE_KEY')   or define('FLUTTERWAVE_LIVE_KEY', '');
+// ── Payments: Flutterwave (v3 API — api.flutterwave.com/v3) ──
+defined('FLUTTERWAVE_PUBLIC_KEY') or define('FLUTTERWAVE_PUBLIC_KEY', 'FLWPUBK-64cb1f176756ebd919d0d43a64d59aa9-X');
+defined('FLUTTERWAVE_SECRET_KEY') or define('FLUTTERWAVE_SECRET_KEY', 'FLWSECK-029a8bda0905623839fc7e8565633085-1a1e4cbbba9vt-X');
+defined('FLUTTERWAVE_ENCRYPTION_KEY') or define('FLUTTERWAVE_ENCRYPTION_KEY', '029a8bda09054ec2a6095577');
 // Optional dedicated webhook signing secret. When empty the API secret
 // key is used to verify the `verif-hash` / `x-flw-signature` headers.
 defined('FLUTTERWAVE_WEBHOOK_SECRET') or define('FLUTTERWAVE_WEBHOOK_SECRET', '');
@@ -166,8 +162,8 @@ if (!function_exists('integration_status')) {
             'groq'            => ['configured' => $live('GROQ_API_KEY', 'groq_api_key'),          'label' => 'Groq (AI text)'],
             'gemini'          => ['configured' => $live('GEMINI_API_KEY', 'gemini_api_key'),      'label' => 'Gemini (AI image)'],
             'nvidia'          => ['configured' => $live('NVIDIA_API_KEY', 'nvidia_api_key'),      'label' => 'NVIDIA NIM (AI fallback)'],
-            'paystack'        => ['configured' => $live('PAYSTACK_SECRET_KEY', 'paystack_secret_key') || $live('PAYSTACK_LIVE_KEY', 'paystack_live_key'), 'label' => 'Paystack'],
-            'flutterwave'     => ['configured' => $live('FLUTTERWAVE_SECRET_KEY', 'flutterwave_secret_key') || $live('FLUTTERWAVE_LIVE_KEY', 'flutterwave_live_key'), 'label' => 'Flutterwave'],
+            'paystack'        => ['configured' => $live('PAYSTACK_SECRET_KEY', 'paystack_secret_key'), 'label' => 'Paystack'],
+            'flutterwave'     => ['configured' => $live('FLUTTERWAVE_SECRET_KEY', 'flutterwave_secret_key'), 'label' => 'Flutterwave'],
         ];
     }
 }

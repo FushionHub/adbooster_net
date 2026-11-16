@@ -13,6 +13,14 @@ $currency  = currency_current();
 $cycle     = ($_GET['cycle'] ?? 'monthly') === 'yearly' ? 'yearly' : 'monthly';
 $gateway   = '';
 
+// Gateways that are fully configured on this deployment. Resolved once
+// here so BOTH the GET render (gateway picker) and the POST handler
+// (validation) see the same list — previously the GET path never had
+// this variable, so the checkout always claimed no payment method was
+// available.
+$enabledGateways = PaymentGateways::enabled();
+$defaultGateway  = PaymentGateways::defaultGateway();
+
 // The transaction a failed verification was working on (set by
 // payment-verify.php so the admin can see exactly which order broke).
 $txnId   = (int)($_GET['txn'] ?? 0);
@@ -109,8 +117,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $gateway = strtolower(trim((string)($_POST['gateway'] ?? '')));
-        $enabledGateways = PaymentGateways::enabled();
-        $defaultGateway  = PaymentGateways::defaultGateway();
         if ($gateway === '' && $defaultGateway !== null) {
             $gateway = $defaultGateway;
         }
@@ -225,12 +231,12 @@ require_once __DIR__ . '/includes/app_header.php';
                         <?php endif; ?>
                     </div>
                     <div class="text-end">
-                        <span class="text-main-600 fw-bold h4 mb-0"><?= e(price_fmt($displayCharge)) ?></span>
+                        <span class="text-main-600 fw-bold h4 mb-0"><?= e(txn_money($displayCharge, $currency)) ?></span>
                     </div>
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
                     <span class="text-white fw-semibold">Total</span>
-                    <span class="text-main-600 fw-bold h4 mb-0"><?= e(price_fmt($displayCharge)) ?></span>
+                    <span class="text-main-600 fw-bold h4 mb-0"><?= e(txn_money($displayCharge, $currency)) ?></span>
                 </div>
             </div>
 
@@ -278,7 +284,7 @@ require_once __DIR__ . '/includes/app_header.php';
                     <span class="button__flair"></span>
                     <span class="button__label">
                         <i class="ph-bold ph-lock me-1"></i>
-                        Pay <?= e(price_fmt($displayCharge)) ?>
+                        Pay <?= e(txn_money($displayCharge, $currency)) ?>
                     </span>
                 </button>
 

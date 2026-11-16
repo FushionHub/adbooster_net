@@ -77,9 +77,7 @@ class PaymentGateways
             case 'paystack':
                 return match ($slot) {
                     'public' => api_key('PAYSTACK_PUBLIC_KEY', 'paystack_public_key', ''),
-                    'secret' => (string)(api_key('PAYSTACK_SECRET_KEY', 'paystack_secret_key', '')
-                        ?: api_key('PAYSTACK_LIVE_KEY', 'paystack_live_key', '')),
-                    'test'   => api_key('PAYSTACK_TEST_KEY', 'paystack_test_key', ''),
+                    'secret' => api_key('PAYSTACK_SECRET_KEY', 'paystack_secret_key', ''),
                     'webhook' => (string)(api_key('PAYSTACK_WEBHOOK_SECRET', 'paystack_webhook_secret', '')
                         ?: api_key('PAYSTACK_SECRET_KEY', 'paystack_secret_key', '')),
                     default  => '',
@@ -87,10 +85,8 @@ class PaymentGateways
             case 'flutterwave':
                 return match ($slot) {
                     'public'     => api_key('FLUTTERWAVE_PUBLIC_KEY', 'flutterwave_public_key', ''),
-                    'secret'     => (string)(api_key('FLUTTERWAVE_SECRET_KEY', 'flutterwave_secret_key', '')
-                        ?: api_key('FLUTTERWAVE_LIVE_KEY', 'flutterwave_live_key', '')),
+                    'secret'     => api_key('FLUTTERWAVE_SECRET_KEY', 'flutterwave_secret_key', ''),
                     'encryption' => api_key('FLUTTERWAVE_ENCRYPTION_KEY', 'flutterwave_encryption_key', ''),
-                    'test'       => api_key('FLUTTERWAVE_TEST_KEY', 'flutterwave_test_key', ''),
                     'webhook'    => (string)(api_key('FLUTTERWAVE_WEBHOOK_SECRET', 'flutterwave_webhook_secret', '')
                         ?: api_key('FLUTTERWAVE_SECRET_KEY', 'flutterwave_secret_key', '')),
                     default      => '',

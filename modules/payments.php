@@ -323,12 +323,44 @@ class PaymentProcessor
             return $result;
         }
 
+        $triedIdentifier = $gatewayId !== '' ? $gatewayId : $reference;
         if ($gateway === 'paystack') {
-            $verified = self::verifyPaystack($gatewayId !== '' ? $gatewayId : $reference);
+            $verified = self::verifyPaystack($triedIdentifier);
         } elseif ($gateway === 'flutterwave') {
-            $verified = self::verifyFlutterwave($gatewayId !== '' ? $gatewayId : $reference);
+            $verified = self::verifyFlutterwave($triedIdentifier);
         } else {
-            $verified = self::verifyGenericGateway($gateway, $gatewayId !== '' ? $gatewayId : $reference);
+            $verified = self::verifyGenericGateway($gateway, $triedIdentifier);
+        }
+
+        // Retry with the identifiers the LOCAL transaction actually stored.
+        //
+        // The identifier that reached us (an admin paste, a gateway flw_ref,
+        // a partial callback param) is not always the tx_ref the checkout
+        // created. When the gateway answers "not found" — and a local row
+        // exists — try the row's own reference/gateway_reference before
+        // declaring the payment failed. This costs one extra API call only
+        // in the already-failing case and never overrides a real verdict.
+        if (!$verified['success'] && $transaction !== null) {
+            $alternatives = array_values(array_unique(array_filter([
+                (string)($transaction['reference'] ?? ''),
+                (string)($transaction['gateway_reference'] ?? ''),
+            ])));
+            foreach ($alternatives as $alt) {
+                if ($alt === '' || $alt === $triedIdentifier) {
+                    continue;
+                }
+                if ($gateway === 'paystack') {
+                    $verified = self::verifyPaystack($alt);
+                } elseif ($gateway === 'flutterwave') {
+                    $verified = self::verifyFlutterwave($alt);
+                } else {
+                    $verified = self::verifyGenericGateway($gateway, $alt);
+                }
+                $triedIdentifier = $alt;
+                if ($verified['success']) {
+                    break;
+                }
+            }
         }
 
         $result['data']      = $verified['data'];
@@ -877,10 +909,20 @@ class PaymentProcessor
     /**
      * Get the application base URL.
      *
+     * Prefers the app-wide BASE_URL constant (derived from the incoming
+     * request: scheme, host AND any subdirectory, e.g.
+     * http://localhost/seopp or https://adsbooster.net). Falling back to a
+     * bare scheme+host would drop the subdirectory and break the gateway
+     * callback URL on subdirectory installs.
+     *
      * @return string
      */
     private static function getAppUrl(): string
     {
+        if (defined('BASE_URL') && is_string(BASE_URL) && trim(BASE_URL) !== '') {
+            return rtrim(BASE_URL, '/');
+        }
+
         $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
         $host = $_SERVER['HTTP_HOST'] ?? 'adsbooster.net';
         return $scheme . '://' . $host;
