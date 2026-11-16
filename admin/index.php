@@ -101,11 +101,16 @@ if (!empty($monthlyRevenue)) {
     }
 }
 $chartMax = 0.0;
-foreach ($revenueChart as $r) {
-    $chartMax = max($chartMax, $r['value']);
+$chartPeakIndex = -1;
+foreach ($revenueChart as $i => $r) {
+    if ($r['value'] > $chartMax) {
+        $chartMax = $r['value'];
+        $chartPeakIndex = $i;
+    }
 }
 if ($chartMax <= 0) {
     $chartMax = 1.0;
+    $chartPeakIndex = -1;
 }
 
 $recentActivity = db()->fetchAll(
@@ -119,103 +124,59 @@ $recentActivity = db()->fetchAll(
 require_once __DIR__ . '/sidebar.php';
 ?>
 
-<!-- ── KPI tiles ──────────────────────────────────────────────────────── -->
-<div class="row g-3 mb-3">
-    <div class="col-xl-3 col-md-6">
-        <div class="admin-stat">
-            <div class="card-icon green"><i class="ph-bold ph-users-three"></i></div>
-            <div class="stat-meta">
-                <div class="stat-label">Total Users</div>
-                <div class="stat-value"><?= number_format($totalUsers) ?></div>
-                <div class="stat-delta <?= $userTrend['class'] ?>">
-                    <i class="ph-bold ph-trend-<?= $userTrend['class'] === 'down' ? 'down' : 'up' ?>"></i>
-                    <?= htmlspecialchars($userTrend['text']) ?>
-                </div>
-            </div>
+<!-- ── headline ticker: one strip, hairline-divided cells ─────────────── -->
+<section class="kpi-band" aria-label="Headline metrics">
+    <div class="kpi-cell">
+        <div class="kpi-label">Total users</div>
+        <div class="kpi-value"><?= number_format($totalUsers) ?></div>
+        <div class="kpi-delta <?= $userTrend['class'] ?>">
+            <i class="ph-bold ph-trend-<?= $userTrend['class'] === 'down' ? 'down' : 'up' ?>"></i>
+            <?= htmlspecialchars($userTrend['text']) ?>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6">
-        <div class="admin-stat">
-            <div class="card-icon blue"><i class="ph-bold ph-megaphone"></i></div>
-            <div class="stat-meta">
-                <div class="stat-label">Campaigns</div>
-                <div class="stat-value"><?= number_format($totalCampaigns) ?></div>
-                <div class="stat-delta <?= $campTrend['class'] ?>">
-                    <i class="ph-bold ph-trend-<?= $campTrend['class'] === 'down' ? 'down' : 'up' ?>"></i>
-                    <?= htmlspecialchars($campTrend['text']) ?>
-                </div>
-            </div>
+    <div class="kpi-cell">
+        <div class="kpi-label">Campaigns</div>
+        <div class="kpi-value"><?= number_format($totalCampaigns) ?></div>
+        <div class="kpi-delta <?= $campTrend['class'] ?>">
+            <i class="ph-bold ph-trend-<?= $campTrend['class'] === 'down' ? 'down' : 'up' ?>"></i>
+            <?= htmlspecialchars($campTrend['text']) ?>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6">
-        <div class="admin-stat">
-            <div class="card-icon yellow"><i class="ph-bold ph-currency-dollar"></i></div>
-            <div class="stat-meta">
-                <div class="stat-label">Revenue</div>
-                <div class="stat-value"><?= price_fmt((float)$totalRevenue) ?></div>
-                <div class="stat-delta flat">
-                    <?= number_format($activeCampaigns) ?> active campaign<?= $activeCampaigns === 1 ? '' : 's' ?>
-                </div>
-            </div>
+    <div class="kpi-cell">
+        <div class="kpi-label">Revenue</div>
+        <div class="kpi-value money"><?= price_fmt((float)$totalRevenue) ?></div>
+        <div class="kpi-delta flat">
+            <?= number_format($activeCampaigns) ?> active campaign<?= $activeCampaigns === 1 ? '' : 's' ?>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6">
-        <div class="admin-stat">
-            <div class="card-icon purple"><i class="ph-bold ph-lifebuoy"></i></div>
-            <div class="stat-meta">
-                <div class="stat-label">Open Tickets</div>
-                <div class="stat-value"><?= number_format($openTickets) ?></div>
-                <div class="stat-delta flat">
-                    <?= number_format($pendingTx) ?> pending transaction<?= $pendingTx === 1 ? '' : 's' ?>
-                </div>
-            </div>
+    <div class="kpi-cell">
+        <div class="kpi-label">Open tickets</div>
+        <div class="kpi-value"><?= number_format($openTickets) ?></div>
+        <div class="kpi-delta flat">
+            <?= number_format($pendingTx) ?> pending transaction<?= $pendingTx === 1 ? '' : 's' ?>
         </div>
     </div>
-</div>
-
-<!-- ── secondary tiles ────────────────────────────────────────────────── -->
-<div class="row g-3 mb-3">
-    <div class="col-xl-3 col-md-6">
-        <a href="<?= BASE_URL ?>/admin/fraud-watch" class="admin-stat card-hover" style="text-decoration:none;">
-            <div class="card-icon red"><i class="ph-bold ph-shield-warning"></i></div>
-            <div class="stat-meta">
-                <div class="stat-label">Flagged (Fraud)</div>
-                <div class="stat-value"><?= number_format($totalFlagged) ?></div>
-                <div class="stat-delta flat">Needs review</div>
-            </div>
-        </a>
-    </div>
-    <div class="col-xl-3 col-md-6">
-        <a href="<?= BASE_URL ?>/admin/users" class="admin-stat card-hover" style="text-decoration:none;">
-            <div class="card-icon cyan"><i class="ph-bold ph-user-plus"></i></div>
-            <div class="stat-meta">
-                <div class="stat-label">New Users Today</div>
-                <div class="stat-value"><?= number_format($newUsersToday) ?></div>
-                <div class="stat-delta flat"><?= number_format($users30) ?> in the last 30 days</div>
-            </div>
-        </a>
-    </div>
-    <div class="col-xl-3 col-md-6">
-        <a href="<?= BASE_URL ?>/admin/listings" class="admin-stat card-hover" style="text-decoration:none;">
-            <div class="card-icon green"><i class="ph-bold ph-storefront"></i></div>
-            <div class="stat-meta">
-                <div class="stat-label">Active Listings</div>
-                <div class="stat-value"><?= number_format($activeListings) ?></div>
-                <div class="stat-delta flat">Marketplace & directory</div>
-            </div>
-        </a>
-    </div>
-    <div class="col-xl-3 col-md-6">
-        <a href="<?= BASE_URL ?>/admin/jobs" class="admin-stat card-hover" style="text-decoration:none;">
-            <div class="card-icon blue"><i class="ph-bold ph-briefcase"></i></div>
-            <div class="stat-meta">
-                <div class="stat-label">Open Jobs</div>
-                <div class="stat-value"><?= number_format($openJobs) ?></div>
-                <div class="stat-delta flat">Listed on the careers board</div>
-            </div>
-        </a>
-    </div>
-</div>
+    <a href="<?= BASE_URL ?>/admin/fraud-watch" class="kpi-cell">
+        <div class="kpi-label">Flagged (fraud)</div>
+        <div class="kpi-value <?= $totalFlagged > 0 ? 'alert' : '' ?>"><?= number_format($totalFlagged) ?></div>
+        <div class="kpi-delta flat">Needs review</div>
+    </a>
+    <a href="<?= BASE_URL ?>/admin/users" class="kpi-cell">
+        <div class="kpi-label">New users today</div>
+        <div class="kpi-value"><?= number_format($newUsersToday) ?></div>
+        <div class="kpi-delta flat"><?= number_format($users30) ?> in the last 30 days</div>
+    </a>
+    <a href="<?= BASE_URL ?>/admin/listings" class="kpi-cell">
+        <div class="kpi-label">Active listings</div>
+        <div class="kpi-value"><?= number_format($activeListings) ?></div>
+        <div class="kpi-delta flat">Marketplace &amp; directory</div>
+    </a>
+    <a href="<?= BASE_URL ?>/admin/jobs" class="kpi-cell">
+        <div class="kpi-label">Open jobs</div>
+        <div class="kpi-value"><?= number_format($openJobs) ?></div>
+        <div class="kpi-delta flat">Listed on the careers board</div>
+    </a>
+</section>
 
 <div class="row g-3 mb-3">
     <!-- ── revenue chart ─────────────────────────────────────────────── -->
@@ -239,17 +200,18 @@ require_once __DIR__ . '/sidebar.php';
                 </div>
             <?php else: ?>
                 <div class="admin-barchart">
-                    <?php foreach ($revenueChart as $point): ?>
+                    <?php foreach ($revenueChart as $i => $point): ?>
                         <?php
-                        $pct = $chartMax > 0 ? ($point['value'] / $chartMax) * 100 : 0;
-                        $pct = max($pct, $point['value'] > 0 ? 4 : 1.5);
+                        $pct  = $chartMax > 0 ? ($point['value'] / $chartMax) * 100 : 0;
+                        $pct  = max($pct, $point['value'] > 0 ? 3 : 2);
+                        $peak = ($i === $chartPeakIndex);
                         ?>
                         <div class="bar-col">
-                            <div class="bar-value"><?= price_fmt((float)$point['value']) ?></div>
+                            <div class="bar-value<?= $peak ? ' peak' : '' ?>"><?= price_fmt((float)$point['value']) ?></div>
                             <div class="bar-track">
-                                <div class="bar-fill" style="height:<?= number_format($pct, 1) ?>%;"></div>
+                                <div class="bar-fill<?= $peak ? ' peak' : ($point['value'] <= 0 ? ' empty' : '') ?>" style="height:<?= number_format($pct, 1) ?>%;"></div>
                             </div>
-                            <div class="bar-label"><?= htmlspecialchars($point['label']) ?></div>
+                            <div class="bar-label<?= $peak ? ' peak' : '' ?>"><?= htmlspecialchars($point['label']) ?></div>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -275,19 +237,16 @@ require_once __DIR__ . '/sidebar.php';
                 <div class="admin-feed">
                     <?php foreach ($recentActivity as $act): ?>
                         <?php
-                        $ts = strtotime((string)$act['created_at']);
+                        $ts   = strtotime((string)$act['created_at']);
                         $when = $ts ? date('M d, H:i', $ts) : '—';
+                        $kind = $act['type'] === 'campaign' ? 'is-campaign' : 'is-user';
                         ?>
-                        <div class="feed-item">
-                            <div class="feed-avatar <?= $act['type'] === 'campaign' ? 'blue' : 'green' ?>">
-                                <?= strtoupper(substr((string)$act['type'], 0, 1)) ?>
-                            </div>
+                        <div class="feed-item <?= $kind ?>">
                             <div class="feed-body">
                                 <div class="feed-title"><?= htmlspecialchars((string)$act['detail']) ?></div>
-                                <div class="feed-meta">
-                                    <?= htmlspecialchars(ucfirst((string)$act['type'])) ?> &middot; <?= htmlspecialchars($when) ?>
-                                </div>
+                                <div class="feed-meta"><?= htmlspecialchars(ucfirst((string)$act['type'])) ?></div>
                             </div>
+                            <span class="feed-time"><?= htmlspecialchars($when) ?></span>
                             <span class="badge-status <?= htmlspecialchars((string)$act['status']) ?>">
                                 <?= htmlspecialchars((string)$act['status']) ?>
                             </span>
@@ -335,15 +294,15 @@ require_once __DIR__ . '/sidebar.php';
                                             <div class="text-white fw-medium text-truncate" style="max-width:170px;">
                                                 <?= htmlspecialchars((string)($tx['full_name'] ?? 'Unknown')) ?>
                                             </div>
-                                            <div class="text-muted" style="font-size:.7rem;">#<?= (int)$tx['id'] ?></div>
+                                            <div class="text-muted" style="font-size:.68rem;font-family:var(--admin-font-mono);">T-<?= str_pad((string)(int)$tx['id'], 4, '0', STR_PAD_LEFT) ?></div>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="text-capitalize"><?= htmlspecialchars((string)$tx['type']) ?></td>
-                                <td class="text-white fw-bold"><?= txn_money((float)$tx['amount'], $tx['currency'] ?? null) ?></td>
-                                <td class="text-capitalize"><?= htmlspecialchars((string)$tx['gateway']) ?></td>
+                                <td><?= htmlspecialchars(str_replace('_', ' ', (string)$tx['type'])) ?></td>
+                                <td class="num money"><?= txn_money((float)$tx['amount'], $tx['currency'] ?? null) ?></td>
+                                <td><?= htmlspecialchars((string)$tx['gateway']) ?></td>
                                 <td><span class="badge-status <?= htmlspecialchars((string)$tx['status']) ?>"><?= htmlspecialchars((string)$tx['status']) ?></span></td>
-                                <td class="text-muted" style="font-size:.78rem;white-space:nowrap;">
+                                <td class="num mono-dim">
                                     <?= $ts ? date('M d, Y', $ts) : '—' ?>
                                 </td>
                             </tr>
@@ -374,7 +333,6 @@ require_once __DIR__ . '/sidebar.php';
                 <div class="admin-feed">
                     <?php foreach ($recentUsers as $u): ?>
                         <div class="feed-item">
-                            <div class="feed-avatar green"><?= strtoupper(substr((string)($u['full_name'] ?? 'A'), 0, 1)) ?></div>
                             <div class="feed-body">
                                 <div class="feed-title"><?= htmlspecialchars((string)($u['full_name'] ?? 'N/A')) ?></div>
                                 <div class="feed-meta text-truncate"><?= htmlspecialchars((string)$u['email']) ?></div>
