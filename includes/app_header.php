@@ -1409,6 +1409,11 @@ body.nav-open { overflow: hidden; touch-action: none; }
   color: var(--accent) !important;
 }
 </style>
+  <!-- Public form system (shared with the marketing shell) -->
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/forms-pro.css?v=1">
+<?php if (($_appPage ?? '') === 'pricing-plan'): ?>
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/pricing-pro.css?v=1">
+<?php endif; ?>
 </head>
 <body>
 <?php if (!empty($_SESSION['impersonator'])): ?>

@@ -1,0 +1,327 @@
+/* =====================================================================
+   ADSBOOSTER.NET — PUBLIC FORM SYSTEM  (v1 · "Field Ledger")
+   ---------------------------------------------------------------------
+   One form language for every public surface: the marketing site
+   (includes/header.php) and the logged-in app shell (includes/app_header.php).
+
+   Design language: rate-sheet entry. Flat dark fields separated by
+   hairline rules, mono micro-labels, tabular data, lime reserved for
+   focus and primary action. No glows, no cream cards, no pill inputs.
+
+   Loaded AFTER main.css / the app shell's inline theme so it wins the
+   cascade; legacy inline styles are overridden with !important because
+   the older pages carry per-field inline backgrounds.
+   ===================================================================== */
+
+:root {
+    /* surfaces — flat, never raised */
+    --pf-surface:         rgba(255, 255, 255, 0.035);
+    --pf-surface-hover:   rgba(255, 255, 255, 0.06);
+    --pf-surface-sunken:  rgba(0, 0, 0, 0.22);
+    --pf-panel:           rgba(255, 255, 255, 0.028);
+    --pf-border:          rgba(255, 255, 255, 0.13);
+    --pf-border-strong:   rgba(255, 255, 255, 0.24);
+
+    /* ink */
+    --pf-text:            #f1f5f9;
+    --pf-muted:           #a9b6c6;
+    --pf-faint:           #8b99ab;   /* placeholders — 5.2:1 on app ink */
+    --pf-danger:          #ff6b6b;
+    --pf-danger-dim:      rgba(255, 107, 107, 0.12);
+
+    /* brand — action + focus only, never body copy */
+    --pf-accent:          #c8ff00;
+    --pf-accent-ink:      #0a0f1a;
+    --pf-accent-ring:     rgba(200, 255, 0, 0.16);
+    --pf-money:           #f5b942;   /* money prints in amber */
+
+    /* shape */
+    --pf-radius:          6px;
+    --pf-radius-panel:    10px;
+    --pf-mono:            'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --pf-ui:              Inter, Satoshi, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* ---------- light theme (app shell supports data-theme="light") -------- */
+[data-theme="light"] {
+    --pf-surface:         #ffffff;
+    --pf-surface-hover:   #f6f8fb;
+    --pf-surface-sunken:  #f1f4f8;
+    --pf-panel:           #ffffff;
+    --pf-border:          #d9dfe7;
+    --pf-border-strong:   #b7c0cc;
+
+    --pf-text:            #0f172a;
+    --pf-muted:           #4a5666;
+    --pf-faint:           #64748b;
+    --pf-danger:          #c23d2e;
+    --pf-danger-dim:      rgba(194, 61, 46, 0.08);
+
+    /* lime is unreadable on paper — the olive variant keeps the brand */
+    --pf-accent:          #4f6f00;
+    --pf-accent-ink:      #ffffff;
+    --pf-accent-ring:     rgba(79, 111, 0, 0.13);
+    --pf-money:           #8a5a00;
+}
+
+/* =====================================================================
+   FIELDS
+   ===================================================================== */
+.form-control,
+.form-select,
+textarea.form-control,
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="color"]):not([type="hidden"]),
+textarea {
+    background-color: var(--pf-surface) !important;
+    border: 1px solid var(--pf-border) !important;
+    color: var(--pf-text) !important;
+    border-radius: var(--pf-radius) !important;
+    box-shadow: none !important;
+    font-family: var(--pf-ui) !important;
+    font-size: 14px !important;
+    line-height: 1.5;
+    min-height: 44px;
+    padding: 0.58rem 0.8rem !important;
+    transition: border-color .14s ease, background-color .14s ease;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+textarea,
+textarea.form-control {
+    min-height: 120px;
+    resize: vertical;
+}
+
+/* selects need their own arrow — the flat field drops the OS chrome */
+select.form-select,
+select:not([multiple]) {
+    padding-right: 2.4rem !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%238b99ab' stroke-width='1.6' d='M1 1.5 6 6.5l5-5'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.85rem center !important;
+    background-size: 11px 8px !important;
+}
+[data-theme="light"] select.form-select,
+[data-theme="light"] select:not([multiple]) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%2364748b' stroke-width='1.6' d='M1 1.5 6 6.5l5-5'/%3E%3C/svg%3E") !important;
+}
+select option {
+    background: #111827;
+    color: #f1f5f9;
+}
+
+/* placeholder */
+.form-control::placeholder,
+textarea::placeholder,
+input::placeholder {
+    color: var(--pf-faint) !important;
+    opacity: 1 !important;
+}
+
+/* focus — one hairline + one soft ring, no bloom */
+.form-control:focus,
+.form-select:focus,
+input:focus,
+textarea:focus {
+    background-color: var(--pf-surface-hover) !important;
+    border-color: var(--pf-accent) !important;
+    color: var(--pf-text) !important;
+    box-shadow: 0 0 0 3px var(--pf-accent-ring) !important;
+    outline: none !important;
+}
+
+/* invalid */
+.form-control.is-invalid,
+.form-select.is-invalid,
+input.is-invalid,
+textarea.is-invalid {
+    border-color: var(--pf-danger) !important;
+    background-color: var(--pf-danger-dim) !important;
+}
+.invalid-feedback,
+.form-text,
+.form-hint,
+small.text-muted {
+    font-family: var(--pf-mono);
+    font-size: 11px !important;
+    letter-spacing: .02em;
+    color: var(--pf-faint) !important;
+}
+.invalid-feedback { color: var(--pf-danger) !important; }
+
+/* disabled / readonly */
+.form-control:disabled,
+.form-select:disabled,
+input:disabled,
+textarea:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+    background-color: var(--pf-surface-sunken) !important;
+}
+.form-control[readonly],
+input[readonly],
+textarea[readonly] {
+    background-color: var(--pf-surface-sunken) !important;
+    border-style: dashed !important;
+    color: var(--pf-muted) !important;
+}
+
+/* =====================================================================
+   LABELS — mono micro-labels, the rate-sheet voice
+   ===================================================================== */
+.form-label {
+    font-family: var(--pf-mono) !important;
+    font-size: 10.5px !important;
+    font-weight: 500 !important;
+    letter-spacing: .1em !important;
+    text-transform: uppercase !important;
+    color: var(--pf-muted) !important;
+    margin-bottom: 6px !important;
+    display: block;
+}
+.form-label span[style*="accent"],
+.form-label .text-warning,
+.form-label .required {
+    color: var(--pf-accent) !important;
+}
+label:not(.form-check-label):not(.btn) {
+    color: var(--pf-muted);
+}
+
+/* =====================================================================
+   CHECKS — square tick boxes, lime when set
+   ===================================================================== */
+.form-check-input,
+input[type="checkbox"],
+input[type="radio"] {
+    background-color: var(--pf-surface) !important;
+    border: 1px solid var(--pf-border-strong) !important;
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-top: .15rem;
+    box-shadow: none !important;
+    cursor: pointer;
+}
+input[type="radio"] { border-radius: 50% !important; }
+.form-check-input:checked,
+input[type="checkbox"]:checked {
+    background-color: var(--pf-accent) !important;
+    border-color: var(--pf-accent) !important;
+}
+.form-check-input:focus,
+input[type="checkbox"]:focus,
+input[type="radio"]:focus {
+    box-shadow: 0 0 0 3px var(--pf-accent-ring) !important;
+    border-color: var(--pf-accent) !important;
+}
+.form-check-label {
+    font-size: 13.5px;
+    color: var(--pf-muted);
+}
+
+/* input groups — the addon rides the field edge, not a floating pill */
+.input-group-text {
+    background-color: var(--pf-surface-sunken) !important;
+    border: 1px solid var(--pf-border) !important;
+    color: var(--pf-muted) !important;
+    font-family: var(--pf-mono);
+    font-size: 12px;
+    border-radius: var(--pf-radius) !important;
+}
+
+/* =====================================================================
+   BUTTONS INSIDE FORMS — squared, no pill, no flare bloom
+   ===================================================================== */
+form .btn,
+.form-submit .btn,
+.form-control + .btn {
+    border-radius: var(--pf-radius) !important;
+    font-weight: 600 !important;
+}
+form .button__flair,
+.form-submit .button__flair {
+    display: none !important;
+}
+.btn-accent,
+.btn.btn-accent {
+    background: var(--pf-accent) !important;
+    color: var(--pf-accent-ink) !important;
+    border: 1px solid var(--pf-accent) !important;
+    border-radius: var(--pf-radius) !important;
+    box-shadow: none !important;
+    font-weight: 600 !important;
+}
+.btn-accent:hover {
+    filter: brightness(1.08);
+    color: var(--pf-accent-ink) !important;
+}
+
+/* =====================================================================
+   LEGACY MARKETING PATTERNS
+   Older pages hand-roll fields with utility soup. These rules pull
+   them onto the same system without touching 78 page files.
+   ===================================================================== */
+
+/* the cream card that held the contact form becomes a dark panel */
+.bg-main-50 {
+    background-color: var(--pf-panel) !important;
+    border: 1px solid var(--pf-border) !important;
+    border-radius: var(--pf-radius-panel) !important;
+    color: var(--pf-text) !important;
+}
+
+/* white rounded inputs on dark pages */
+input.bg-white,
+select.bg-white,
+textarea.bg-white {
+    background-color: var(--pf-surface) !important;
+    border-color: var(--pf-border) !important;
+    color: var(--pf-text) !important;
+    border-radius: var(--pf-radius) !important;
+}
+input.bg-white::placeholder,
+select.bg-white::placeholder,
+textarea.bg-white::placeholder {
+    color: var(--pf-faint) !important;
+}
+input.bg-white:focus,
+select.bg-white:focus,
+textarea.bg-white:focus {
+    background-color: var(--pf-surface-hover) !important;
+    border-color: var(--pf-accent) !important;
+    box-shadow: 0 0 0 3px var(--pf-accent-ring) !important;
+}
+.border-white { border-color: var(--pf-border) !important; }
+
+/* inline-styled fields from the older app pages */
+input[style*="background:#"],
+input[style*="background: #"],
+textarea[style*="background:#"],
+textarea[style*="background: #"] {
+    background-color: var(--pf-surface) !important;
+    border-color: var(--pf-border) !important;
+    color: var(--pf-text) !important;
+    border-radius: var(--pf-radius) !important;
+    box-shadow: none !important;
+}
+
+/* =====================================================================
+   FOCUS VISIBILITY + MOTION
+   ===================================================================== */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.btn:focus-visible {
+    outline: 2px solid var(--pf-accent);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .form-control, .form-select, input, textarea, .btn, button {
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+    }
+}

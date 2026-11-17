@@ -63,49 +63,50 @@ function plan_card(array $plan, string $cur, string $symbol): void
     $featured = !empty($plan['is_featured']);
     $planId   = (int)$plan['id'];
     ?>
-    <div class="card-dark plan-card" data-plan="<?= $planId ?>" style="padding:24px;display:flex;flex-direction:column;position:relative;<?= $featured ? 'border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);' : '' ?>">
+    <div class="rate-card<?= $featured ? ' is-featured' : '' ?> plan-card" data-plan="<?= $planId ?>">
         <?php if ($featured): ?>
-            <span class="badge-active" style="position:absolute;top:-11px;left:20px;"><i class="ph ph-crown"></i> Most Popular</span>
+            <span class="rate-tab"><i class="ph ph-star-four"></i> Most popular</span>
+        <?php else: ?>
+            <span class="rate-tab rate-tab-muted">Subscription</span>
         <?php endif; ?>
 
-        <h3 style="font-weight:700;color:var(--fg);margin:0 0 4px;font-size:17px;"><?= e((string)($plan['name'] ?? 'Plan')) ?></h3>
+        <h3 class="rate-card-title"><?= e((string)($plan['name'] ?? 'Plan')) ?></h3>
         <?php if (!empty($plan['description'])): ?>
-            <p style="font-size:13px;color:var(--fg2);margin:0 0 12px;"><?= e((string)$plan['description']) ?></p>
+            <p class="rate-card-desc"><?= e((string)$plan['description']) ?></p>
+        <?php else: ?>
+            <p class="rate-card-desc">Direct-API publishing to every connected network.</p>
         <?php endif; ?>
 
-        <p style="margin:0 0 4px;">
-            <strong class="plan-price" style="font-size:30px;font-weight:800;color:var(--fg);"><?= e(plan_money($usd, $cur, $symbol)) ?></strong>
-            <span class="plan-cycle-label" style="font-size:12px;color:var(--fg3);"> / month</span>
-        </p>
-        <p style="margin:0 0 12px;font-size:11.5px;color:var(--fg3);">
+        <div class="rate-price-row">
+            <strong class="rate-price plan-price"><?= e(plan_money($usd, $cur, $symbol)) ?></strong>
+            <span class="rate-price-cycle plan-cycle-label">/ month</span>
+        </div>
+        <p class="rate-meta">
             <span class="plan-alt-hint"><?= e(plan_alt_hint($usd, $cur)) ?></span>
-            <span class="plan-yearly-save" style="color:var(--green);font-weight:700;">Save 25% on yearly</span>
+            <span class="rate-save plan-yearly-save">Save 25% yearly</span>
         </p>
 
-        <div style="background:rgba(200,255,0,0.08);border:1px solid rgba(200,255,0,0.25);border-radius:8px;padding:8px 10px;margin-bottom:14px;font-size:12px;">
-            <div style="color:var(--accent);font-weight:700;display:flex;align-items:center;gap:5px;">
-                <i class="ph ph-gift"></i> Credits included:
-            </div>
-            <div style="color:var(--fg);margin-top:3px;font-weight:600;">
-                <?= e(plan_money((float)($plan['ad_credits_included'] ?? 0), $cur, $symbol)) ?> ad credits
-                &middot; <?= (int)($plan['ai_credits_included'] ?? 0) ?> AI credits
-            </div>
+        <div class="rate-credits">
+            <span class="rate-credits-label">Credits included</span>
+            <span class="rate-credits-value">
+                <span class="rate-credit-line"><?= e(plan_money((float)($plan['ad_credits_included'] ?? 0), $cur, $symbol)) ?> <span class="rate-credits-unit">ad credits</span></span>
+                <span class="rate-credit-line"><?= (int)($plan['ai_credits_included'] ?? 0) ?> <span class="rate-credits-unit">AI credits</span></span>
+            </span>
         </div>
 
-        <ul style="list-style:none;padding:0;margin:0 0 20px;display:flex;flex-direction:column;gap:9px;flex:1;">
+        <ul class="rate-features">
             <?php foreach ($features as $feature): ?>
-                <li style="display:flex;gap:9px;align-items:flex-start;font-size:13px;color:var(--fg2);">
-                    <i class="ph ph-check-circle" style="color:var(--green);font-size:16px;margin-top:1px;flex-shrink:0;"></i>
+                <li>
+                    <i class="ph ph-check"></i>
                     <span><?= e(is_string($feature) ? $feature : json_encode($feature)) ?></span>
                 </li>
             <?php endforeach; ?>
         </ul>
 
         <a href="<?= url('billing') ?>?plan=<?= $planId ?>&cycle=monthly"
-           class="plan-cta <?= $featured ? 'btn-accent' : 'btn-outline-dark' ?> btn-sm"
-           style="width:100%;justify-content:center;text-decoration:none;">
-            <i class="ph ph-check"></i>
-            <span class="plan-cta-label">Choose Plan</span>
+           class="rate-cta <?= $featured ? 'is-primary' : 'is-ghost' ?> plan-cta">
+            <span class="plan-cta-label">Choose plan</span>
+            <i class="ph ph-arrow-right"></i>
         </a>
 
         <script type="application/json" class="plan-cycle-data">
@@ -135,43 +136,45 @@ function one_off_card(array $plan, string $cur, string $symbol): void
     $featured = !empty($plan['is_featured']);
     $planId   = (int)$plan['id'];
     ?>
-    <div class="card-dark" style="padding:24px;display:flex;flex-direction:column;position:relative;<?= $featured ? 'border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);' : '' ?>">
-        <span class="badge-pending" style="position:absolute;top:-11px;left:20px;"><i class="ph ph-lightning"></i> Pay once &mdash; never renews</span>
+    <div class="rate-card is-once">
+        <span class="rate-tab"><i class="ph ph-lightning"></i> Pay once</span>
 
-        <h3 style="font-weight:700;color:var(--fg);margin:0 0 4px;font-size:17px;"><?= e((string)($plan['name'] ?? 'Plan')) ?></h3>
+        <h3 class="rate-card-title"><?= e((string)($plan['name'] ?? 'Plan')) ?></h3>
         <?php if (!empty($plan['description'])): ?>
-            <p style="font-size:13px;color:var(--fg2);margin:0 0 12px;"><?= e((string)$plan['description']) ?></p>
+            <p class="rate-card-desc"><?= e((string)$plan['description']) ?></p>
+        <?php else: ?>
+            <p class="rate-card-desc">One payment, no renewal, credits that never expire.</p>
         <?php endif; ?>
 
-        <p style="margin:0 0 4px;">
-            <strong style="font-size:30px;font-weight:800;color:var(--fg);"><?= e(plan_money($usd, $cur, $symbol)) ?></strong>
-            <span style="font-size:12px;color:var(--fg3);"> one-time</span>
+        <div class="rate-price-row">
+            <strong class="rate-price"><?= e(plan_money($usd, $cur, $symbol)) ?></strong>
+            <span class="rate-price-cycle">one-time</span>
+        </div>
+        <p class="rate-meta">
+            <span><?= e(plan_alt_hint($usd, $cur)) ?></span>
         </p>
-        <p style="margin:0 0 12px;font-size:11.5px;color:var(--fg3);"><?= e(plan_alt_hint($usd, $cur)) ?></p>
 
-        <div style="background:rgba(200,255,0,0.08);border:1px solid rgba(200,255,0,0.25);border-radius:8px;padding:8px 10px;margin-bottom:14px;font-size:12px;">
-            <div style="color:var(--accent);font-weight:700;display:flex;align-items:center;gap:5px;">
-                <i class="ph ph-gift"></i> Credits included:
-            </div>
-            <div style="color:var(--fg);margin-top:3px;font-weight:600;">
-                <?= e(plan_money((float)($plan['ad_credits_included'] ?? 0), $cur, $symbol)) ?> ad credits
-                &middot; <?= (int)($plan['ai_credits_included'] ?? 0) ?> AI credits
-            </div>
+        <div class="rate-credits">
+            <span class="rate-credits-label">Credits included</span>
+            <span class="rate-credits-value">
+                <span class="rate-credit-line"><?= e(plan_money((float)($plan['ad_credits_included'] ?? 0), $cur, $symbol)) ?> <span class="rate-credits-unit">ad credits</span></span>
+                <span class="rate-credit-line"><?= (int)($plan['ai_credits_included'] ?? 0) ?> <span class="rate-credits-unit">AI credits</span></span>
+            </span>
         </div>
 
-        <ul style="list-style:none;padding:0;margin:0 0 20px;display:flex;flex-direction:column;gap:9px;flex:1;">
+        <ul class="rate-features">
             <?php foreach ($features as $feature): ?>
-                <li style="display:flex;gap:9px;align-items:flex-start;font-size:13px;color:var(--fg2);">
-                    <i class="ph ph-check-circle" style="color:var(--green);font-size:16px;margin-top:1px;flex-shrink:0;"></i>
+                <li>
+                    <i class="ph ph-check"></i>
                     <span><?= e(is_string($feature) ? $feature : json_encode($feature)) ?></span>
                 </li>
             <?php endforeach; ?>
         </ul>
 
         <a href="<?= url('billing') ?>?plan=<?= $planId ?>"
-           class="<?= $featured ? 'btn-accent' : 'btn-outline-dark' ?> btn-sm"
-           style="width:100%;justify-content:center;text-decoration:none;">
-            <i class="ph ph-lightning"></i> Buy once
+           class="rate-cta is-ghost">
+            <span>Buy once</span>
+            <i class="ph ph-arrow-right"></i>
         </a>
     </div>
     <?php
@@ -179,40 +182,38 @@ function one_off_card(array $plan, string $cur, string $symbol): void
 ?>
 
 <div class="w-100">
-    <div class="page-header" style="margin-bottom:20px">
+    <div class="rate-head">
         <div>
-            <h1 class="page-title">Pricing Plans</h1>
-            <p class="page-subtitle">All prices in Nigerian Naira (₦). Every plan includes direct-API publishing to all connected networks.</p>
+            <h1>Pricing plans</h1>
+            <p class="rate-sub">All prices in Nigerian naira (₦). Every plan includes direct-API publishing to all connected networks.</p>
         </div>
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <div class="rate-head-actions">
             <a href="<?= url('billing') ?>" class="btn-outline-dark btn-sm">
-                <i class="ph ph-arrow-left"></i> Manage Billing
+                <i class="ph ph-arrow-left"></i> Manage billing
             </a>
         </div>
     </div>
 
     <?php if (empty($plans) && empty($oneOffs)): ?>
-        <div class="card-dark" style="padding:48px 24px;text-align:center;">
-            <div class="stat-icon" style="margin:0 auto 14px;background:rgba(200,255,0,.08);">
-                <i class="ph ph-package" style="font-size:24px;color:var(--accent);"></i>
-            </div>
-            <h3 style="color:var(--fg);font-weight:700;margin:0 0 6px;">No plans available</h3>
-            <p style="color:var(--fg2);font-size:13px;margin:0 0 16px;">Plans are being set up. Please check back soon.</p>
+        <div class="rate-empty">
+            <i class="ph ph-package"></i>
+            <h3>No plans available</h3>
+            <p>Plans are being set up. Please check back soon.</p>
             <a href="<?= url('billing') ?>" class="btn-outline-dark btn-sm"><i class="ph ph-arrow-left"></i> Back to billing</a>
         </div>
     <?php else: ?>
 
     <!-- Cycle toggle -->
     <?php if (!empty($plans)): ?>
-    <div style="display:flex;justify-content:center;margin-bottom:22px;">
-        <div style="display:flex;border:1px solid var(--border);border-radius:999px;overflow:hidden;background:var(--bg);">
-            <button type="button" id="cycleMonthlyBtn" onclick="setCycle('monthly')" style="padding:9px 26px;font-size:13.5px;font-weight:700;border:none;cursor:pointer;background:var(--accent);color:#0a0f1a;">Monthly</button>
-            <button type="button" id="cycleYearlyBtn" onclick="setCycle('yearly')" style="padding:9px 26px;font-size:13.5px;font-weight:700;border:none;cursor:pointer;background:transparent;color:var(--fg2);">Yearly <span style="font-size:11px;color:var(--green);">&minus;25%</span></button>
+    <div class="rate-toggle-wrap">
+        <div class="rate-toggle" role="group" aria-label="Billing cycle">
+            <button type="button" id="cycleMonthlyBtn" class="is-active" onclick="setCycle('monthly')" aria-pressed="true">Monthly</button>
+            <button type="button" id="cycleYearlyBtn" onclick="setCycle('yearly')" aria-pressed="false">Yearly<span class="rate-toggle-save">&minus;25%</span></button>
         </div>
     </div>
 
     <!-- Subscription plans -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px;margin-bottom:26px;">
+    <div class="rate-grid">
         <?php foreach ($plans as $plan) {
             plan_card($plan, $cur, $symbol);
         } ?>
@@ -221,11 +222,11 @@ function one_off_card(array $plan, string $cur, string $symbol): void
 
     <!-- Pay-as-you-go plans -->
     <?php if (!empty($oneOffs)): ?>
-    <div style="display:flex;align-items:center;gap:10px;margin:8px 0 14px;flex-wrap:wrap;">
-        <h2 style="color:var(--fg);font-weight:800;font-size:18px;margin:0;"><i class="ph-bold ph-lightning text-warning me-1"></i> Pay As You Go</h2>
-        <span style="font-size:12px;color:var(--fg3);">One payment unlocks the whole platform &mdash; credits stay lean so you only pay for what you use.</span>
+    <div class="rate-section-head">
+        <h2>Pay as you go</h2>
+        <p>One payment unlocks the whole platform &mdash; credits stay lean so you only pay for what you use.</p>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px;">
+    <div class="rate-grid">
         <?php foreach ($oneOffs as $plan) {
             one_off_card($plan, $cur, $symbol);
         } ?>
@@ -238,13 +239,9 @@ function one_off_card(array $plan, string $cur, string $symbol): void
 function setCycle(cycle) {
     var m = document.getElementById('cycleMonthlyBtn');
     var y = document.getElementById('cycleYearlyBtn');
-    var on  = 'background:var(--accent);color:#0a0f1a;';
-    var off = 'background:transparent;color:var(--fg2);';
-    if (cycle === 'yearly') {
-        y.style.cssText += ';' + on; m.style.cssText += ';' + off;
-    } else {
-        m.style.cssText += ';' + on; y.style.cssText += ';' + off;
-    }
+    var yearly = cycle === 'yearly';
+    if (m) { m.classList.toggle('is-active', !yearly); m.setAttribute('aria-pressed', String(!yearly)); }
+    if (y) { y.classList.toggle('is-active', yearly);  y.setAttribute('aria-pressed', String(yearly)); }
 
     // Swap the price, hint, suffix and checkout link on every plan card.
     document.querySelectorAll('.plan-card').forEach(function (card) {
@@ -265,7 +262,7 @@ function setCycle(cycle) {
         if (alt)   alt.textContent   = yearly ? data.yearlyAlt   : data.monthlyAlt;
         if (save)  save.style.display = yearly ? 'none' : '';
         if (cta)   cta.href = yearly ? data.yearlyHref : data.monthlyHref;
-        if (ctaLbl) ctaLbl.textContent = yearly ? 'Start yearly - save 25%' : 'Choose Plan';
+        if (ctaLbl) ctaLbl.textContent = yearly ? 'Start yearly, save 25%' : 'Choose plan';
     });
 }
 </script>

@@ -124,6 +124,8 @@ function _navSubActive(string $page): string {
   <link rel="stylesheet" href="<?= ASSETS_URL ?>/css/magnific-popup.css">
   <link rel="stylesheet" href="<?= ASSETS_URL ?>/css/satoshi.css">
   <link rel="stylesheet" href="<?= ASSETS_URL ?>/css/main.css">
+  <!-- Public form system (shared with the app shell) -->
+  <link rel="stylesheet" href="<?= ASSETS_URL ?>/css/forms-pro.css?v=1">
   <style>
     /* Generous header clearance for inner pages so content never touches or hides under the navbar */
     body.is-innerpage > section:first-of-type,
