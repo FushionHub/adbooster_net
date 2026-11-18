@@ -36,6 +36,13 @@ if (isset($_GET['action']) && $_GET['action'] === 'connect_zernio') {
 
 // Handle Bundle.social OAuth callback (organic journey — signed, single-use state)
 if (isset($_GET['action']) && $_GET['action'] === 'bundle_connected') {
+    // Provider landed back with ?error= (cancelled / refused authorization):
+    // report it plainly instead of the misleading "invalid auth state".
+    $cbError = trim((string)($_GET['error'] ?? ''));
+    if ($cbError !== '') {
+        set_flash('error', 'The social connection was not completed: ' . $cbError . '. Please start the connect flow again.');
+        redirect(url('social-connect'));
+    }
     $validatedPlatform = ThirdPartyGateway::validateGatewayState($_GET['state'] ?? null, 'bundle_social', $userId);
     if ($validatedPlatform === null) {
         set_flash('error', 'Bundle.social connection could not be verified (invalid, expired or already-used auth state). Please start the connect flow again.');
@@ -100,6 +107,12 @@ if (isset($_GET['action']) && $_GET['action'] === 'bundle_connected') {
 
 // Handle Zernio Ad Account callback (paid-ads journey — signed, single-use state)
 if (isset($_GET['action']) && $_GET['action'] === 'zernio_connected') {
+    // Provider landed back with ?error= (cancelled / refused authorization).
+    $cbError = trim((string)($_GET['error'] ?? ''));
+    if ($cbError !== '') {
+        set_flash('error', 'The ad-account connection was not completed: ' . $cbError . '. Please start the connect flow again.');
+        redirect(url('social-connect'));
+    }
     $validatedNetwork = ThirdPartyGateway::validateGatewayState($_GET['state'] ?? null, 'zernio', $userId);
     if ($validatedNetwork === null) {
         set_flash('error', 'Zernio connection could not be verified (invalid, expired or already-used auth state). Please start the ad-account connect flow again.');

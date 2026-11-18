@@ -272,11 +272,22 @@ function previewFile(input, previewId) {
 <?php
 // ── First-login quick guide ──
 // Shows once per session on the first app page after login or registration.
-if (is_logged_in() && empty($_SESSION['quick_guide_seen'])):
+// Only shown once onboarding is done — while the onboarding wizard is still
+// pending it owns the first visit (otherwise two popups stack on top of each other).
+if (is_logged_in() && empty($_SESSION['quick_guide_seen'])
+    && !empty(current_user()['onboarding_completed'])):
     $_SESSION['quick_guide_seen'] = 1;
 ?>
+<style>
+  #quickGuideOverlay .qg-dialog { max-height:calc(100vh - 40px); overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  @media (max-width:480px) {
+    #quickGuideOverlay { padding:14px; align-items:flex-end; }
+    #quickGuideOverlay .qg-dialog { padding:22px 16px; border-radius:16px; }
+    #quickGuideOverlay .qg-step { padding:11px 12px; border-radius:10px; }
+  }
+</style>
 <div id="quickGuideOverlay" style="position:fixed;inset:0;background:rgba(4,7,14,.78);backdrop-filter:blur(4px);z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface,#0d1524);border:1px solid var(--border);border-radius:20px;max-width:520px;width:100%;padding:30px;position:relative;box-shadow:0 30px 80px rgba(0,0,0,.6);">
+  <div class="qg-dialog" style="background:var(--surface,#0d1524);border:1px solid var(--border);border-radius:20px;max-width:520px;width:100%;padding:30px;position:relative;box-shadow:0 30px 80px rgba(0,0,0,.6);">
     <button type="button" onclick="closeQuickGuide()" style="position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:var(--bg);border:1px solid var(--border);color:var(--fg2);cursor:pointer;font-size:16px;">&times;</button>
     <div style="text-align:center;margin-bottom:22px;">
       <div style="width:58px;height:58px;border-radius:16px;background:rgba(200,255,0,.12);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 12px;"><i class="ph-bold ph-rocket-launch"></i></div>
@@ -292,7 +303,7 @@ if (is_logged_in() && empty($_SESSION['quick_guide_seen'])):
           ['ph-gift',            'Earn with referrals',  'Share your link — earn credit rewards when friends join and top up.', url('referrals')],
       ];
       foreach ($guideSteps as $i => $gs): ?>
-        <a href="<?= $gs[3] ?>" onclick="closeQuickGuide()" style="display:flex;gap:13px;align-items:flex-start;background:var(--bg);border:1px solid var(--border);border-radius:13px;padding:13px 15px;text-decoration:none;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <a href="<?= $gs[3] ?>" onclick="closeQuickGuide()" class="qg-step" style="display:flex;gap:13px;align-items:flex-start;background:var(--bg);border:1px solid var(--border);border-radius:13px;padding:13px 15px;text-decoration:none;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
           <div style="width:36px;height:36px;border-radius:10px;background:rgba(200,255,0,.1);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="ph-bold <?= $gs[0] ?>" style="font-size:18px;"></i></div>
           <div>
             <div style="color:var(--fg);font-weight:700;font-size:14px;"><?= ($i + 1) . '. ' . e($gs[1]) ?></div>

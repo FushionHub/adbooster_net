@@ -31,55 +31,28 @@ if (isset($_GET['action']) && $_GET['action'] === 'connect_zernio') {
     exit;
 }
 
-// Handle Bundle.social OAuth callback (organic journey — signed, single-use state)
-if (isset($_GET['action']) && $_GET['action'] === 'bundle_connected') {
-    $validatedPlatform = ThirdPartyGateway::validateGatewayState($_GET['state'] ?? null, 'bundle_social', $userId);
-    if ($validatedPlatform === null) {
-        set_flash('error', 'Bundle.social connection could not be verified (invalid, expired or already-used auth state). Please start the connect flow again from the Organic Social Hub.');
-        redirect(url('dashboard'));
+// Gateway OAuth callbacks land here (the connect links default to this page).
+// They are FORWARDED to the Channel Connections hub, which owns the verified
+// persistence flow: the connection is re-checked server-side with the gateway
+// (Bundle social-account/by-type / Zernio accounts list) and the REAL id is
+// stored. This page previously invented ids like 'bndl_facebook_…' and
+// 'act_google_…' from callback query params, marking accounts connected that
+// did not exist — every later publish then failed with "No social accounts
+// selected".
+if (isset($_GET['action']) && in_array($_GET['action'], ['bundle_connected', 'zernio_connected'], true)) {
+    $cbKind  = $_GET['action'] === 'zernio_connected' ? 'ad-account' : 'social';
+    $cbError = trim((string)($_GET['error'] ?? ''));
+    if ($cbError !== '') {
+        // The provider landed back with ?error= appended (cancelled or
+        // refused authorization) — there is no valid state to process.
+        set_flash('error', 'The ' . $cbKind . ' connection was not completed: ' . $cbError . '. Please start the connect flow again.');
+        redirect(url('social-connect'));
     }
-    $platform = $validatedPlatform;
-    $extId = trim((string)($_GET['account_id'] ?? ($_GET['external_id'] ?? ('bndl_' . $platform . '_' . bin2hex(random_bytes(4))))));
-    $name = trim((string)($_GET['display_name'] ?? ($_GET['name'] ?? ucfirst($platform) . ' Profile')));
-    $avatar = trim((string)($_GET['avatar_url'] ?? ''));
-
-    try {
-        db()->query(
-            "INSERT INTO connected_accounts (user_id, gateway_provider, account_type, platform_name, external_account_id, display_name, avatar_url, status)
-             VALUES (?, 'bundle_social', 'organic_profile', ?, ?, ?, ?, 'connected')
-             ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), avatar_url = VALUES(avatar_url), status = 'connected'",
-            [$userId, $platform, $extId, $name, $avatar]
-        );
-        set_flash('success', "Organic social profile ({$name}) connected successfully via Bundle.social!");
-    } catch (\Throwable $e) {
-        set_flash('error', "Could not link account: " . $e->getMessage());
+    $cbQuery = ['action' => (string)$_GET['action']];
+    if (isset($_GET['state'])) {
+        $cbQuery['state'] = (string)$_GET['state'];
     }
-    redirect(url('dashboard'));
-}
-
-// Handle Zernio Ad Account callback (paid-ads journey — signed, single-use state)
-if (isset($_GET['action']) && $_GET['action'] === 'zernio_connected') {
-    $validatedNetwork = ThirdPartyGateway::validateGatewayState($_GET['state'] ?? null, 'zernio', $userId);
-    if ($validatedNetwork === null) {
-        set_flash('error', 'Zernio connection could not be verified (invalid, expired or already-used auth state). Please start the ad-account connect flow again from the Paid Ad Manager.');
-        redirect(url('dashboard'));
-    }
-    $network = $validatedNetwork;
-    $extId = trim((string)($_GET['ad_account_id'] ?? ($_GET['account_id'] ?? ('act_' . $network . '_' . bin2hex(random_bytes(4))))));
-    $name = trim((string)($_GET['name'] ?? ($_GET['display_name'] ?? ucfirst($network) . ' Ad Account')));
-
-    try {
-        db()->query(
-            "INSERT INTO connected_accounts (user_id, gateway_provider, account_type, platform_name, external_account_id, display_name, status)
-             VALUES (?, 'zernio', 'ad_account', ?, ?, ?, 'connected')
-             ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), status = 'connected'",
-            [$userId, $network, $extId, $name]
-        );
-        set_flash('success', "Ad Manager account ({$name}) connected successfully via Zernio!");
-    } catch (\Throwable $e) {
-        set_flash('error', "Could not link ad account: " . $e->getMessage());
-    }
-    redirect(url('dashboard'));
+    redirect(url('social-connect') . '?' . http_build_query($cbQuery));
 }
 
 // Handle Campaign Pause/Resume Toggle — ASYNCHRONOUS via the Zernio queue.
@@ -160,11 +133,10 @@ $referralUrl = BASE_URL . '/register.php?ref=' . urlencode($referralCode);
 <!-- Top Welcome & Quick Action Bar -->
 <div class="page-header" style="margin-bottom:28px">
     <div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-            <h1 class="page-title" style="margin:0"><?= $timeGreeting ?>, <?= $_appName ?></h1>
-            <span class="badge-status badge-active" style="font-size:11px;padding:3px 10px">Live</span>
-        </div>
-        <p class="page-subtitle">Here is a real-time summary of your ad campaigns, AI generation, and marketing channels.</p>
+        <h1 class="page-title" style="margin:0"><?= $timeGreeting ?>, <?= $_appName ?></h1>
+        <p class="page-subtitle" style="margin-top:4px">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase"><?= e($planName) ?></span>
+        </p>
     </div>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <a href="<?= url('create-ad') ?>" class="btn-accent">
@@ -198,231 +170,100 @@ if (time() > $promptDismissed) {
 }
 ?>
 <?php if ($showReviewPrompt): ?>
-    <div class="card bg-card border border-main-600 border-opacity-30 rounded-4 p-4 mb-4" style="background: linear-gradient(135deg, rgba(196,240,0,0.06) 0%, #0d1524 100%) !important; border: 1px solid rgba(196,240,0,0.25) !important;">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-            <div class="d-flex align-items-center gap-3">
-                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:48px;height:48px;background:rgba(196,240,0,0.15);color:#c4f000;font-size:24px;">
-                    <i class="ph-fill ph-star"></i>
-                </div>
-                <div>
-                    <div class="text-white fw-bold font-size-15 mb-1">How is your experience scaling with Adsbooster.net?</div>
-                    <div class="text-white-50 font-size-13" style="color:#94a3b8 !important;">Share your rating and thoughts to be featured on our community homepage!</div>
-                </div>
+    <div class="card-dark" style="padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px">
+        <div style="display:flex;align-items:center;gap:14px;min-width:0">
+            <i class="ph-fill ph-star" style="font-size:20px;color:var(--accent);flex-shrink:0"></i>
+            <div style="min-width:0">
+                <div style="font-weight:600;font-size:14px;color:var(--fg)">How is scaling with Adsbooster.net going?</div>
+                <div style="font-size:12.5px;color:var(--fg3);margin-top:2px">Rate your experience — good reviews are featured on the community homepage.</div>
             </div>
-            <div class="d-flex align-items-center gap-2">
-                <a href="<?= url('reviews') ?>" class="btn btn-main-600 text-dark fw-bold rounded-pill px-4 py-2 font-size-13">
-                    <i class="ph-bold ph-pencil-simple me-1"></i> Leave Review
-                </a>
-                <a href="<?= url('reviews', ['skip' => 1]) ?>" class="btn btn-outline-light rounded-pill px-3 py-2 font-size-13 text-white-50">
-                    Skip for now
-                </a>
-            </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+            <a href="<?= url('reviews') ?>" class="btn-accent btn-sm">
+                <i class="ph-bold ph-pencil-simple"></i> Leave Review
+            </a>
+            <a href="<?= url('reviews', ['skip' => 1]) ?>" class="btn-outline-dark btn-sm">Skip</a>
         </div>
     </div>
 <?php endif; ?>
 
-<!-- Stats Row: 4 Full-Width Responsive Metric Cards -->
-<div class="grid-4" style="margin-bottom:28px">
-    <!-- Ad Credits -->
-    <div class="stat-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-            <div class="stat-icon" style="background:var(--accent-dim);color:var(--accent)">
-                <i class="ph ph-monetization-on"></i>
-            </div>
-            <a href="<?= url('billing') ?>" style="font-size:12px;font-weight:600;color:var(--accent);display:inline-flex;align-items:center;gap:4px">
-                Top Up <i class="ph ph-arrow-right"></i>
-            </a>
-        </div>
-        <div>
-            <div class="stat-value"><?= price_fmt($adCredits) ?></div>
-            <div class="stat-label">Ad Wallet Credits</div>
-        </div>
-    </div>
-
-    <!-- AI Credits -->
-    <div class="stat-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-            <div class="stat-icon" style="background:var(--blue-dim);color:var(--blue)">
-                <i class="ph ph-sparkle"></i>
-            </div>
-            <a href="<?= url('post-creator') ?>" style="font-size:12px;font-weight:600;color:var(--blue);display:inline-flex;align-items:center;gap:4px">
-                Generate <i class="ph ph-arrow-right"></i>
-            </a>
-        </div>
-        <div>
-            <div class="stat-value"><?= number_format($aiCredits) ?></div>
-            <div class="stat-label">AI Generation Credits</div>
-        </div>
-    </div>
-
-    <!-- Campaigns -->
-    <div class="stat-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-            <div class="stat-icon" style="background:var(--orange-dim);color:var(--orange)">
-                <i class="ph ph-megaphone"></i>
-            </div>
-            <a href="<?= url('analytics') ?>" style="font-size:12px;font-weight:600;color:var(--orange);display:inline-flex;align-items:center;gap:4px">
-                Analytics <i class="ph ph-arrow-right"></i>
-            </a>
-        </div>
-        <div>
-            <div class="stat-value"><?= count($recentCampaigns) ?></div>
-            <div class="stat-label">Total Campaigns Launched</div>
-        </div>
-    </div>
-
-    <!-- Plan -->
-    <div class="stat-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-            <div class="stat-icon" style="background:var(--purple-dim);color:var(--purple)">
-                <i class="ph ph-crown"></i>
-            </div>
-            <a href="<?= url('pricing-plan') ?>" style="font-size:12px;font-weight:600;color:var(--purple);display:inline-flex;align-items:center;gap:4px">
-                Upgrade <i class="ph ph-arrow-right"></i>
-            </a>
-        </div>
-        <div>
-            <div class="stat-value" style="font-size:22px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= e($planName) ?></div>
-            <div class="stat-label">Current Membership</div>
-        </div>
-    </div>
+<!-- Stats Row: KPI ticker band (label / value / link, ledger style) -->
+<div class="kpi-band">
+    <a href="<?= url('billing') ?>" class="kpi-cell">
+        <div class="kpi-label">Ad Wallet Credits</div>
+        <div class="kpi-value money"><?= price_fmt($adCredits) ?></div>
+        <div class="kpi-delta"><span class="kpi-link">Top up →</span></div>
+    </a>
+    <a href="<?= url('post-creator') ?>" class="kpi-cell">
+        <div class="kpi-label">AI Credits</div>
+        <div class="kpi-value"><?= number_format($aiCredits) ?></div>
+        <div class="kpi-delta"><span class="kpi-link">Generate →</span></div>
+    </a>
+    <a href="<?= url('analytics') ?>" class="kpi-cell">
+        <div class="kpi-label">Campaigns Launched</div>
+        <div class="kpi-value"><?= count($recentCampaigns) ?></div>
+        <div class="kpi-delta"><span class="kpi-link">Analytics →</span></div>
+    </a>
+    <a href="<?= url('social-connect') ?>" class="kpi-cell">
+        <div class="kpi-label">Connected Accounts</div>
+        <div class="kpi-value"><?= count($organicAccounts) + count($adAccounts) ?></div>
+        <div class="kpi-delta"><span class="kpi-link"><?= count($organicAccounts) ?> organic · <?= count($adAccounts) ?> ads →</span></div>
+    </a>
 </div>
 
-<!-- 1. Quick Launch Workspace (Essential Tools) -->
-<div class="card-dark" style="margin-bottom:24px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
-        <div style="display:flex;align-items:center;gap:10px">
-            <i class="ph ph-lightning" style="font-size:20px;color:var(--accent)"></i>
-            <h6 style="margin:0;font-size:15px;font-weight:700">Quick Launch Workspace</h6>
+<!-- Tool directory: two columns of hairline rows, mono index, no icon tiles -->
+<div class="card-dark" style="margin-bottom:24px;padding:20px 22px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <h6 style="margin:0;font-size:13px;font-weight:600;font-family:'IBM Plex Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--fg3)">Tool Directory</h6>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--fg3)">15 tools</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:0 32px">
+        <?php
+        $dashTools = [
+            ['create-ad',         'ph-megaphone',      'Create Ad',          'Launch a paid campaign via Zernio'],
+            ['post-creator',      'ph-note-pencil',    'Post Creator',       'AI organic posts, schedule or publish'],
+            ['analytics',         'ph-chart-line-up',  'Analytics',          'Spend, reach and performance by network'],
+            ['ab-test',           'ph-git-fork',       'A/B Testing',        'Split variants, auto-pick the winner'],
+            ['ai-media-buyer',    'ph-shield-warning', 'AI Media Buyer',     'Autonomous budget rules and kill-switch'],
+            ['ad-spy',            'ph-detective',      'Ad Spy',             'Competitive briefs from proven templates'],
+            ['audience-builder',  'ph-users-three',    'Audience Builder',   'Segments and lookalike audiences'],
+            ['ugc-generator',     'ph-image',          'AI Image Studio',    'Nano Banana image generation'],
+            ['ugc-video-studio',  'ph-video-camera',   'AI Video Studio',    'Veo / Kling rendered ad videos'],
+            ['marketplace',       'ph-storefront',     'Marketplace',        'Listings and business directory'],
+            ['ecommerce-sync',    'ph-shopping-bag',   'E-Com Sync',         'Shopify and WooCommerce sync'],
+            ['bounties',          'ph-hand-coins',     'Creator Bounties',   'Escrow-backed creative jobs'],
+            ['agency-portal',     'ph-buildings',      'Agency Portal',      'Whitelabel client portal builder'],
+            ['server-tracking',   'ph-broadcast',      'Server Tracking',    'Meta CAPI / TikTok conversion events'],
+            ['calendar',          'ph-calendar-blank', 'Content Calendar',   'Scheduled posts and campaign dates'],
+        ];
+        $half = (int)ceil(count($dashTools) / 2);
+        ?>
+        <?php foreach ($dashTools as $i => $tool): ?>
+            <?php if ($i === $half): ?>
         </div>
-        <span style="font-size:12px;color:var(--fg3)">Fast shortcuts to essential tools</span>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(136px,1fr));gap:12px">
-        <a href="<?= url('create-ad') ?>" class="platform-card" style="flex-direction:column;text-align:center;padding:18px 12px;gap:10px">
-            <div style="width:42px;height:42px;border-radius:10px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center">
-                <i class="ph ph-megaphone" style="font-size:22px;color:var(--accent)"></i>
-            </div>
-            <span style="font-size:13px;font-weight:600">Create Ad</span>
-        </a>
-        <a href="<?= url('post-creator') ?>" class="platform-card" style="flex-direction:column;text-align:center;padding:18px 12px;gap:10px">
-            <div style="width:42px;height:42px;border-radius:10px;background:var(--blue-dim);display:flex;align-items:center;justify-content:center">
-                <i class="ph ph-note-pencil" style="font-size:22px;color:var(--blue)"></i>
-            </div>
-            <span style="font-size:13px;font-weight:600">Post Creator</span>
-        </a>
-        <a href="<?= url('analytics') ?>" class="platform-card" style="flex-direction:column;text-align:center;padding:18px 12px;gap:10px">
-            <div style="width:42px;height:42px;border-radius:10px;background:var(--green-dim);display:flex;align-items:center;justify-content:center">
-                <i class="ph ph-chart-line-up" style="font-size:22px;color:var(--green)"></i>
-            </div>
-            <span style="font-size:13px;font-weight:600">Analytics</span>
-        </a>
-        <a href="<?= url('marketplace') ?>" class="platform-card" style="flex-direction:column;text-align:center;padding:18px 12px;gap:10px">
-            <div style="width:42px;height:42px;border-radius:10px;background:var(--purple-dim);display:flex;align-items:center;justify-content:center">
-                <i class="ph ph-storefront" style="font-size:22px;color:var(--purple)"></i>
-            </div>
-            <span style="font-size:13px;font-weight:600">Marketplace</span>
-        </a>
-        <a href="<?= url('audience-builder') ?>" class="platform-card" style="flex-direction:column;text-align:center;padding:18px 12px;gap:10px">
-            <div style="width:42px;height:42px;border-radius:10px;background:var(--orange-dim);display:flex;align-items:center;justify-content:center">
-                <i class="ph ph-users-three" style="font-size:22px;color:var(--orange)"></i>
-            </div>
-            <span style="font-size:13px;font-weight:600">Audiences</span>
-        </a>
-        <a href="<?= url('ab-test') ?>" class="platform-card" style="flex-direction:column;text-align:center;padding:18px 12px;gap:10px">
-            <div style="width:42px;height:42px;border-radius:10px;background:rgba(56,189,248,0.12);display:flex;align-items:center;justify-content:center">
-                <i class="ph ph-git-fork" style="font-size:22px;color:var(--blue)"></i>
-            </div>
-            <span style="font-size:13px;font-weight:600">A/B Testing</span>
-        </a>
-        <a href="<?= url('billing') ?>" class="platform-card" style="flex-direction:column;text-align:center;padding:18px 12px;gap:10px">
-            <div style="width:42px;height:42px;border-radius:10px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center">
-                <i class="ph ph-credit-card" style="font-size:22px;color:var(--accent)"></i>
-            </div>
-            <span style="font-size:13px;font-weight:600">Wallet</span>
-        </a>
-        <a href="<?= url('tickets') ?>" class="platform-card" style="flex-direction:column;text-align:center;padding:18px 12px;gap:10px">
-            <div style="width:42px;height:42px;border-radius:10px;background:rgba(100,116,139,0.15);display:flex;align-items:center;justify-content:center">
-                <i class="ph ph-ticket" style="font-size:22px;color:var(--fg2)"></i>
-            </div>
-            <span style="font-size:13px;font-weight:600">Support</span>
-        </a>
-    </div>
-</div>
-
-<!-- 2. Next-Gen Powerhouse AI & Growth Engines -->
-<div class="card-dark" style="margin-bottom:28px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
-        <div style="display:flex;align-items:center;gap:10px">
-            <i class="ph ph-sparkle" style="font-size:20px;color:var(--accent)"></i>
-            <h6 style="margin:0;font-size:15px;font-weight:700">Next-Gen AI &amp; Growth Powerhouse</h6>
-        </div>
-        <span style="font-size:12px;color:var(--accent)">Enterprise Multi-Model Engines</span>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px">
-        <a href="<?= url('ugc-video-studio') ?>" class="platform-card" style="flex-direction:column;text-align:center;padding:18px 12px;gap:10px;border-color:rgba(200,255,0,0.3)">
-            <div style="width:42px;height:42px;border-radius:10px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center">
-                <i class="ph ph-video-camera" style="font-size:22px;color:var(--accent)"></i>
-            </div>
-            <span style="font-size:13px;font-weight:700;color:#fff">AI Video Studio</span>
-        </a>
-        <a href="<?= url('ai-media-buyer') ?>" class="platform-card" style="flex-direction:column;text-align:center;padding:18px 12px;gap:10px">
-            <div style="width:42px;height:42px;border-radius:10px;background:rgba(239,68,68,0.15);display:flex;align-items:center;justify-content:center">
-                <i class="ph ph-shield-warning" style="font-size:22px;color:#ef4444"></i>
-            </div>
-            <span style="font-size:13px;font-weight:600">AI Media Buyer</span>
-        </a>
-        <a href="<?= url('ad-spy') ?>" class="platform-card" style="flex-direction:column;text-align:center;padding:18px 12px;gap:10px">
-            <div style="width:42px;height:42px;border-radius:10px;background:rgba(245,158,11,0.15);display:flex;align-items:center;justify-content:center">
-                <i class="ph ph-detective" style="font-size:22px;color:#f59e0b"></i>
-            </div>
-            <span style="font-size:13px;font-weight:600">Ad Spy Engine</span>
-        </a>
-        <a href="<?= url('ecommerce-sync') ?>" class="platform-card" style="flex-direction:column;text-align:center;padding:18px 12px;gap:10px">
-            <div style="width:42px;height:42px;border-radius:10px;background:rgba(16,185,129,0.15);display:flex;align-items:center;justify-content:center">
-                <i class="ph ph-shopping-bag" style="font-size:22px;color:#10b981"></i>
-            </div>
-            <span style="font-size:13px;font-weight:600">E-Com Sync</span>
-        </a>
-        <a href="<?= url('bounties') ?>" class="platform-card" style="flex-direction:column;text-align:center;padding:18px 12px;gap:10px">
-            <div style="width:42px;height:42px;border-radius:10px;background:rgba(200,255,0,0.15);display:flex;align-items:center;justify-content:center">
-                <i class="ph ph-hand-coins" style="font-size:22px;color:var(--accent)"></i>
-            </div>
-            <span style="font-size:13px;font-weight:600">Creator Bounties</span>
-        </a>
-        <a href="<?= url('agency-portal') ?>" class="platform-card" style="flex-direction:column;text-align:center;padding:18px 12px;gap:10px">
-            <div style="width:42px;height:42px;border-radius:10px;background:var(--purple-dim);display:flex;align-items:center;justify-content:center">
-                <i class="ph ph-buildings" style="font-size:22px;color:var(--purple)"></i>
-            </div>
-            <span style="font-size:13px;font-weight:600">Agency Portal</span>
-        </a>
-        <a href="<?= url('server-tracking') ?>" class="platform-card" style="flex-direction:column;text-align:center;padding:18px 12px;gap:10px">
-            <div style="width:42px;height:42px;border-radius:10px;background:rgba(6,182,212,0.15);display:flex;align-items:center;justify-content:center">
-                <i class="ph ph-broadcast" style="font-size:22px;color:#06b6d4"></i>
-            </div>
-            <span style="font-size:13px;font-weight:600">Server CAPI</span>
-        </a>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:0 32px;margin-top:2px">
+            <?php endif; ?>
+            <a href="<?= url($tool[0]) ?>" style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border-soft);text-decoration:none;color:var(--fg)">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--fg3);width:20px;flex-shrink:0"><?= str_pad((string)($i + 1), 2, '0', STR_PAD_LEFT) ?></span>
+                <i class="ph <?= $tool[1] ?>" style="font-size:16px;color:var(--fg3);flex-shrink:0"></i>
+                <span style="font-size:13.5px;font-weight:600;white-space:nowrap"><?= e($tool[2]) ?></span>
+                <span style="font-size:12px;color:var(--fg3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-left:auto"><?= e($tool[3]) ?></span>
+            </a>
+        <?php endforeach; ?>
     </div>
 </div>
 
 <!-- Third-Party Unified Gateways Hub: Bundle.social (Organic) & Zernio (Paid Ads) -->
 <div class="grid-2" style="margin-bottom:28px">
     <!-- 1. Organic Profiles Gateway (Bundle.social) -->
-    <div class="card-dark" style="display:flex;flex-direction:column;justify-content:space-between">
+    <div class="card-dark" style="display:flex;flex-direction:column;justify-content:space-between;padding:20px 22px">
         <div>
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-                <div style="display:flex;align-items:center;gap:10px">
-                    <div style="width:36px;height:36px;border-radius:10px;background:rgba(200,255,0,0.12);display:flex;align-items:center;justify-content:center">
-                        <i class="ph ph-share-network" style="font-size:20px;color:var(--accent)"></i>
-                    </div>
-                    <div>
-                        <h6 style="margin:0;font-size:14.5px;font-weight:700">Organic Social Hub</h6>
-                        <span style="font-size:11px;color:var(--accent);font-weight:600">Powered by Bundle.social API</span>
-                    </div>
-                </div>
-                <span class="badge-status badge-active" style="font-size:11px"><?= count($organicAccounts) ?> Connected</span>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:8px">
+                <h6 style="margin:0;font-size:13px;font-weight:600;font-family:'IBM Plex Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--fg3)">Organic Social Hub</h6>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:<?= count($organicAccounts) > 0 ? 'var(--green)' : 'var(--fg3)' ?>;"><?= count($organicAccounts) ?> connected</span>
             </div>
             <p style="margin:0 0 14px;font-size:12.5px;color:var(--fg3);line-height:1.5">
-                Multi-channel post scheduling, UGC video publishing, and calendar sync across 15+ networks.
+                Schedule posts and publish UGC across 15+ networks from one queue.
             </p>
             <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
                 <?php
@@ -456,19 +297,11 @@ if (time() > $promptDismissed) {
     </div>
 
     <!-- 2. Paid Ads Gateway (Zernio) -->
-    <div class="card-dark" style="display:flex;flex-direction:column;justify-content:space-between">
+    <div class="card-dark" style="display:flex;flex-direction:column;justify-content:space-between;padding:20px 22px">
         <div>
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-                <div style="display:flex;align-items:center;gap:10px">
-                    <div style="width:36px;height:36px;border-radius:10px;background:rgba(56,189,248,0.12);display:flex;align-items:center;justify-content:center">
-                        <i class="ph ph-megaphone-simple" style="font-size:20px;color:var(--blue)"></i>
-                    </div>
-                    <div>
-                        <h6 style="margin:0;font-size:14.5px;font-weight:700">Paid Ad Manager</h6>
-                        <span style="font-size:11px;color:var(--blue);font-weight:600">Powered by Zernio API</span>
-                    </div>
-                </div>
-                <span class="badge-status badge-info" style="font-size:11px"><?= count($adAccounts) ?> Ad Accounts</span>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:8px">
+                <h6 style="margin:0;font-size:13px;font-weight:600;font-family:'IBM Plex Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--fg3)">Paid Ad Manager</h6>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:<?= count($adAccounts) > 0 ? 'var(--blue)' : 'var(--fg3)' ?>;"><?= count($adAccounts) ?> ad accounts</span>
             </div>
             <p style="margin:0 0 14px;font-size:12.5px;color:var(--fg3);line-height:1.5">
                 Launch, monitor, and auto-optimize campaigns across Meta, TikTok, Google Ads, and Snapchat.
@@ -494,7 +327,7 @@ if (time() > $promptDismissed) {
             </div>
         </div>
         <div style="display:flex;gap:10px">
-            <a href="<?= url('create-ad') ?>" class="btn-outline-dark btn-sm" style="flex:1;justify-content:center;color:var(--blue);border-color:rgba(56,189,248,0.3)">
+            <a href="<?= url('create-ad') ?>" class="btn-outline-dark btn-sm" style="flex:1;justify-content:center">
                 <i class="ph ph-rocket-launch"></i> Launch Paid Ad
             </a>
             <a href="<?= url('social-connect') ?>?tab=ads" class="btn-outline-dark btn-sm">
@@ -508,11 +341,8 @@ if (time() > $promptDismissed) {
 <div class="grid-2" style="margin-bottom:28px">
     <!-- Recent Campaigns -->
     <div class="card-dark" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
-        <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,0.15)">
-            <div style="display:flex;align-items:center;gap:8px">
-                <i class="ph ph-megaphone" style="color:var(--accent);font-size:18px"></i>
-                <h6 style="margin:0;font-size:14px;font-weight:700">Recent Ad Campaigns (Zernio)</h6>
-            </div>
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+            <h6 style="margin:0;font-size:12px;font-weight:600;font-family:'IBM Plex Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--fg3)">Campaigns · Zernio</h6>
             <a href="<?= url('create-ad') ?>" class="btn-accent btn-sm">
                 <i class="ph ph-plus"></i> New
             </a>
@@ -545,12 +375,12 @@ if (time() > $promptDismissed) {
                                     <td style="font-weight:600">
                                         <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px"><?= e($c['campaign_name']) ?></div>
                                         <?php if (!empty($c['zernio_campaign_id'])): ?>
-                                            <span style="font-size:10px;color:var(--fg3);font-family:'JetBrains Mono',monospace"><?= e(substr((string)$c['zernio_campaign_id'], 0, 16)) ?></span>
+                                            <span style="font-size:10px;color:var(--fg3);font-family:'IBM Plex Mono',monospace"><?= e(substr((string)$c['zernio_campaign_id'], 0, 16)) ?></span>
                                         <?php endif; ?>
                                     </td>
                                     <td><span class="badge-platform"><?= e(ucfirst($c['campaign_type'])) ?></span></td>
                                     <td><span class="badge-status badge-<?= $sc ?>"><?= e(ucfirst($c['status'] ?? 'draft')) ?></span></td>
-                                    <td style="font-weight:700;font-family:'JetBrains Mono',monospace"><?= price_fmt((float)$c['budget_amount']) ?></td>
+                                    <td style="font-weight:700;font-family:'IBM Plex Mono',monospace"><?= price_fmt((float)$c['budget_amount']) ?></td>
                                     <td style="text-align:right;white-space:nowrap">
                                         <!-- Instant Pause / Resume Toggle -->
                                         <form method="POST" style="display:inline-block;margin-right:4px;">
@@ -575,11 +405,8 @@ if (time() > $promptDismissed) {
 
     <!-- Recent Transactions -->
     <div class="card-dark" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
-        <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,0.15)">
-            <div style="display:flex;align-items:center;gap:8px">
-                <i class="ph ph-receipt" style="color:var(--blue);font-size:18px"></i>
-                <h6 style="margin:0;font-size:14px;font-weight:700">Wallet Transactions</h6>
-            </div>
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+            <h6 style="margin:0;font-size:12px;font-weight:600;font-family:'IBM Plex Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--fg3)">Wallet Ledger</h6>
             <a href="<?= url('billing') ?>" class="btn-outline-dark btn-sm">View All</a>
         </div>
         <div style="flex:1">
@@ -610,17 +437,21 @@ if (time() > $promptDismissed) {
                                     <td style="text-transform:capitalize;font-weight:500">
                                         <?= e(str_replace('_', ' ', $t['type'])) ?>
                                     </td>
-                                    <td style="font-weight:700;font-family:'JetBrains Mono',monospace"><?= txn_money((float)$t['amount'], $t['currency'] ?? null) ?></td>
+                                    <td style="font-weight:700;font-family:'IBM Plex Mono',monospace"><?= txn_money((float)$t['amount'], $t['currency'] ?? null) ?></td>
                                     <td><span class="badge-status badge-<?= $tsc ?>"><?= e(ucfirst($t['status'])) ?></span></td>
-                                    <td style="text-align:right;color:var(--fg3);font-size:12.5px"><?= dt($t['created_at'] ?? null) ?></td>
+                                    <td style="text-align:right;color:var(--fg3);font-size:12.5px;white-space:nowrap"><?= dt($t['created_at'] ?? null) ?></td>
                                     <td style="text-align:right">
                                         <?php if (($t['status'] ?? '') === 'pending' && in_array($t['gateway'] ?? '', ['flutterwave', 'paystack'], true)):
                                             $verifyUrl = $t['gateway'] === 'paystack'
                                                 ? url('payment-verify') . '?gateway=paystack&reference=' . urlencode((string)($t['gateway_reference'] ?? ''))
                                                 : url('payment-verify') . '?gateway=flutterwave&tx_ref=' . urlencode((string)($t['gateway_reference'] ?? $t['id']));
                                         ?>
-                                            <a href="<?= $verifyUrl ?>" class="btn-accent btn-sm" style="white-space:nowrap" title="Re-check this payment with the gateway and credit your wallet if it succeeded">
-                                                <i class="ph ph-arrows-clockwise"></i> Verify payment
+                                            <a href="<?= $verifyUrl ?>" class="btn-outline-dark btn-sm" style="white-space:nowrap" title="Re-check this payment with the gateway and credit your wallet if it succeeded">
+                                                <i class="ph ph-arrows-clockwise"></i> Verify
+                                            </a>
+                                        <?php elseif (in_array((string)($t['status'] ?? ''), ['completed', 'successful', 'success'], true)): ?>
+                                            <a href="<?= e(url('invoice', ['id' => (int)$t['id']])) ?>" target="_blank" rel="noopener" class="btn-outline-dark btn-sm" style="white-space:nowrap" title="Open the invoice for this transaction">
+                                                <i class="ph ph-file-text"></i> Invoice
                                             </a>
                                         <?php endif; ?>
                                     </td>
@@ -635,27 +466,22 @@ if (time() > $promptDismissed) {
 </div>
 
 <!-- Referral Partner Full-Width Banner -->
-<div class="card-dark" style="background:linear-gradient(135deg, rgba(200,255,0,0.06) 0%, rgba(14,22,38,0.95) 100%);border-color:var(--border-accent);padding:24px 28px">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:24px">
-        <div style="display:flex;align-items:center;gap:32px;flex-wrap:wrap">
-            <div style="display:flex;align-items:center;gap:14px">
-                <div style="width:48px;height:48px;border-radius:12px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:24px">
-                    <i class="ph ph-share-network"></i>
-                </div>
-                <div>
-                    <h6 style="margin:0;font-size:16px;font-weight:700">Referral Partner Program</h6>
-                    <p style="margin:2px 0 0;font-size:13px;color:var(--fg2)">Earn 10 ad credits for every client who signs up with your link.</p>
-                </div>
+<div class="card-dark" style="padding:20px 24px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px">
+        <div style="display:flex;align-items:center;gap:36px;flex-wrap:wrap">
+            <div>
+                <h6 style="margin:0;font-size:13px;font-weight:600;font-family:'IBM Plex Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--fg3)">Referral Partner Program</h6>
+                <p style="margin:4px 0 0;font-size:13px;color:var(--fg2)">Earn 10 ad credits for every client who signs up with your link.</p>
             </div>
             <div style="display:flex;align-items:center;gap:24px">
                 <div>
-                    <div style="font-size:24px;font-weight:800;color:var(--fg);line-height:1"><?= number_format($referralCount) ?></div>
-                    <div style="font-size:12px;color:var(--fg3);margin-top:2px">Invited</div>
+                    <div style="font-size:22px;font-weight:700;color:var(--fg);line-height:1;font-family:'IBM Plex Mono',monospace"><?= number_format($referralCount) ?></div>
+                    <div style="font-size:11px;color:var(--fg3);margin-top:4px;text-transform:uppercase;letter-spacing:.08em">Invited</div>
                 </div>
                 <div style="width:1px;height:32px;background:var(--border)"></div>
                 <div>
-                    <div style="font-size:24px;font-weight:800;color:var(--accent);line-height:1"><?= number_format($referralCount * 10) ?></div>
-                    <div style="font-size:12px;color:var(--fg3);margin-top:2px">Ad Credits Earned</div>
+                    <div style="font-size:22px;font-weight:700;color:var(--accent);line-height:1;font-family:'IBM Plex Mono',monospace"><?= number_format($referralCount * 10) ?></div>
+                    <div style="font-size:11px;color:var(--fg3);margin-top:4px;text-transform:uppercase;letter-spacing:.08em">Ad Credits Earned</div>
                 </div>
             </div>
         </div>
@@ -663,7 +489,7 @@ if (time() > $promptDismissed) {
         <!-- 1-Click Referral Link -->
         <div style="flex:1;min-width:300px;max-width:540px">
             <div style="display:flex;gap:8px">
-                <input type="text" readonly value="<?= e($referralUrl) ?>" class="form-control" style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--accent);background:var(--bg)!important" id="refLinkInput">
+                <input type="text" readonly value="<?= e($referralUrl) ?>" class="form-control" style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--fg);background:var(--bg)!important" id="refLinkInput">
                 <button type="button" class="btn-accent btn-sm" style="white-space:nowrap" onclick="copyRefLink(this)">
                     <i class="ph ph-copy"></i> <span id="copyRefBtnText">Copy</span>
                 </button>

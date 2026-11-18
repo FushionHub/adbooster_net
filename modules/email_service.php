@@ -356,6 +356,17 @@ HTML;
                     <p>Your referral commission payout request of <b>\${{amount}}</b> via {{method}} has been marked as <b>{{status}}</b>.</p>
                     <p style="color:#94a3b8;font-size:13px;">{{notes}}</p>',
             ],
+            'invoice_ready' => [
+                'subject' => 'Invoice {{invoice_number}} — {{amount}} payment receipt',
+                'body' => '
+                    <h2>Your Invoice is Ready 🧾</h2>
+                    <p>Hi {{name}},</p>
+                    <p>Thank you — your payment of <b>{{amount}}</b> via {{payment_method}} has been verified. Invoice <b>{{invoice_number}}</b> has been issued for this transaction.</p>
+                    <div style="text-align:center;">
+                        <a href="{{invoice_link}}" class="btn-action">View Invoice &rarr;</a>
+                    </div>
+                    <p style="color:#94a3b8;font-size:13px;">You can re-open or download this invoice at any time from Billing → Transaction History.</p>',
+            ],
             'password_reset' => [
                 'subject' => 'Password Reset Verification Code - Adsbooster',
                 'body' => '

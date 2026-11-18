@@ -57,6 +57,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'connect_zernio') {
 
 // Bundle.social OAuth callback (organic journey — signed, single-use state).
 if (isset($_GET['action']) && $_GET['action'] === 'bundle_connected') {
+    $cbError = trim((string)($_GET['error'] ?? ''));
+    if ($cbError !== '') {
+        set_flash('error', 'The social connection was not completed: ' . $cbError . '. Please start the connect flow again.');
+        redirect(url('onboarding', ['step' => 1]));
+    }
     $validatedPlatform = ThirdPartyGateway::validateGatewayState($_GET['state'] ?? null, 'bundle_social', $userId);
     if ($validatedPlatform === null) {
         set_flash('error', 'Bundle.social connection could not be verified (invalid, expired or already-used auth state). Please start the connect flow again.');
@@ -97,6 +102,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'bundle_connected') {
 
 // Zernio Ad Account callback (paid-ads journey — signed, single-use state).
 if (isset($_GET['action']) && $_GET['action'] === 'zernio_connected') {
+    $cbError = trim((string)($_GET['error'] ?? ''));
+    if ($cbError !== '') {
+        set_flash('error', 'The ad-account connection was not completed: ' . $cbError . '. Please start the connect flow again.');
+        redirect(url('onboarding', ['step' => 1]));
+    }
     $validatedNetwork = ThirdPartyGateway::validateGatewayState($_GET['state'] ?? null, 'zernio', $userId);
     if ($validatedNetwork === null) {
         set_flash('error', 'Zernio connection could not be verified (invalid, expired or already-used auth state). Please start the ad-account connect flow again.');
@@ -150,6 +160,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // show again" checkbox). Session-scoped by default; persisted to
             // users.onboarding_popup_dismissed when the checkbox was ticked.
             $_SESSION['ob_popup_dismissed'] = 1;
+            // Kill the first-login quick guide too — skipping the wizard
+            // should never leave a second welcome popup waiting for the
+            // next page load.
+            $_SESSION['quick_guide_seen'] = 1;
             if (!empty($_POST['permanent'])) {
                 try {
                     db()->update('users', ['onboarding_popup_dismissed' => 1], 'id = ?', [$userId]);

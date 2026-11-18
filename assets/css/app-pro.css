@@ -1,0 +1,593 @@
+/* =====================================================================
+   ADSBOOSTER.NET — USER APP DESIGN SYSTEM  (v1 · "Order Book" user shell)
+   ---------------------------------------------------------------------
+   Same design language as the admin panel: warm charcoal ink surfaces,
+   hairline rules, IBM Plex Sans for prose + IBM Plex Mono for every
+   numeral, label and badge. Brand chartreuse is data-ink (active
+   states, deltas, primary action); money prints in amber.
+   No glow gradients, no icon-chip KPI grids, no hover lift-and-glow.
+
+   Loaded AFTER the legacy inline shell styles and forms-pro.css:
+   every class name used by the 44 app-shell screens is preserved,
+   this file only re-skins the visual layer on top of it.
+   ===================================================================== */
+
+:root,
+[data-theme="dark"] {
+    /* surfaces — warm charcoal, NOT blue-black */
+    --bg:            #0e0e10;
+    --bg2:           #121214;
+    --bg3:           #1a1a1e;
+    --bg4:           #26262b;
+    --surface:       #131315;
+    --surface-hover: #1a1a1e;
+    --surface-card:  #141416;
+    --border:        #26262b;
+    --border2:       #34343b;
+    --border-accent: rgba(200, 255, 0, 0.38);
+    --border-soft:   rgba(236, 234, 228, 0.055);
+
+    /* brand — chartreuse is data-ink, used sparingly */
+    --accent:     #c8ff00;
+    --accent2:    #a3cc00;
+    --accent-dim: rgba(200, 255, 0, 0.09);
+    --accent-glow: none;
+
+    /* semantic — desaturated ink-adjacent hues */
+    --green:      #b6e600;
+    --green-dim:  rgba(182, 230, 0, 0.09);
+    --red:        #e5604f;
+    --red-dim:    rgba(229, 96, 79, 0.11);
+    --blue:       #5c9fd6;
+    --blue-dim:   rgba(92, 159, 214, 0.11);
+    --orange:     #e8a33c;   /* money */
+    --orange-dim: rgba(232, 163, 60, 0.11);
+    --purple:     #b08ae0;
+    --purple-dim: rgba(176, 138, 224, 0.11);
+
+    /* text — warm paper on ink */
+    --fg:  #eceae4;
+    --fg2: #a6a29a;
+    --fg3: #87837a;
+
+    /* shape — flat, disciplined */
+    --radius:    10px;
+    --radius-sm: 6px;
+    --radius-lg: 12px;
+    --shadow-sm: none;
+    --shadow:    none;
+    --shadow-lg: 0 16px 40px -20px rgba(0, 0, 0, 0.8);
+}
+
+html[data-theme="light"] {
+    --bg:            #f4f4f2;
+    --bg2:           #eeeeec;
+    --bg3:           #e4e4e1;
+    --bg4:           #d5d5d1;
+    --surface:       #ffffff;
+    --surface-hover: #f2f2ef;
+    --surface-card:  #ffffff;
+    --border:        #e0dfdb;
+    --border2:       #cdccc7;
+    --border-accent: rgba(94, 132, 0, 0.45);
+    --border-soft:   rgba(20, 20, 22, 0.07);
+    --accent:        #4f6f00;
+    --accent2:       #476500;
+    --accent-dim:    rgba(94, 132, 0, 0.10);
+    --green:         #476500;
+    --green-dim:     rgba(94, 132, 0, 0.10);
+    --red:           #c23d2e;
+    --red-dim:       rgba(194, 61, 46, 0.08);
+    --blue:          #2d6da3;
+    --blue-dim:      rgba(45, 109, 163, 0.10);
+    --orange:        #9a6a00;
+    --orange-dim:    rgba(154, 106, 0, 0.10);
+    --purple:        #7a4fc9;
+    --purple-dim:    rgba(122, 79, 201, 0.08);
+    --fg:            #1c1c1e;
+    --fg2:           #4c4a45;
+    --fg3:           #726f69;
+    --shadow-sm:     0 1px 2px rgba(20, 20, 22, .04);
+    --shadow:        0 1px 2px rgba(20, 20, 22, .04);
+    --shadow-lg:     0 16px 40px -20px rgba(20, 20, 22, .22);
+}
+
+html[data-theme="light"] body { background: var(--bg) !important; color: var(--fg) !important; }
+html[data-theme="light"] .sidebar { background: #ffffff !important; border-right: 1px solid #e0dfdb !important; box-shadow: none !important; }
+html[data-theme="light"] .topbar { background: rgba(255, 255, 255, 0.94) !important; border-bottom: 1px solid #e0dfdb !important; }
+
+/* ------------------------------------------------------------------ *
+ *  Type — IBM Plex Sans for prose, IBM Plex Mono for numerals/labels
+ * ------------------------------------------------------------------ */
+body {
+    font-family: 'IBM Plex Sans', -apple-system, 'Segoe UI', Roboto, sans-serif !important;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    line-height: 1.55;
+}
+h1, h2, h3, h4, h5, h6 { letter-spacing: -0.01em; font-weight: 600; }
+
+::selection { background: var(--accent); color: #0c0c0e; }
+
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--fg3); }
+
+/* ------------------------------------------------------------------ *
+ *  SIDEBAR — flat ink rail, hairline rules, no gradient, no glow
+ * ------------------------------------------------------------------ */
+.sidebar {
+    background: #131315 !important;
+    border-right: 1px solid var(--border) !important;
+    box-shadow: none !important;
+}
+.sidebar-header { border-bottom: 1px solid var(--border) !important; }
+
+.sidebar-brand .logo {
+    background: var(--accent) !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+}
+.sidebar-brand .logo i { color: #0c0c0e !important; }
+.sidebar-brand .brand-title { font-weight: 600 !important; letter-spacing: -0.02em; }
+.sidebar-brand .brand-badge {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace !important;
+    letter-spacing: 0.1em !important;
+    color: var(--fg3) !important;
+}
+
+.nav-search input {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px !important;
+}
+.nav-search input:focus {
+    border-color: var(--accent) !important;
+    box-shadow: none !important;
+}
+
+.nav-group-label,
+.nav-group-toggle {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    letter-spacing: 0.09em;
+}
+.nav-group[aria-expanded="false"] .nav-group-body { display: none; }
+
+.nav-item {
+    border-radius: 6px !important;
+    color: var(--fg2) !important;
+    transition: background .12s ease, color .12s ease !important;
+}
+.nav-item:hover { background: var(--surface-hover) !important; color: var(--fg) !important; transform: none !important; }
+.nav-item i { color: var(--fg3) !important; }
+.nav-item:hover i { color: var(--fg2) !important; }
+
+/* active = hairline chartreuse rail + tinted row, not a full lime slab */
+.nav-item.active {
+    background: var(--accent-dim) !important;
+    color: var(--accent) !important;
+    font-weight: 600 !important;
+    box-shadow: none !important;
+    position: relative;
+}
+.nav-item.active::before {
+    content: "";
+    position: absolute;
+    left: -12px;
+    top: 6px;
+    bottom: 6px;
+    width: 2px;
+    background: var(--accent);
+    border-radius: 1px;
+}
+.nav-item.active i { color: var(--accent) !important; }
+
+.nav-item-badge {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace !important;
+    font-weight: 500 !important;
+    background: var(--red) !important;
+    color: #0c0c0e !important;
+    border-radius: 4px !important;
+}
+.nav-item.active .nav-item-badge { background: var(--accent) !important; color: #0c0c0e !important; }
+
+.sidebar-footer { border-top: 1px solid var(--border) !important; background: transparent !important; }
+
+/* ------------------------------------------------------------------ *
+ *  MAIN + TOPBAR — flat translucent ink, hairline bottom
+ * ------------------------------------------------------------------ */
+.topbar {
+    background: rgba(14, 14, 16, 0.9) !important;
+    border-bottom: 1px solid var(--border) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+.menu-toggle, .topbar-btn, .notif-btn, .currency-btn, .user-menu-btn {
+    background: transparent !important;
+    border: 1px solid var(--border) !important;
+    color: var(--fg2) !important;
+    border-radius: 6px !important;
+    box-shadow: none !important;
+    transition: border-color .12s ease, color .12s ease !important;
+}
+.menu-toggle:hover, .topbar-btn:hover, .notif-btn:hover, .currency-btn:hover, .user-menu-btn:hover,
+.notif-wrapper.open .notif-btn, .currency-wrap.open .currency-btn, .user-dropdown-wrap.open .user-menu-btn {
+    border-color: var(--border2) !important;
+    color: var(--fg) !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.topbar-breadcrumb { font-family: 'IBM Plex Mono', ui-monospace, monospace !important; font-size: 11.5px !important; }
+.breadcrumb-root { color: var(--fg3) !important; }
+.breadcrumb-current { color: var(--fg) !important; }
+
+/* wallet pill: mono numerals, amber money ink */
+.topbar-pill-wallet {
+    background: transparent !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px !important;
+    color: var(--fg) !important;
+    box-shadow: none !important;
+}
+.topbar-pill-wallet:hover { border-color: var(--border2) !important; color: var(--fg) !important; }
+.topbar-pill-wallet .wallet-credits,
+.topbar-pill-wallet .wallet-ai {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace !important;
+    font-weight: 600 !important;
+    font-variant-numeric: tabular-nums;
+}
+.topbar-pill-wallet .wallet-credits { color: var(--orange) !important; }
+.topbar-pill-wallet .wallet-ai { color: var(--fg) !important; }
+.topbar-pill-wallet .wallet-divider { background: var(--border) !important; }
+.topbar-pill-wallet i { color: var(--fg3) !important; }
+
+/* dropdowns: flat ink cards */
+.notif-dropdown, .currency-dropdown, .user-dropdown {
+    background: var(--surface-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 10px !important;
+    box-shadow: var(--shadow-lg) !important;
+}
+.notif-item, .currency-item, .user-dropdown-item { border-radius: 6px !important; }
+.notif-item:hover, .currency-item:hover, .user-dropdown-item:hover { background: var(--surface-hover) !important; }
+.notif-icon { border-radius: 6px !important; }
+.notif-body p { color: var(--fg) !important; }
+.notif-body small { color: var(--fg3) !important; }
+.user-avatar { box-shadow: none !important; }
+.user-menu-name { color: var(--fg) !important; }
+.user-menu-role { font-family: 'IBM Plex Mono', ui-monospace, monospace !important; color: var(--fg3) !important; }
+
+/* ------------------------------------------------------------------ *
+ *  CARDS — flat panels, hairline border, no shadow, no hover drama
+ * ------------------------------------------------------------------ */
+.card, .card-dark, .bg-card {
+    background: var(--surface-card) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--fg) !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+}
+.card-dark:hover { box-shadow: none !important; transform: none !important; border-color: var(--border) !important; }
+
+.page-header { margin-bottom: 0; }
+.page-title { font-weight: 650 !important; letter-spacing: -0.02em; }
+.page-subtitle { color: var(--fg3) !important; }
+
+/* stat cards (analytics/profile still use them): ledger cell, not icon chip */
+.stat-card {
+    background: var(--surface-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+    transition: none !important;
+}
+.stat-card:hover { transform: none !important; box-shadow: none !important; border-color: var(--border) !important; }
+.stat-card::after { display: none !important; }
+.stat-card .stat-icon {
+    background: transparent !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px !important;
+    color: var(--fg2) !important;
+    box-shadow: none !important;
+}
+.stat-card:hover .stat-icon { transform: none !important; }
+.stat-card .stat-value {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace !important;
+    font-weight: 600 !important;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+}
+.stat-card .stat-label {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace !important;
+    font-size: 10.5px !important;
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+    color: var(--fg3) !important;
+    font-weight: 500 !important;
+}
+
+/* ------------------------------------------------------------------ *
+ *  KPI TICKER BAND — dashboard headline metrics (ported from admin)
+ *  One flat strip, cells divided by hairline rules. No icons.
+ * ------------------------------------------------------------------ */
+.kpi-band {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background: var(--surface-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+}
+.kpi-band .kpi-cell {
+    display: block;
+    padding: .95rem 1.1rem;
+    border-right: 1px solid var(--border-soft);
+    min-width: 0;
+    color: inherit;
+    transition: background .15s ease;
+    position: relative;
+}
+.kpi-band .kpi-cell:last-child { border-right: 0; }
+a.kpi-cell:hover { background: rgba(236, 234, 228, .03); text-decoration: none; }
+html[data-theme="light"] a.kpi-cell:hover { background: var(--surface-hover); }
+.kpi-band .kpi-label {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .62rem;
+    font-weight: 500;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--fg3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.kpi-band .kpi-value {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--fg);
+    letter-spacing: -.02em;
+    line-height: 1.25;
+    font-variant-numeric: tabular-nums;
+    margin-top: .2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.kpi-band .kpi-value.money { color: var(--orange); }
+.kpi-band .kpi-delta {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .66rem;
+    margin-top: .15rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--fg3);
+}
+.kpi-band .kpi-delta a,
+.kpi-cell .kpi-link {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .66rem;
+    color: var(--accent);
+    text-decoration: none;
+    white-space: nowrap;
+}
+.kpi-cell .kpi-link:hover { color: var(--accent2); text-decoration: none; }
+
+/* ------------------------------------------------------------------ *
+ *  BUTTONS — flat ink, chartreuse action, no gradient, no glow
+ * ------------------------------------------------------------------ */
+.btn-accent {
+    background: var(--accent) !important;
+    color: #0c0c0e !important;
+    border: 1px solid var(--accent) !important;
+    border-radius: 6px !important;
+    box-shadow: none !important;
+    font-weight: 600 !important;
+    transition: filter .12s ease !important;
+    transform: none !important;
+}
+.btn-accent:hover { filter: brightness(1.08); box-shadow: none !important; color: #0c0c0e !important; transform: none !important; }
+.btn-accent:disabled { background: var(--bg4) !important; border-color: var(--bg4) !important; color: var(--fg3) !important; }
+
+.btn-outline-dark {
+    background: transparent !important;
+    border: 1px solid var(--border2) !important;
+    color: var(--fg) !important;
+    border-radius: 6px !important;
+    transition: border-color .12s ease, color .12s ease !important;
+    transform: none !important;
+}
+.btn-outline-dark:hover {
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+    background: transparent !important;
+    transform: none !important;
+}
+
+.btn-danger {
+    background: transparent !important;
+    border: 1px solid var(--red) !important;
+    color: var(--red) !important;
+    border-radius: 6px !important;
+}
+.btn-danger:hover { background: var(--red-dim) !important; color: var(--red) !important; }
+
+.btn-main-600 { background: var(--accent) !important; border-color: var(--accent) !important; color: #0c0c0e !important; border-radius: 6px !important; }
+.btn-outline-light { border-color: var(--border2) !important; color: var(--fg2) !important; border-radius: 6px !important; }
+
+/* ------------------------------------------------------------------ *
+ *  TABLES — hairline ledger rows, mono numerals
+ * ------------------------------------------------------------------ */
+.table-wrap { border: 1px solid var(--border) !important; border-radius: 10px !important; overflow: hidden; }
+.table-dark, .table { border-color: var(--border) !important; }
+.table-dark thead th {
+    background: var(--surface) !important;
+    border-bottom: 1px solid var(--border) !important;
+    color: var(--fg3) !important;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace !important;
+    font-size: 10.5px !important;
+    font-weight: 500 !important;
+    letter-spacing: .1em !important;
+    text-transform: uppercase !important;
+}
+.table-dark tbody td { border-color: var(--border-soft) !important; color: var(--fg) !important; }
+.table-dark tbody tr:last-child td { border-bottom: 0 !important; }
+.table-dark tbody tr:hover td { background: rgba(236, 234, 228, .025) !important; }
+html[data-theme="light"] .table-dark tbody tr:hover td { background: var(--surface-hover) !important; }
+.table tbody tr:hover > * { background-color: rgba(236, 234, 228, .025) !important; }
+html[data-theme="light"] .table tbody tr:hover > * { background-color: var(--surface-hover) !important; }
+
+/* ------------------------------------------------------------------ *
+ *  BADGES — mono micro-labels, hairline outlines (no glow dot)
+ * ------------------------------------------------------------------ */
+.badge-status {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace !important;
+    font-size: 10px !important;
+    font-weight: 500 !important;
+    letter-spacing: .08em !important;
+    text-transform: uppercase !important;
+    border-radius: 4px !important;
+    padding: 3px 8px !important;
+    border: 1px solid var(--border2) !important;
+    background: transparent !important;
+}
+.badge-status::before { display: none !important; }
+.badge-active { color: var(--green) !important; border-color: rgba(182, 230, 0, .35) !important; }
+.badge-pending { color: var(--orange) !important; border-color: rgba(232, 163, 60, .4) !important; }
+.badge-inactive { color: var(--fg3) !important; }
+.badge-danger { color: var(--red) !important; border-color: rgba(229, 96, 79, .4) !important; }
+.badge-info { color: var(--blue) !important; border-color: rgba(92, 159, 214, .4) !important; }
+.badge-accent { color: var(--accent) !important; border-color: var(--border-accent) !important; }
+.badge-platform {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace !important;
+    font-size: 10px !important;
+    letter-spacing: .06em;
+    background: transparent !important;
+    border: 1px solid var(--border2) !important;
+    color: var(--fg2) !important;
+    border-radius: 4px !important;
+}
+
+/* ------------------------------------------------------------------ *
+ *  PLATFORM CARDS — flat tiles, hairline, hover = lit border (no lift)
+ * ------------------------------------------------------------------ */
+.platform-card {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    color: var(--fg) !important;
+    transition: border-color .12s ease, background .12s ease !important;
+}
+.platform-card:hover {
+    border-color: var(--border-accent) !important;
+    background: var(--surface-hover) !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+.platform-card.selected {
+    border-color: var(--border-accent) !important;
+    background: var(--accent-dim) !important;
+}
+.platform-card.selected span, .platform-card.selected { color: var(--fg) !important; }
+
+/* ------------------------------------------------------------------ *
+ *  TABS, ALERTS, MODALS, CKEDITOR — same flat ink
+ * ------------------------------------------------------------------ */
+.tabs-row .tab {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace !important;
+    font-size: 11px !important;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    border: 1px solid var(--border) !important;
+    background: transparent !important;
+    color: var(--fg2) !important;
+    border-radius: 6px !important;
+}
+.tabs-row .tab.active {
+    background: var(--accent-dim) !important;
+    border-color: var(--border-accent) !important;
+    color: var(--accent) !important;
+}
+.tabs-row .tab:hover:not(.active) { color: var(--fg) !important; border-color: var(--border2) !important; }
+
+.nav-pills .nav-link {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--fg2) !important;
+    border-radius: 6px !important;
+}
+.nav-pills .nav-link.active { background: var(--accent-dim) !important; color: var(--accent) !important; }
+.nav-pills .nav-link:hover:not(.active) { color: var(--fg) !important; }
+
+.alert {
+    border-radius: 8px !important;
+    border: 1px solid var(--border) !important;
+    background: var(--surface) !important;
+    color: var(--fg) !important;
+    box-shadow: none !important;
+}
+.alert-success { border-color: rgba(182, 230, 0, .3) !important; color: var(--green) !important; }
+.alert-danger  { border-color: rgba(229, 96, 79, .4) !important; color: var(--red) !important; }
+.alert-warning { border-color: rgba(232, 163, 60, .4) !important; color: var(--orange) !important; }
+.alert-info    { border-color: rgba(92, 159, 214, .35) !important; color: var(--blue) !important; }
+
+.modal-content {
+    background: var(--surface-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    color: var(--fg) !important;
+}
+.modal-header, .modal-footer { border-color: var(--border) !important; }
+.modal-title { color: var(--fg) !important; }
+.ck.ck-editor__editable_inline, .ck.ck-editor__main > .ck-editor__editable {
+    background: var(--bg) !important;
+    color: var(--fg) !important;
+}
+
+/* link color discipline */
+a { color: var(--accent); }
+a:hover { color: var(--accent2); }
+
+/* ------------------------------------------------------------------ *
+ *  RESPONSIVE SAFETY — the legacy inline block keeps its breakpoints;
+ *  this only adds KPI band collapsing and squashes hover-lift noise.
+ * ------------------------------------------------------------------ */
+@media (max-width: 991.98px) {
+    .kpi-band { grid-template-columns: repeat(2, 1fr); }
+    .kpi-band .kpi-cell { border-right: 1px solid var(--border-soft) !important; }
+    .kpi-band .kpi-cell:nth-child(2n) { border-right: 0 !important; }
+    .kpi-band .kpi-cell { border-bottom: 1px solid var(--border-soft) !important; }
+    .kpi-band .kpi-cell:nth-last-child(-n+2) { border-bottom: 0 !important; }
+}
+@media (max-width: 575.98px) {
+    .kpi-band { grid-template-columns: 1fr; }
+    .kpi-band .kpi-cell { border-right: 0 !important; border-bottom: 1px solid var(--border-soft) !important; }
+    .kpi-band .kpi-cell:last-child { border-bottom: 0 !important; }
+    .page-title { font-size: 1.35rem; }
+    /* Ledger tables: scroll horizontally instead of clipping — Date,
+       Verify and Invoice columns must stay reachable on a phone. */
+    .table-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+    .table-wrap table { min-width: 480px; }
+}
+
+/* Kill decorative entrance motion everywhere (reduced-motion + calm) */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+    html { scroll-behavior: auto !important; }
+}
+
+/* =====================================================================
+   PRINT — transactions/invoices print cleanly from the browser
+   ===================================================================== */
+@media print {
+    .sidebar, .topbar, .sidebar-overlay, .notif-dropdown, .currency-dropdown,
+    .user-dropdown, .btn, .btn-accent, .btn-outline-dark { display: none !important; }
+    .main { margin-left: 0 !important; width: 100% !important; }
+    body { background: #fff !important; color: #000 !important; }
+}

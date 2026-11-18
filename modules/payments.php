@@ -709,6 +709,7 @@ class PaymentProcessor
             }
 
             // Generate invoice (best-effort, never breaks crediting)
+            $invoicePath = '';
             try {
                 if (!class_exists('InvoiceGenerator')) {
                     require_once __DIR__ . '/invoice_generator.php';
@@ -717,6 +718,29 @@ class PaymentProcessor
                 db()->update('transactions', ['invoice_path' => $invoicePath], 'id = ?', [$transactionId]);
             } catch (\Throwable $e) {
                 error_log("Invoice generation failed for txn {$transactionId}: " . $e->getMessage());
+            }
+
+            // Email the invoice to the payer (best-effort: a mail failure
+            // must never roll back crediting — the invoice also stays
+            // reachable from Billing → Transaction History).
+            if ($invoicePath !== '') {
+                try {
+                    if (!class_exists('Notifier')) {
+                        require_once __DIR__ . '/notifier.php';
+                    }
+                    $invNumber = (string)($transaction['invoice_number'] ?? ('INV-' . $transactionId));
+                    Notifier::user($userId, 'invoice_ready', [
+                        'invoice_number' => $invNumber,
+                        'amount'          => txn_money($amount, (string)($transaction['currency'] ?? null)),
+                        'payment_method'  => ucfirst((string)($transaction['gateway'] ?? 'wallet')),
+                        'invoice_link'    => BASE_URL . '/invoice?id=' . $transactionId,
+                        'subject'         => 'Invoice ' . $invNumber . ' is ready',
+                        'summary'         => 'Invoice ' . $invNumber . ' for ' . txn_money($amount, (string)($transaction['currency'] ?? null)) . ' was issued for your verified payment.',
+                        'link'            => '/invoice.php?id=' . $transactionId,
+                    ]);
+                } catch (\Throwable $e) {
+                    error_log("Invoice email failed for txn {$transactionId}: " . $e->getMessage());
+                }
             }
 
             return true;

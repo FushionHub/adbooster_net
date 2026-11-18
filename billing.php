@@ -377,6 +377,7 @@ require_once __DIR__ . '/includes/app_header.php';
                             <th style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--fg3);text-align:left;padding:10px 12px;">Amount</th>
                             <th style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--fg3);text-align:left;padding:10px 12px;">Status</th>
                             <th style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--fg3);text-align:left;padding:10px 12px;">Date</th>
+                            <th style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--fg3);text-align:right;padding:10px 12px;">Invoice</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -396,6 +397,18 @@ require_once __DIR__ . '/includes/app_header.php';
                                     <span class="<?= $sClass ?>" style="text-transform:capitalize;"><?= e((string)($t['status'] ?? 'unknown')) ?></span>
                                 </td>
                                 <td style="font-size:13px;color:var(--fg2);padding:10px 12px;"><?= !empty($t['created_at']) ? date('M d, Y H:i', strtotime((string)$t['created_at'])) : '—' ?></td>
+                                <td style="padding:10px 12px;text-align:right;white-space:nowrap;">
+                                    <?php $isPaid = in_array((string)($t['status'] ?? ''), ['successful', 'completed', 'success'], true); ?>
+                                    <?php if ($isPaid): ?>
+                                        <a href="<?= e(url('invoice', ['id' => (int)$t['id']])) ?>" target="_blank" rel="noopener"
+                                           style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--fg2);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px;"
+                                           title="<?= !empty($t['invoice_path']) ? 'Open the invoice for this transaction' : 'Generate and open the invoice for this transaction' ?>">
+                                            <i class="ph ph-file-text" style="font-size:12px;"></i> View
+                                        </a>
+                                    <?php else: ?>
+                                        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--fg3);">—</span>
+                                    <?php endif; ?>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

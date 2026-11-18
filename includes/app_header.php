@@ -31,7 +31,7 @@ $_siteName = get_setting('site_name', 'Adsbooster.net');
 <title><?= e($pageTitle ?? $_siteName) ?></title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;450;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/studio-ui.css">
 <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
@@ -1411,6 +1411,8 @@ body.nav-open { overflow: hidden; touch-action: none; }
 </style>
   <!-- Public form system (shared with the marketing shell) -->
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/forms-pro.css?v=1">
+  <!-- User app design system ("Order Book" user shell) — loaded last, re-skins the legacy inline layer -->
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app-pro.css?v=2">
 <?php if (($_appPage ?? '') === 'pricing-plan'): ?>
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/pricing-pro.css?v=1">
 <?php endif; ?>
