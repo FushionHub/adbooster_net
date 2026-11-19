@@ -103,6 +103,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'status' => $status,
                 ], 'id = ? AND user_id = ?', [$postId, $userId]);
 
+                // Keep the async queue in sync with the edit: a rescheduled
+                // post must move its pending publish job's due time, and a
+                // post switched to cancelled must never dispatch.
+                require_once __DIR__ . '/modules/AsyncQueue.php';
+                if ($status === 'cancelled') {
+                    AsyncQueue::cancelSubject('bundle_publish_post', 'post:' . $postId);
+                } else {
+                    AsyncQueue::rescheduleSubject('bundle_publish_post', 'post:' . $postId, $dbTime);
+                }
+
                 try {
                     require_once __DIR__ . '/modules/notification_service.php';
                     NotificationService::create((int)$userId, 'post', 'Post Updated', 'Your scheduled post for ' . $platform . ' was updated.');

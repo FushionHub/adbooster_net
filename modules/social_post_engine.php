@@ -460,10 +460,20 @@ class SocialPostEngine
             return false;
         }
 
-        return db()->update('scheduled_posts', [
+        $ok = db()->update('scheduled_posts', [
             'scheduled_time' => date('Y-m-d H:i:s', $newTimestamp),
             'status'         => 'scheduled',
             'updated_at'     => date('Y-m-d H:i:s'),
         ], 'id = ? AND status IN (\'scheduled\', \'failed\')', [$postId]) > 0;
+
+        if ($ok) {
+            // The queued dispatch job carries its own due time — move it too,
+            // or the worker still publishes at the ORIGINAL hour.
+            if (!class_exists('AsyncQueue')) {
+                require_once __DIR__ . '/AsyncQueue.php';
+            }
+            AsyncQueue::rescheduleSubject('bundle_publish_post', 'post:' . $postId, date('Y-m-d H:i:s', $newTimestamp));
+        }
+        return $ok;
     }
 }

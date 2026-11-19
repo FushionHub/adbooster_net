@@ -30,6 +30,65 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         redirect(url('agency-portal'));
     }
 
+    if ($action === 'send_approval') {
+        $clientId = (int)($_POST['client_account_id'] ?? 0);
+        $itemType = trim((string)($_POST['item_type'] ?? 'ad_campaign'));
+        $title    = trim((string)($_POST['title'] ?? ''));
+        $notes    = trim((string)($_POST['notes'] ?? ''));
+        $budget   = (float)($_POST['budget'] ?? 0);
+        $platformsRaw = trim((string)($_POST['platforms'] ?? ''));
+
+        $validTypes = ['ad_campaign', 'social_post', 'ugc_video', 'report'];
+
+        // The client must belong to THIS agency — never trust the posted id.
+        $client = db()->fetchOne(
+            "SELECT id, client_name, client_company FROM agency_client_accounts WHERE id = ? AND agency_user_id = ?",
+            [$clientId, $userId]
+        );
+
+        if (!$client) {
+            set_flash('error', 'Client account not found for your agency.');
+            redirect(url('agency-portal'));
+        }
+        if ($title === '') {
+            set_flash('error', 'Give the deliverable a title before sending it for approval.');
+            redirect(url('agency-portal'));
+        }
+        if (!in_array($itemType, $validTypes, true)) {
+            set_flash('error', 'Invalid deliverable type.');
+            redirect(url('agency-portal'));
+        }
+
+        $platforms = [];
+        foreach (explode(',', $platformsRaw) as $p) {
+            $p = trim($p);
+            if ($p !== '') {
+                $platforms[] = $p;
+            }
+        }
+
+        $preview = [
+            'budget'    => $budget > 0 ? $budget : null,
+            'platforms' => $platforms,
+            'notes'     => $notes,
+            'sent_at'   => date('c'),
+        ];
+
+        $approvalId = AgencyEngine::createApprovalItem($userId, $clientId, [
+            'item_type'    => $itemType,
+            'item_id'      => null,
+            'title'        => $title,
+            'preview_data' => $preview,
+        ]);
+
+        if ($approvalId > 0) {
+            set_flash('success', "Sent to {$client['client_name']} for approval (item #{$approvalId}).");
+        } else {
+            set_flash('error', 'Could not create the approval item. Please try again.');
+        }
+        redirect(url('agency-portal'));
+    }
+
     if ($action === 'update_branding') {
         $portalName = trim($_POST['portal_name'] ?? 'Agency');
         $primaryColor = trim($_POST['brand_primary_color'] ?? '#c8ff00');
@@ -51,6 +110,18 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 // Fetch all agency clients
 $clients = db()->fetchAll("SELECT * FROM agency_client_accounts WHERE agency_user_id = ? ORDER BY id DESC", [$userId]);
 $totalRetainer = array_sum(array_map(fn($c) => (float)$c['monthly_retainer'], $clients));
+
+// Approval pipeline — the deliverables this agency has sent to clients.
+$approvals = db()->fetchAll(
+    "SELECT a.*, c.client_name, c.client_company
+     FROM agency_client_approvals a
+     LEFT JOIN agency_client_accounts c ON c.id = a.client_account_id
+     WHERE a.agency_user_id = ?
+     ORDER BY a.created_at DESC LIMIT 50",
+    [$userId]
+);
+$pendingApprovals  = count(array_filter($approvals, static fn($a) => $a['approval_status'] === 'pending'));
+$approvedApprovals = count(array_filter($approvals, static fn($a) => $a['approval_status'] === 'approved'));
 
 require_once __DIR__ . '/includes/app_header.php';
 ?>
@@ -75,6 +146,11 @@ require_once __DIR__ . '/includes/app_header.php';
         <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modal-branding">
           <i class="ph ph-paint-brush me-1"></i> Whitelabel Branding
         </button>
+        <?php if (!empty($clients)): ?>
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modal-send-approval">
+          <i class="ph ph-paper-plane-tilt me-1"></i> Send for Approval
+        </button>
+        <?php endif; ?>
         <button type="button" class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#modal-add-client">
           <i class="ph ph-user-plus me-1"></i> Add Client Account
         </button>
@@ -168,6 +244,77 @@ require_once __DIR__ . '/includes/app_header.php';
       <?php endif; ?>
     </div>
 
+    <!-- Approval Pipeline -->
+    <div class="card border-0 bg-surface-card rounded-4 p-4 shadow-sm mb-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <h5 class="fw-bold mb-1 text-white">Approval Pipeline</h5>
+          <small class="text-secondary">Deliverables sent to clients for review, and their decisions.</small>
+        </div>
+        <div class="d-flex gap-3">
+          <span class="badge bg-warning-subtle text-warning px-3 py-2 rounded-pill fw-bold"><?= (int)$pendingApprovals ?> Pending</span>
+          <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill fw-bold"><?= (int)$approvedApprovals ?> Approved</span>
+        </div>
+      </div>
+
+      <?php if (empty($approvals)): ?>
+      <div class="text-center py-5 border border-dashed rounded-4 border-secondary border-opacity-25">
+        <i class="ph ph-paper-plane-tilt fs-1 text-secondary mb-2 d-block"></i>
+        <h6 class="fw-semibold text-white">No deliverables sent yet</h6>
+        <p class="text-secondary small mb-3">Send a campaign, creative or report to a client and their decision appears here.</p>
+        <?php if (!empty($clients)): ?>
+        <button type="button" class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#modal-send-approval">
+          <i class="ph ph-paper-plane-tilt me-1"></i> Send First Deliverable
+        </button>
+        <?php endif; ?>
+      </div>
+      <?php else: ?>
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0">
+          <thead>
+            <tr class="text-secondary small">
+              <th>Deliverable</th>
+              <th>Client</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Sent</th>
+              <th>Client Feedback</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($approvals as $ap): ?>
+            <?php
+              $apStatus = (string)$ap['approval_status'];
+              $apBadge  = match ($apStatus) {
+                  'approved'          => 'bg-success-subtle text-success',
+                  'rejected_revision' => 'bg-danger-subtle text-danger',
+                  default             => 'bg-warning-subtle text-warning',
+              };
+              $apLabel  = $apStatus === 'rejected_revision' ? 'Changes Requested' : ucfirst($apStatus);
+            ?>
+            <tr>
+              <td>
+                <span class="fw-semibold text-white d-block"><?= e($ap['title']) ?></span>
+                <small class="text-secondary">#<?= (int)$ap['id'] ?></small>
+              </td>
+              <td class="text-secondary small">
+                <?= e($ap['client_name'] ?? 'Unknown client') ?>
+                <?php if (!empty($ap['client_company'])): ?>
+                  <small class="text-secondary d-block"><?= e($ap['client_company']) ?></small>
+                <?php endif; ?>
+              </td>
+              <td class="text-secondary small"><?= ucwords(str_replace('_', ' ', e($ap['item_type']))) ?></td>
+              <td><span class="badge <?= $apBadge ?>"><?= e($apLabel) ?></span></td>
+              <td class="text-secondary small font-monospace"><?= !empty($ap['created_at']) ? date('M d, Y H:i', strtotime((string)$ap['created_at'])) : '—' ?></td>
+              <td class="text-secondary small"><?= !empty($ap['client_feedback']) ? e($ap['client_feedback']) : '—' ?></td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+      <?php endif; ?>
+    </div>
+
   </div>
 </div>
 
@@ -203,6 +350,65 @@ require_once __DIR__ . '/includes/app_header.php';
         <div class="modal-footer border-secondary border-opacity-25">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
           <button type="submit" class="btn btn-primary fw-bold">Create Client & Generate Magic Link</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Send Deliverable for Approval -->
+<div class="modal fade" id="modal-send-approval" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-surface-card text-white border border-secondary border-opacity-25 rounded-4">
+      <form method="POST">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="send_approval">
+        <div class="modal-header border-secondary border-opacity-25">
+          <h5 class="modal-title fw-bold">Send Deliverable for Approval</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label small text-secondary">Client Account</label>
+            <select name="client_account_id" class="form-select" required>
+              <?php foreach ($clients as $cl): ?>
+                <option value="<?= (int)$cl['id'] ?>">
+                  <?= e($cl['client_name']) ?><?= !empty($cl['client_company']) ? ' — ' . e($cl['client_company']) : '' ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-secondary">Deliverable Type</label>
+            <select name="item_type" class="form-select" required>
+              <option value="ad_campaign">Ad Campaign</option>
+              <option value="social_post">Social Post</option>
+              <option value="ugc_video">UGC Video</option>
+              <option value="report">Performance Report</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-secondary">Title</label>
+            <input type="text" name="title" class="form-control" placeholder="e.g. Q4 Meta + TikTok Scaling Campaign" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-secondary">Monthly Budget ($ USD, optional)</label>
+            <input type="number" step="0.01" name="budget" class="form-control" placeholder="2500.00">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-secondary">Platforms (comma separated, optional)</label>
+            <input type="text" name="platforms" class="form-control" placeholder="Meta, TikTok, Google Ads">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-secondary">Notes for the client (optional)</label>
+            <textarea name="notes" rows="3" class="form-control" placeholder="What you want the client to review: objective, creative direction, expected KPIs..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-secondary border-opacity-25">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary fw-bold">
+            <i class="ph ph-paper-plane-tilt me-1"></i> Send to Client
+          </button>
         </div>
       </form>
     </div>

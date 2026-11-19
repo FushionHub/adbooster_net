@@ -58,7 +58,10 @@ class AgencyEngine
         return [
             'id' => $clientId,
             'access_token' => $token,
-            'magic_link' => BASE_URL . '/client-approval.php?token=' . $token
+            // Path form (/client-approval/<token>): the .php?token= form is
+            // 301-redirected by .htaccess, and a 301 turns the client's
+            // approval POST into a GET — which silently drops the decision.
+            'magic_link' => url('client-approval', ['token' => $token])
         ];
     }
 

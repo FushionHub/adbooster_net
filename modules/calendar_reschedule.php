@@ -84,6 +84,14 @@ db()->update('scheduled_posts', [
     'updated_at'     => date('Y-m-d H:i:s'),
 ], 'id = ?', [$postId]);
 
+// Keep the queued dispatch job in sync: the worker publishes when the JOB
+// becomes due, so the job's due time must follow the new slot (otherwise
+// the post still goes out at the original hour).
+if (!class_exists('AsyncQueue')) {
+    require_once __DIR__ . '/../modules/AsyncQueue.php';
+}
+AsyncQueue::rescheduleSubject('bundle_publish_post', 'post:' . $postId, date('Y-m-d H:i:s', $newTimestamp));
+
 echo json_encode([
     'message'       => 'Post rescheduled successfully.',
     'post_id'       => $postId,

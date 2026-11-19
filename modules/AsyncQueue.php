@@ -155,6 +155,35 @@ class AsyncQueue
     }
 
     /**
+     * Move the due time of queued jobs for a subject — used when the owning
+     * record is rescheduled by the user. Only 'pending' jobs are moved: a
+     * 'processing' job is already executing, and 'failed' jobs are re-pushed
+     * by the publish cron safety net once the row comes due again. Without
+     * this, a rescheduled post still publishes at its ORIGINAL time because
+     * the queue job kept the old due timestamp.
+     *
+     * @return int Number of jobs moved.
+     */
+    public static function rescheduleSubject(string $jobType, string $subjectKey, string $newScheduledAt): int
+    {
+        $ts = strtotime($newScheduledAt);
+        if ($ts === false) {
+            return 0;
+        }
+        try {
+            return db()->update(
+                'async_job_queue',
+                ['scheduled_at' => date('Y-m-d H:i:s', $ts)],
+                "job_type = ? AND subject_key = ? AND status = 'pending'",
+                [$jobType, $subjectKey]
+            );
+        } catch (\Throwable $e) {
+            error_log('AsyncQueue::rescheduleSubject: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
      * Cancel queued/processing jobs for a subject (used when a local record
      * is deleted/cancelled before the worker executes it).
      *

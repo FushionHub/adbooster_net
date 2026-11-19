@@ -432,19 +432,26 @@ Add the following production schedule:
 # 1. Publish due scheduled posts via Bundle.social Gateway (runs every minute)
 * * * * * php /var/www/seopp/cron/publish_scheduled_posts.php >> /var/log/adsbooster_cron.log 2>&1
 
-# 2. Ingest real-time campaign performance metrics from Zernio Ads Gateway (hourly)
+# 2. Async queue worker — EXECUTES every queued gateway job: organic post
+#    dispatch, campaign launch/pause, conversion events (runs every minute).
+#    Without this entry NOTHING external ever executes: no scheduled post is
+#    published, no paid campaign launches, and queued jobs sit in
+#    async_job_queue forever.
+* * * * * php /var/www/seopp/cron/queue_worker.php --once >> /var/log/adsbooster_cron.log 2>&1
+
+# 3. Ingest real-time campaign performance metrics from Zernio Ads Gateway (hourly)
 0 * * * * php /var/www/seopp/cron/pull_campaign_metrics.php >> /var/log/adsbooster_cron.log 2>&1
 
-# 3. Autonomous AI Media Buyer & Anti-Burn Kill-Switch daemon (every 15 minutes)
+# 4. Autonomous AI Media Buyer & Anti-Burn Kill-Switch daemon (every 15 minutes)
 */15 * * * * php /var/www/seopp/cron/auto_buyer_daemon.php >> /var/log/adsbooster_cron.log 2>&1
 
-# 4. Campaign Doctor — Health analysis & safe autopilot optimizations (daily at 03:00 UTC)
+# 5. Campaign Doctor — Health analysis & safe autopilot optimizations (daily at 03:00 UTC)
 0 3 * * * php /var/www/seopp/cron/campaign_doctor.php >> /var/log/adsbooster_cron.log 2>&1
 
-# 5. A/B Split Test Winner Evaluation & budget reallocation (daily at 04:00 UTC)
+# 6. A/B Split Test Winner Evaluation & budget reallocation (daily at 04:00 UTC)
 0 4 * * * php /var/www/seopp/cron/ab_test_winner.php >> /var/log/adsbooster_cron.log 2>&1
 
-# 6. Check wallet auto-refill thresholds and notifications (hourly at :30)
+# 7. Check wallet auto-refill thresholds and notifications (hourly at :30)
 30 * * * * php /var/www/seopp/cron/auto_refill_check.php >> /var/log/adsbooster_cron.log 2>&1
 ```
 

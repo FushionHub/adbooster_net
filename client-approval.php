@@ -21,16 +21,49 @@ $approvals = db()->fetchAll("SELECT * FROM agency_client_approvals WHERE client_
 // Handle Client Action (Approve / Request Revision)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['approval_id']) && csrf_verify()) {
     $approvalId = (int)$_POST['approval_id'];
-    $clientAction = $_POST['client_action'] ?? 'approved';
-    $feedback = trim($_POST['client_feedback'] ?? '');
+    $clientAction = (string)($_POST['client_action'] ?? 'approved');
+    $feedback = trim((string)($_POST['client_feedback'] ?? ''));
 
-    db()->update('agency_client_approvals', [
+    // Only the two real decisions are storable (the column is an ENUM).
+    if (!in_array($clientAction, ['approved', 'rejected_revision'], true)) {
+        set_flash('error', 'Invalid approval action.');
+        redirect(url('client-approval', ['token' => $token]));
+    }
+
+    $updated = db()->update('agency_client_approvals', [
         'approval_status' => $clientAction,
         'client_feedback' => $feedback,
         'approved_at' => $clientAction === 'approved' ? date('Y-m-d H:i:s') : null
     ], 'id = ? AND client_account_id = ?', [$approvalId, (int)$client['id']]);
 
-    set_flash('success', $clientAction === 'approved' ? 'Campaign draft approved successfully! Agency notified.' : 'Revision feedback submitted to agency.');
+    if ($updated > 0) {
+        // Tell the agency what the client decided — the success message
+        // below promises this, so it has to actually happen.
+        try {
+            require_once __DIR__ . '/modules/notifier.php';
+            $apRow = db()->fetchOne("SELECT title FROM agency_client_approvals WHERE id = ?", [$approvalId]);
+            $apTitle = (string)($apRow['title'] ?? 'Deliverable');
+            Notifier::inApp(
+                $agencyId,
+                'agency_approval',
+                $clientAction === 'approved'
+                    ? 'Client approved: ' . $apTitle
+                    : 'Client requested changes: ' . $apTitle,
+                $clientAction === 'approved'
+                    ? $client['client_name'] . ' approved the deliverable.'
+                    : ($feedback !== ''
+                        ? $client['client_name'] . ' requested changes: ' . mb_substr($feedback, 0, 300)
+                        : $client['client_name'] . ' requested changes.'),
+                '/agency-portal.php'
+            );
+        } catch (\Throwable $e) {
+            error_log('Agency approval notification failed: ' . $e->getMessage());
+        }
+    }
+
+    set_flash('success', $clientAction === 'approved'
+        ? 'Deliverable approved successfully — the agency has been notified.'
+        : 'Revision feedback submitted to the agency.');
     redirect(url('client-approval', ['token' => $token]));
 }
 
@@ -89,50 +122,52 @@ $primaryColor = $portal['brand_primary_color'] ?? '#c8ff00';
   </h5>
 
   <?php if (empty($approvals)): ?>
-  <!-- Sample Demo Approval for Fresh Client Link -->
-  <div class="card bg-surface-card rounded-4 p-4 mb-4">
-    <div class="d-flex justify-content-between align-items-start mb-3">
-      <div>
-        <span class="badge bg-primary-subtle text-primary mb-2">Omnichannel Ad Campaign & UGC Package</span>
-        <h5 class="fw-bold text-white mb-1">Q4 High-Growth Scaling Campaign (Meta + TikTok + Google)</h5>
-        <small class="text-secondary">Budget: $2,500.00 / month &bull; Target ROAS: 3.5x</small>
-      </div>
-      <span class="badge bg-warning-subtle text-warning px-3 py-2 rounded-pill fw-bold">Awaiting Your Review</span>
-    </div>
-
-    <div class="p-3 rounded-3 bg-dark border border-secondary border-opacity-25 mb-4">
-      <h6 class="fw-bold small text-white mb-2">Campaign Strategy & Assets:</h6>
-      <ul class="text-secondary small mb-0 ps-3">
-        <li>3x Photorealistic AI UGC Video Creatives (9:16 Vertical format)</li>
-        <li>14x Scheduled Multi-Network Organic Posts</li>
-        <li>Autonomous 24/7 Anti-Burn CPA Protection armed at <?= price_fmt(25.00) ?></li>
-      </ul>
-    </div>
-
-    <!-- Client Approval Buttons -->
-    <div class="d-flex flex-wrap gap-2">
-      <button class="btn btn-brand px-4 py-2" onclick="alert('Thank you! Deliverable marked as 100% Approved.');">
-        <i class="ph ph-check-circle me-1"></i> 1-Click Approve & Launch
-      </button>
-      <button class="btn btn-outline-secondary px-4 py-2" onclick="prompt('Please provide your revision notes for the agency:'); alert('Revision feedback dispatched to agency team.');">
-        <i class="ph ph-pencil-simple me-1"></i> Request Revision
-      </button>
-    </div>
+  <!-- Honest empty state: nothing has been sent for review yet. -->
+  <div class="card bg-surface-card rounded-4 p-5 mb-4 text-center">
+    <i class="ph ph-inbox fs-1 text-secondary mb-2 d-block"></i>
+    <h5 class="fw-bold text-white mb-1">Nothing awaiting your review</h5>
+    <p class="text-secondary small mb-0">When your agency sends a campaign, creative or performance report for approval, it will appear here for review.</p>
   </div>
   <?php else: ?>
     <?php foreach ($approvals as $ap): ?>
+    <?php
+      $preview = json_decode((string)($ap['preview_data'] ?? '{}'), true);
+      $preview = is_array($preview) ? $preview : [];
+      $apStatus = (string)$ap['approval_status'];
+    ?>
     <div class="card bg-surface-card rounded-4 p-4 mb-3">
       <div class="d-flex justify-content-between align-items-start mb-2">
         <div>
           <span class="badge bg-info-subtle text-info mb-1"><?= ucwords(str_replace('_', ' ', e($ap['item_type']))) ?></span>
           <h5 class="fw-bold text-white mb-0"><?= e($ap['title']) ?></h5>
+          <?php if (!empty($preview['budget'])): ?>
+            <small class="text-secondary">Budget: <?= price_fmt((float)$preview['budget']) ?> / month</small>
+          <?php endif; ?>
         </div>
-        <span class="badge <?= $ap['approval_status'] === 'approved' ? 'bg-success' : 'bg-warning text-dark' ?>">
-          <?= strtoupper(e($ap['approval_status'])) ?>
+        <span class="badge <?= $apStatus === 'approved' ? 'bg-success' : ($apStatus === 'rejected_revision' ? 'bg-danger text-white' : 'bg-warning text-dark') ?>">
+          <?= $apStatus === 'rejected_revision' ? 'CHANGES REQUESTED' : strtoupper(e($apStatus)) ?>
         </span>
       </div>
-      <?php if ($ap['approval_status'] === 'pending'): ?>
-      <form method="POST" class="mt-3">
+
+      <?php if (!empty($preview['platforms']) || !empty($preview['notes'])): ?>
+      <div class="p-3 rounded-3 bg-dark border border-secondary border-opacity-25 mb-3">
+        <?php if (!empty($preview['platforms'])): ?>
+          <h6 class="fw-bold small text-white mb-1">Channels</h6>
+          <p class="text-secondary small mb-2"><?= e(implode(' · ', array_map('strval', (array)$preview['platforms']))) ?></p>
+        <?php endif; ?>
+        <?php if (!empty($preview['notes'])): ?>
+          <h6 class="fw-bold small text-white mb-1">Brief</h6>
+          <p class="text-secondary small mb-0"><?= nl2br(e((string)$preview['notes'])) ?></p>
+        <?php endif; ?>
+      </div>
+      <?php endif; ?>
+
+      <?php if (!empty($ap['client_feedback'])): ?>
+        <p class="text-secondary small mb-0"><i class="ph ph-chat-circle-dots me-1"></i><em>Your feedback:</em> <?= e($ap['client_feedback']) ?></p>
+      <?php endif; ?>
+
+      <?php if ($apStatus === 'pending'): ?>
+      <form method="POST" action="<?= e(url('client-approval', ['token' => $token])) ?>" class="mt-3">
         <?= csrf_field() ?>
         <input type="hidden" name="approval_id" value="<?= $ap['id'] ?>">
         <div class="mb-3">

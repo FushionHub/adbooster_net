@@ -121,8 +121,18 @@ class ContentCalendar
                  WHERE id = ? AND status IN ('scheduled', 'pending')"
             );
             $stmt->execute([$newTime, $postId]);
+            $rescheduled = $stmt->rowCount() > 0;
 
-            return $stmt->rowCount() > 0;
+            if ($rescheduled) {
+                // Sync the queued dispatch job's due time with the new slot
+                // (the worker publishes when the JOB is due, not the row).
+                if (!class_exists('AsyncQueue')) {
+                    require_once __DIR__ . '/AsyncQueue.php';
+                }
+                AsyncQueue::rescheduleSubject('bundle_publish_post', 'post:' . (int)$postId, $newTime);
+            }
+
+            return $rescheduled;
         } catch (Exception $e) {
             error_log("ContentCalendar::rescheduleEvent Error: " . $e->getMessage());
             throw $e;

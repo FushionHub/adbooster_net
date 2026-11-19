@@ -117,8 +117,15 @@ class AutoBuyerEngine
             $campaigns = db()->fetchAll($campSql, $campParams);
 
             foreach ($campaigns as $camp) {
-                // Fetch daily metrics or simulate current performance metrics
+                // Fetch daily metrics (real observed data only)
                 $metrics = self::getCampaignCalculatedMetrics((int)$camp['id']);
+
+                // Skip campaigns with no observed performance data: acting on
+                // all-zero (or previously, fabricated) numbers would make
+                // budget/pause decisions from nothing.
+                if ((int)$metrics['impressions'] === 0 && (float)$metrics['spend'] === 0.0) {
+                    continue;
+                }
 
                 $triggered = self::checkCondition(
                     $rule['condition_metric'],
@@ -153,11 +160,17 @@ class AutoBuyerEngine
             [$campaignId]
         );
 
-        $imp = (int)($metricRow['imp'] ?? 1500);
-        $clk = (int)($metricRow['clk'] ?? 45);
-        $spend = (float)($metricRow['total_spend'] ?? 65.00);
-        $conv = (int)($metricRow['conv'] ?? 2);
-        $rev = (float)($metricRow['rev'] ?? 195.00);
+        // HONEST METRICS — no fabricated fallbacks. The old defaults
+        // (1500 impressions, 45 clicks, $65 spend, 2 conversions, $195
+        // revenue) invented performance for campaigns with no data and let
+        // the daemon pause real campaigns on a fabricated CPA of $32.50.
+        // With no observed data every metric is a truthful zero, and
+        // evaluateAllRules() skips those campaigns entirely.
+        $imp = (int)($metricRow['imp'] ?? 0);
+        $clk = (int)($metricRow['clk'] ?? 0);
+        $spend = (float)($metricRow['total_spend'] ?? 0.0);
+        $conv = (int)($metricRow['conv'] ?? 0);
+        $rev = (float)($metricRow['rev'] ?? 0.0);
 
         $ctr = $imp > 0 ? ($clk / $imp) * 100 : 0.0;
         $cpa = $conv > 0 ? ($spend / $conv) : $spend;
@@ -172,7 +185,7 @@ class AutoBuyerEngine
             'ctr' => round($ctr, 2),
             'cpa' => round($cpa, 2),
             'roas' => round($roas, 2),
-            'frequency' => 1.4
+            'frequency' => 0.0
         ];
     }
 
