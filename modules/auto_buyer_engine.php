@@ -10,6 +10,15 @@ require_once __DIR__ . '/ThirdPartyGateway.php';
 
 class AutoBuyerEngine
 {
+    /** One action per rule per window: without it a persistently-true
+     *  condition (e.g. roas >= 3) compounds the budget every daemon cycle. */
+    private const ACTION_COOLDOWN_SECONDS = 3600;
+
+    /** Hard budget clamps for scale/reduce actions (USD, the canonical
+     *  campaign budget currency) — runaway compounding can never push a
+     *  budget into absurd territory. */
+    private const MAX_BUDGET_USD = 1000.00;
+    private const MIN_BUDGET_USD = 1.00;
     /**
      * Get default anti-burn kill switch rules template
      */
@@ -135,6 +144,13 @@ class AutoBuyerEngine
                 );
 
                 if ($triggered) {
+                    // Cooldown window: skip if this rule already fired recently.
+                    $lastTriggered = (string)($rule['last_triggered_at'] ?? '');
+                    if ($lastTriggered !== '' && strtotime($lastTriggered) !== false
+                        && (time() - (int)strtotime($lastTriggered)) < self::ACTION_COOLDOWN_SECONDS) {
+                        continue;
+                    }
+
                     $actionResult = self::executeAction($camp, $rule, $metrics);
                     $executedLogs[] = $actionResult;
 
@@ -261,20 +277,67 @@ class AutoBuyerEngine
                 )
                 : 0;
 
-            $details = "Auto-paused campaign '{$campaign['campaign_name']}' because {$rule['condition_metric']} exceeded threshold."
-                . ($pauseJobId > 0 ? " Zernio pause job #{$pauseJobId} queued (status applied on gateway confirmation)." : "");
-        } elseif ($action === 'scale_budget_pct') {
-            $pct = (float)$rule['action_value'];
-            $newBudget = (float)$campaign['budget_amount'] * (1 + ($pct / 100));
-            db()->update('ad_campaigns', ['budget_amount' => $newBudget], 'id = ?', [(int)$campaign['id']]);
-            $details = "Scaled budget by +{$pct}% to \${$newBudget} on campaign '{$campaign['campaign_name']}'.";
-        } elseif ($action === 'reduce_budget_pct') {
-            $pct = (float)$rule['action_value'];
-            $newBudget = (float)$campaign['budget_amount'] * (1 - ($pct / 100));
-            db()->update('ad_campaigns', ['budget_amount' => $newBudget], 'id = ?', [(int)$campaign['id']]);
-            $details = "Reduced budget by -{$pct}% to \${$newBudget} on campaign '{$campaign['campaign_name']}'.";
+            $details = "Pause rule matched '{$campaign['campaign_name']}' because {$rule['condition_metric']} exceeded threshold. "
+                . ($pauseJobId > 0
+                    ? "Zernio pause job #{$pauseJobId} queued (local status flips on gateway confirmation)."
+                    : "No live Zernio campaign id — nothing was queued or changed.");
+        } elseif ($action === 'scale_budget_pct' || $action === 'reduce_budget_pct') {
+            $pct  = max(0.0, min(100.0, abs((float)$rule['action_value'])));
+            $sign = $action === 'scale_budget_pct' ? 1.0 : -1.0;
+            $newBudget = round((float)$campaign['budget_amount'] * (1 + $sign * ($pct / 100)), 2);
+            // Hard clamps: the daemon runs every 15 minutes; a persistently
+            // true rule must never compound a budget past sane limits.
+            $newBudget = min(self::MAX_BUDGET_USD, max(self::MIN_BUDGET_USD, $newBudget));
+
+            if (abs($newBudget - (float)$campaign['budget_amount']) < 0.01) {
+                $details = "Budget rule matched '{$campaign['campaign_name']}' but the computed budget (" . number_format($newBudget, 2)
+                    . " USD) is clamped at the " . number_format(self::MIN_BUDGET_USD, 2) . '/'
+                    . number_format(self::MAX_BUDGET_USD, 2) . " USD limits — nothing was changed.";
+            } elseif (empty($campaign['zernio_campaign_id'])) {
+                $details = "Budget rule matched '{$campaign['campaign_name']}' but skipped: the campaign has no live Zernio id (still pending launch) — nothing was changed.";
+            } else {
+                // Budget changes route through the Zernio queue like every
+                // other paid-platform mutation: the local row updates only
+                // on gateway confirmation (Zernio is the spend source of
+                // truth). The old code edited the local row only, so the
+                // live campaign kept its old budget forever.
+                if (!class_exists('AsyncQueue')) {
+                    require_once __DIR__ . '/AsyncQueue.php';
+                }
+                $budgetJobId = AsyncQueue::push(
+                    (int)$campaign['user_id'],
+                    'zernio_set_budget',
+                    [
+                        'internal_campaign_id' => (int)$campaign['id'],
+                        'zernio_campaign_id'   => (string)$campaign['zernio_campaign_id'],
+                        'new_budget_usd'       => $newBudget,
+                    ],
+                    null,
+                    'campaign-budget:' . (int)$campaign['id']
+                );
+                $details = ($action === 'scale_budget_pct' ? 'Scale +' : 'Reduce -') . $pct
+                    . '% → ' . number_format($newBudget, 2) . " USD on '{$campaign['campaign_name']}': "
+                    . ($budgetJobId > 0
+                        ? "Zernio budget job #{$budgetJobId} queued (local budget updates on gateway confirmation)."
+                        : "budget job could NOT be queued — nothing was changed.");
+            }
         } elseif ($action === 'trigger_creative_refresh') {
-            $details = "Creative refresh notification queued for campaign '{$campaign['campaign_name']}'.";
+            // A REAL in-app notification — the old code logged "notification
+            // queued" while queuing nothing.
+            try {
+                require_once __DIR__ . '/notification_service.php';
+                NotificationService::create(
+                    (int)$campaign['user_id'],
+                    'campaign',
+                    'Creative refresh recommended',
+                    "Rule '{$rule['rule_name']}' flagged campaign '{$campaign['campaign_name']}' — refresh the creative to counter fatigue.",
+                    '/edit-campaign.php?id=' . (int)$campaign['id']
+                );
+                $details = "Creative-refresh recommendation delivered as an in-app notification for campaign '{$campaign['campaign_name']}'.";
+            } catch (\Throwable $notifyErr) {
+                error_log('auto_buyer creative-refresh notification failed: ' . $notifyErr->getMessage());
+                $details = "Creative refresh was recommended for '{$campaign['campaign_name']}' but the in-app notification could not be delivered.";
+            }
         } else {
             $details = "Notification alert dispatched: {$rule['rule_name']}";
         }

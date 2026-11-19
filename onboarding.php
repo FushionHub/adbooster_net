@@ -37,7 +37,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'connect_bundle') {
     $platform = strtolower(trim((string)($_GET['platform'] ?? '')));
     $authUrl  = ThirdPartyGateway::getBundleConnectUrl($userId, $platform, 'onboarding.php');
     if ($authUrl === '') {
-        set_flash('error', 'Bundle.social could not start the connection (gateway key or connectivity issue). Check the gateway settings and try again.');
+        set_flash('error', 'The organic connection could not start — ' . (ThirdPartyGateway::lastConnectFailure() ?? 'gateway key or connectivity issue') . '. Check the gateway settings and try again.');
         redirect(url('onboarding', ['step' => 1]));
     }
     header('Location: ' . $authUrl);
@@ -48,7 +48,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'connect_zernio') {
     $network = strtolower(trim((string)($_GET['platform'] ?? '')));
     $authUrl = ThirdPartyGateway::getZernioAdConnectUrl($userId, $network, 'onboarding.php');
     if ($authUrl === '') {
-        set_flash('error', 'Zernio could not start the ads connection (gateway key or connectivity issue). Check the gateway settings and try again.');
+        set_flash('error', 'The ad-account connection could not start — ' . (ThirdPartyGateway::lastConnectFailure() ?? 'gateway key or connectivity issue') . '. Check the gateway settings and try again.');
         redirect(url('onboarding', ['step' => 1]));
     }
     header('Location: ' . $authUrl);
@@ -199,6 +199,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $step = max(1, $step - 1);
         } elseif ($action === 'complete') {
             db()->update('users', ['onboarding_completed' => 1], 'id = ?', [$userId]);
+            // The Quick Guide gate (app_footer) reads onboarding_completed and
+            // fires on the very next page unless this is set — completing the
+            // wizard must not unlock a SECOND welcome popup.
+            $_SESSION['quick_guide_seen'] = 1;
             redirect(url('dashboard'));
         }
     }
@@ -265,7 +269,8 @@ $businessPlatforms = [
                                 </form>
                             <?php else: ?>
                                 <a href="<?= e($connectHref) ?>" class="badge bg-main-600 bg-opacity-15 text-main-600 rounded-pill tw-px-3 tw-py-1 tw-text-xs text-decoration-none"
-                                   title="Connect <?= e($p['label']) ?> via the real <?= $p['gateway'] === 'zernio' ? 'Zernio Ad Gateway' : 'Bundle.social' ?> OAuth flow">Connect</a>
+                                   title="Connect <?= e($p['label']) ?> via the real <?= $p['gateway'] === 'zernio' ? 'Zernio Ad Gateway' : 'Bundle.social' ?> OAuth flow"
+                                   onclick="return confirm('You will now be taken to the network sign-in page. Sign in and approve there — you will return here automatically and the connection will be verified. Continue?')">Connect</a>
                             <?php endif; ?>
                         </div>
                     </div>

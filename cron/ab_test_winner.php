@@ -145,7 +145,7 @@ try {
                     $winner['ctr'],
                     $winner['cpc']
                 ),
-                'link'       => "/campaigns/{$campaign['id']}",
+                'link'       => "/dashboard#campaigns",
                 'is_read'    => 0,
                 'created_at' => date('Y-m-d H:i:s'),
             ]);

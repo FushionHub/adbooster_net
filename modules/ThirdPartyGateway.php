@@ -49,6 +49,41 @@ class ThirdPartyGateway
     /** Per-request Bundle team cache (server-side persisted; resolved lazily). */
     private static ?string $bundleTeamId = null;
 
+    /** Human-readable reason the last connect-URL build refused (null when none). */
+    private static ?string $lastConnectFailure = null;
+
+    /** Why did the last getBundleConnectUrl/getZernioAdConnectUrl call return ''? */
+    public static function lastConnectFailure(): ?string
+    {
+        return self::$lastConnectFailure;
+    }
+
+    private static function recordConnectFailure(string $reason): void
+    {
+        self::$lastConnectFailure = $reason;
+        error_log('ThirdPartyGateway connect failure: ' . $reason);
+    }
+
+    /**
+     * Health of both gateway journeys for status displays (mode = live/sandbox).
+     */
+    public static function connectionHealth(): array
+    {
+        $health = [];
+        foreach (['bundle_social', 'zernio'] as $provider) {
+            try {
+                $key = (string)(self::getGatewayConfig($provider)['api_key'] ?? '');
+            } catch (\Throwable $e) {
+                $key = '';
+            }
+            $health[$provider] = [
+                'mode'       => ($key !== '' && !self::isPlaceholderKey($key)) ? 'live' : 'sandbox',
+                'key_masked' => $key !== '' ? substr($key, 0, 4) . '…' . substr($key, -4) : '(not configured)',
+            ];
+        }
+        return $health;
+    }
+
     /**
      * Retrieve credentials for third-party gateways from MySQL or config fallbacks
      */
@@ -481,8 +516,11 @@ class ThirdPartyGateway
     }
 
     /**
-     * Issue a signed, single-use, 15-minute connect state for one gateway journey.
+     * Issue a signed, single-use, 60-minute connect state for one gateway journey.
      * Format: {userId}.{platform}.{expiry}.{nonce}.{hmac}
+     *
+     * 60 minutes (raised from 15): slow social sign-ins are the norm, and an
+     * expired state reads to the user as "the connection is broken".
      */
     public static function issueGatewayState(string $provider, int $userId, string $platform): string
     {
@@ -501,7 +539,7 @@ class ThirdPartyGateway
         }
 
         $nonce   = bin2hex(random_bytes(8));
-        $exp     = time() + 900;
+        $exp     = time() + 3600;
         $payload = $provider . '|' . $userId . '|' . $platform . '|' . $exp . '|' . $nonce;
         $sig     = hash_hmac('sha256', $payload, $secret);
         $_SESSION['gateway_state_pending'][$nonce] = ['sig' => $sig, 'provider' => $provider, 'exp' => $exp];
@@ -622,16 +660,17 @@ class ThirdPartyGateway
     public static function getBundleConnectUrl(int $userId, string $platform, string $returnPath = 'dashboard.php'): string
     {
         $safeReturn = preg_replace('~[^\w\-]~', '', pathinfo($returnPath, PATHINFO_FILENAME)) ?: 'dashboard';
+        self::$lastConnectFailure = null;
 
         $type = self::bundleType($platform);
         if ($type === null) {
-            error_log('ThirdPartyGateway: unsupported Bundle.social platform "' . $platform . '".');
+            self::recordConnectFailure("unsupported organic platform \"{$platform}\"");
             return '';
         }
 
         $teamId = self::bundleTeamId();
         if ($teamId === null) {
-            error_log('ThirdPartyGateway: Bundle.social team could not be resolved (key/network).');
+            self::recordConnectFailure('Bundle.social team could not be resolved (invalid gateway key or network failure)');
             return '';
         }
 
@@ -650,8 +689,8 @@ class ThirdPartyGateway
             return (string)$res['data']['url'];
         }
 
-        error_log('ThirdPartyGateway [bundle_social] connect failed: HTTP ' . ($res['status_code'] ?? 0)
-            . ' payload ' . mb_substr((string)($res['raw'] ?? ''), 0, 300));
+        self::recordConnectFailure('Bundle.social connect refused: HTTP ' . ($res['status_code'] ?? 0)
+            . ' — ' . mb_substr((string)($res['raw'] ?? ''), 0, 160));
         return '';
     }
 
@@ -1117,9 +1156,10 @@ class ThirdPartyGateway
     public static function getZernioAdConnectUrl(int $userId, string $network, string $returnPath = 'dashboard.php'): string
     {
         $safeReturn = preg_replace('~[^\w\-]~', '', pathinfo($returnPath, PATHINFO_FILENAME)) ?: 'dashboard';
+        self::$lastConnectFailure = null;
         $segment = self::zernioPlatformSegment($network);
         if ($segment === null) {
-            error_log('ThirdPartyGateway: unsupported Zernio ads platform "' . $network . '".');
+            self::recordConnectFailure("unsupported ads platform \"{$network}\"");
             return '';
         }
 
@@ -1175,8 +1215,8 @@ class ThirdPartyGateway
         }
 
         if ($profileId === '') {
-            error_log('ThirdPartyGateway [zernio] profile resolution failed: HTTP '
-                . ($res['status_code'] ?? 0) . ' payload ' . mb_substr((string)($res['raw'] ?? ''), 0, 300));
+            self::recordConnectFailure('Zernio profile resolution failed: HTTP ' . ($res['status_code'] ?? 0)
+                . ' — ' . mb_substr((string)($res['raw'] ?? ''), 0, 160));
             return '';
         }
 
@@ -1205,8 +1245,8 @@ class ThirdPartyGateway
             }
         }
 
-        error_log('ThirdPartyGateway [zernio] ads connect failed: HTTP ' . ($res['status_code'] ?? 0)
-            . ' payload ' . mb_substr((string)($res['raw'] ?? ''), 0, 300));
+        self::recordConnectFailure('Zernio ads connect refused: HTTP ' . ($res['status_code'] ?? 0)
+            . ' — ' . mb_substr((string)($res['raw'] ?? ''), 0, 160));
         return '';
     }
 

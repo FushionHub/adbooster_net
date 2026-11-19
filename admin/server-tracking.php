@@ -24,20 +24,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             db()->delete('server_tracking_pixels', 'id=?', [$pixelId]);
             set_flash('success', "Pixel #{$pixelId} deleted permanently.");
         } elseif ($act === 'simulate_test_event') {
-            $testPixel = db()->fetchOne("SELECT id, user_id FROM server_tracking_pixels WHERE is_active=1 LIMIT 1");
+            $testPixel = db()->fetchOne("SELECT id, pixel_token FROM server_tracking_pixels WHERE is_active=1 LIMIT 1");
             if ($testPixel) {
-                db()->insert('server_tracking_events', [
-                    'pixel_id' => $testPixel['id'],
-                    'user_id' => $testPixel['user_id'],
-                    'event_name' => 'Purchase',
-                    'event_id' => 'sim_' . bin2hex(random_bytes(8)),
-                    'event_source_url' => BASE_URL . '/checkout/success',
-                    'user_data_hashed' => json_encode(['em' => [hash('sha256', 'admin-test@adsbooster.net')]]),
-                    'custom_data' => json_encode(['value' => 99.00, 'currency' => 'USD']),
-                    'meta_capi_status' => 'delivered',
-                    'tiktok_events_status' => 'delivered',
-                ]);
-                set_flash('success', 'Test simulated Purchase event dispatched to server tracking stream.');
+                // Route through the REAL ingest path: identity is hashed,
+                // statuses start honest ('queued'), and the dispatch worker
+                // records the gateway-confirmed outcome. The old version
+                // wrote a fabricated 'delivered' row straight into the
+                // stream, poisoning the event log with deliveries that
+                // never happened.
+                $res = ServerTrackingEngine::trackEvent(
+                    (string)$testPixel['pixel_token'],
+                    'Purchase',
+                    ['email' => 'admin-test@adsbooster.net'],
+                    ['value' => 99.00, 'currency' => 'USD'],
+                    BASE_URL . '/checkout/success'
+                );
+                if (!empty($res['success'])) {
+                    set_flash('success', 'Test Purchase event queued (' . $res['event_id'] . ') — the dispatch worker will deliver it and record the gateway-confirmed status.');
+                } else {
+                    set_flash('error', (string)($res['error'] ?? 'Could not queue the test event.'));
+                }
             } else {
                 set_flash('error', 'No active tracking pixel found to simulate event against.');
             }
@@ -185,17 +191,19 @@ require_once __DIR__ . '/sidebar.php';
                                     <code class="small text-muted"><?= htmlspecialchars(substr($e['event_id'] ?? '', 0, 16)) ?>...</code>
                                 </td>
                                 <td>
-                                    <?php $metaOk = ($e['meta_capi_status'] ?? '') === 'delivered'; ?>
+                                    <?php $metaStatus = (string)($e['meta_capi_status'] ?? 'queued');
+                                          $metaOk = str_starts_with($metaStatus, 'gateway_dispatched') || $metaStatus === 'delivered'; ?>
                                     <span class="badge-status <?= $metaOk ? 'active' : 'pending' ?>">
                                         <i class="ph-bold <?= $metaOk ? 'ph-check' : 'ph-clock' ?>"></i>
-                                        <?= htmlspecialchars($e['meta_capi_status'] ?? 'pending') ?>
+                                        <?= htmlspecialchars($metaStatus !== '' ? $metaStatus : 'pending') ?>
                                     </span>
                                 </td>
                                 <td>
-                                    <?php $ttOk = ($e['tiktok_events_status'] ?? '') === 'delivered'; ?>
+                                    <?php $ttStatus = (string)($e['tiktok_events_status'] ?? 'queued');
+                                          $ttOk = str_starts_with($ttStatus, 'gateway_dispatched') || $ttStatus === 'delivered'; ?>
                                     <span class="badge-status <?= $ttOk ? 'active' : 'pending' ?>">
                                         <i class="ph-bold <?= $ttOk ? 'ph-check' : 'ph-clock' ?>"></i>
-                                        <?= htmlspecialchars($e['tiktok_events_status'] ?? 'pending') ?>
+                                        <?= htmlspecialchars($ttStatus !== '' ? $ttStatus : 'pending') ?>
                                     </span>
                                 </td>
                                 <td class="text-muted small">

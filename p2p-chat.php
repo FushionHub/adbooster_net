@@ -61,7 +61,13 @@ if ($totalConvs === 0) {
  * Charts, KPI Metrics, Platform Badges, Images, Roadmap Step Cards, and Clean Typography
  */
 function formatChatMessage(string $raw): string {
-    $text = $raw;
+    // Neutralize every HTML byte BEFORE any markup is assembled. Message
+    // text is user input — the rich widgets below are the only thing allowed
+    // to introduce tags. strip_tags removes whole tags outright; the entity
+    // substitution renders leftover angle brackets as visible text instead
+    // of markup. (Previously raw HTML passed straight through here: stored
+    // XSS — any user could send <img src=x onerror=…> to any other user.)
+    $text = str_replace(['<', '>'], ['&lt;', '&gt;'], strip_tags($raw));
 
     // 1. Process custom AI tags first
     // Metrics: [METRICS:Label:Val:Sub|...]
@@ -168,8 +174,13 @@ function formatChatMessage(string $raw): string {
 
     // Image Graphic Widget: [IMAGE:url:caption]
     $text = preg_replace_callback('/\[IMAGE:([^:]+):([^\]]+)\]/i', function($m) {
-        $url = htmlspecialchars(trim($m[1]));
         $caption = htmlspecialchars(trim($m[2]));
+        // Scheme allowlist: only http(s) or same-origin-relative URLs may be
+        // embedded as an image (blocks javascript:/data: vectors).
+        if (!preg_match('#^(https?://|/)#i', trim($m[1]))) {
+            return '<div class="my-2" style="font-size:13px;color:#e2e8f0;">' . $caption . '</div>';
+        }
+        $url = htmlspecialchars(trim($m[1]));
         return '<div class="ai-image-widget my-3" style="background:#0a0f1d;border:1px solid rgba(255,255,255,0.1);border-radius:14px;overflow:hidden;max-width:540px;">' .
                  '<img src="' . $url . '" alt="' . $caption . '" style="width:100%;height:auto;max-height:260px;object-fit:cover;display:block;" loading="lazy" />' .
                  '<div style="padding:10px 14px;font-size:11.5px;color:#94a3b8;border-top:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:6px;">' .
@@ -1079,7 +1090,14 @@ require_once __DIR__ . '/includes/app_header.php';
 
     function renderMarkdown(raw) {
         if (!raw) return '';
-        let text = raw;
+        // Neutralize HTML before assembling markup (mirrors the PHP renderer):
+        // message text is user input — the widgets below are the only thing
+        // allowed to introduce tags. (Previously raw HTML passed straight
+        // through into innerHTML: stored XSS via polled messages.)
+        let text = String(raw)
+            .replace(/<[^>]*>/g, '')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
 
         // 1. Process custom AI tags
         // Metrics
@@ -1136,8 +1154,13 @@ require_once __DIR__ . '/includes/app_header.php';
 
         // Image Graphic Widget: [IMAGE:url:caption]
         text = text.replace(/\[IMAGE:([^:]+):([^\]]+)\]/gi, function(m, p1, p2) {
-            const url = escapeHtml(p1.trim());
             const caption = escapeHtml(p2.trim());
+            // Scheme allowlist: only http(s) or same-origin-relative URLs
+            // may be embedded as an image (blocks javascript:/data: vectors).
+            if (!/^(https?:\/\/|\/)/i.test(p1.trim())) {
+                return `<div class="my-2" style="font-size:13px;color:#e2e8f0;">${caption}</div>`;
+            }
+            const url = escapeHtml(p1.trim());
             return `<div class="ai-image-widget my-3" style="background:#0a0f1d;border:1px solid rgba(255,255,255,0.1);border-radius:14px;overflow:hidden;max-width:540px;">
                 <img src="${url}" alt="${caption}" style="width:100%;height:auto;max-height:260px;object-fit:cover;display:block;" loading="lazy" />
                 <div style="padding:10px 14px;font-size:11.5px;color:#94a3b8;border-top:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:6px;">

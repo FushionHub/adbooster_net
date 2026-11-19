@@ -239,6 +239,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 'age_max'   => (int)$old['age_max'],
                                 'geo'       => $old['geo'],
                                 'interests' => $old['interests'],
+                                // The exact wallet debit for THIS campaign — the
+                                // launch worker refunds it (once) if the ad
+                                // network permanently rejects the launch.
+                                'launch_fee_usd' => $estimatedCost,
                             ]),
                             'headline'           => $old['headline'],
                             'primary_text'       => $old['primary_text'],
@@ -303,7 +307,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     'platforms'     => implode(', ', $okLabels),
                                     'budget'        => number_format((float)($old['budget_amount'] ?? 0), 2),
                                     'objective'     => (string)($old['objective'] ?? 'conversions'),
-                                    'link'          => BASE_URL . '/campaigns',
+                                    'link'          => BASE_URL . '/dashboard#campaigns',
                                 ]);
                             } catch (\Throwable $mailErr) {
                                 error_log('Ad-queued email failed: ' . $mailErr->getMessage());

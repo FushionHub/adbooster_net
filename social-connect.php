@@ -15,7 +15,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'connect_bundle') {
     $platform = strtolower(trim((string)($_GET['platform'] ?? '')));
     $authUrl  = ThirdPartyGateway::getBundleConnectUrl($userId, $platform, 'social-connect.php');
     if ($authUrl === '') {
-        set_flash('error', 'Bundle.social could not start the connection (gateway key or connectivity issue). Check the gateway settings and try again.');
+        set_flash('error', 'The organic connection could not start — ' . (ThirdPartyGateway::lastConnectFailure() ?? 'gateway key or connectivity issue') . '. Check the gateway settings and try again.');
         redirect(url('social-connect'));
     }
     header('Location: ' . $authUrl);
@@ -27,7 +27,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'connect_zernio') {
     $network = strtolower(trim((string)($_GET['platform'] ?? '')));
     $authUrl = ThirdPartyGateway::getZernioAdConnectUrl($userId, $network, 'social-connect.php');
     if ($authUrl === '') {
-        set_flash('error', 'Zernio could not start the ads connection (gateway key or connectivity issue). Check the gateway settings and try again.');
+        set_flash('error', 'The ad-account connection could not start — ' . (ThirdPartyGateway::lastConnectFailure() ?? 'gateway key or connectivity issue') . '. Check the gateway settings and try again.');
         redirect(url('social-connect'));
     }
     header('Location: ' . $authUrl);
@@ -174,7 +174,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'zernio_connected') {
     redirect(url('social-connect'));
 }
 
-// Handle Disconnect & Manual Linking POST Actions
+// Handle Disconnect POST Actions. (The old 'manual_connect_organic' /
+// 'manual_connect_ad' paths are deleted on purpose: they wrote connected rows
+// with INVENTED gateway ids and zero verification — the exact legacy bug that
+// made every later publish fail with "No social accounts selected". The only
+// way to link an account is the verified gateway journey above.)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if (!csrf_verify()) {
         set_flash('error', 'Invalid security token.');
@@ -187,36 +191,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 db()->delete('connected_accounts', 'user_id = ? AND id = ?', [$userId, $accId]);
                 set_flash('success', 'Account unlinked successfully.');
             }
-        } elseif ($action === 'manual_connect_organic') {
-            $platform    = trim((string)($_POST['platform'] ?? 'facebook'));
-            $accountName = trim((string)($_POST['account_name'] ?? ''));
-            $accountId   = trim((string)($_POST['account_id'] ?? ''));
-
-            if ($accountName === '') $accountName = ucfirst($platform) . ' Organic Profile';
-            if ($accountId === '') $accountId = 'bndl_' . $platform . '_' . bin2hex(random_bytes(4));
-
-            db()->query(
-                "INSERT INTO connected_accounts (user_id, gateway_provider, account_type, platform_name, external_account_id, display_name, status)
-                 VALUES (?, 'bundle_social', 'organic_profile', ?, ?, ?, 'connected')
-                 ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), status = 'connected'",
-                [$userId, $platform, $accountId, $accountName]
-            );
-            set_flash('success', "{$accountName} linked to Bundle.social successfully!");
-        } elseif ($action === 'manual_connect_ad') {
-            $network     = trim((string)($_POST['network'] ?? 'meta'));
-            $accountName = trim((string)($_POST['account_name'] ?? ''));
-            $adAccountId = trim((string)($_POST['ad_account_id'] ?? ''));
-
-            if ($accountName === '') $accountName = ucfirst($network) . ' Ad Account';
-            if ($adAccountId === '') $adAccountId = 'act_' . $network . '_' . bin2hex(random_bytes(4));
-
-            db()->query(
-                "INSERT INTO connected_accounts (user_id, gateway_provider, account_type, platform_name, external_account_id, display_name, status)
-                 VALUES (?, 'zernio', 'ad_account', ?, ?, ?, 'connected')
-                 ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), status = 'connected'",
-                [$userId, $network, $adAccountId, $accountName]
-            );
-            set_flash('success', "{$accountName} linked to Zernio Ad Engine successfully!");
         }
     }
     redirect(url('social-connect'));
@@ -265,6 +239,13 @@ require_once __DIR__ . '/includes/app_header.php';
             </span>
             <span class="badge-status badge-info" style="font-size:12px;padding:6px 14px">
                 <i class="ph ph-megaphone"></i> <?= count($adAccounts) ?> Ad Accounts (Zernio)
+            </span>
+            <?php $gwHealth = ThirdPartyGateway::connectionHealth(); ?>
+            <span class="badge-status <?= $gwHealth['bundle_social']['mode'] === 'live' ? 'badge-active' : 'badge-inactive' ?>" title="Gateway key <?= e($gwHealth['bundle_social']['key_masked']) ?>" style="font-size:12px;padding:6px 14px">
+                <i class="ph ph-pulse"></i> Organic gateway: <?= $gwHealth['bundle_social']['mode'] === 'live' ? 'live' : 'sandbox (placeholder key)' ?>
+            </span>
+            <span class="badge-status <?= $gwHealth['zernio']['mode'] === 'live' ? 'badge-info' : 'badge-inactive' ?>" title="Gateway key <?= e($gwHealth['zernio']['key_masked']) ?>" style="font-size:12px;padding:6px 14px">
+                <i class="ph ph-pulse"></i> Ads gateway: <?= $gwHealth['zernio']['mode'] === 'live' ? 'live' : 'sandbox (placeholder key)' ?>
             </span>
         </div>
     </div>
@@ -351,7 +332,7 @@ require_once __DIR__ . '/includes/app_header.php';
                                 </button>
                             </form>
                         <?php else: ?>
-                            <a href="<?= e($connectUrl) ?>" class="btn-accent btn-sm w-100" style="justify-content:center">
+                            <a href="<?= e($connectUrl) ?>" class="btn-accent btn-sm w-100" style="justify-content:center" onclick="return confirm('You will now be taken to the network sign-in page via Bundle.social. Sign in and approve there — you will return here automatically and the connection will be verified. Continue?')">
                                 <i class="ph ph-plug"></i> Connect via Bundle.social
                             </a>
                         <?php endif; ?>
@@ -426,7 +407,7 @@ require_once __DIR__ . '/includes/app_header.php';
                                 </button>
                             </form>
                         <?php else: ?>
-                            <a href="<?= e($connectUrl) ?>" class="btn-outline-dark btn-sm w-100" style="justify-content:center;color:var(--blue);border-color:rgba(56,189,248,0.3)">
+                            <a href="<?= e($connectUrl) ?>" class="btn-outline-dark btn-sm w-100" style="justify-content:center;color:var(--blue);border-color:rgba(56,189,248,0.3)" onclick="return confirm('You will now be taken to the ad network sign-in page via Zernio. Sign in and approve there — you will return here automatically and the account will be verified. Continue?')">
                                 <i class="ph ph-plug"></i> Connect Ad Account via Zernio
                             </a>
                         <?php endif; ?>

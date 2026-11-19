@@ -204,10 +204,9 @@ require_once __DIR__ . '/includes/app_header.php';
                 </div>
                 <div class="alert alert-warning mb-0 py-2 px-3" style="font-size:.8rem;">
                     <i class="ph-bold ph-info me-1"></i>
-                    This payment could not be verified automatically. The gateway reported the error above.
-                    If the order is missing from the database, apply
-                    <code>update-any-error.sql</code> and verify again from
-                    <strong>Admin → Transactions</strong>.
+                    This payment could not be verified automatically. If you were charged, the payment gateway will
+                    re-send its confirmation shortly and your order will complete on its own — or contact support
+                    with the reference above and we will verify it manually.
                 </div>
             </div>
         <?php endif; ?>

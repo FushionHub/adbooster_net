@@ -12,7 +12,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'connect_bundle') {
     $platform = strtolower(trim((string)($_GET['platform'] ?? '')));
     $authUrl  = ThirdPartyGateway::getBundleConnectUrl($userId, $platform);
     if ($authUrl === '') {
-        set_flash('error', 'Bundle.social could not start the connection (gateway key or connectivity issue). Check the gateway settings and try again.');
+        set_flash('error', 'The organic connection could not start — ' . (ThirdPartyGateway::lastConnectFailure() ?? 'gateway key or connectivity issue') . '. Check the gateway settings and try again.');
         redirect(url('dashboard'));
     }
     header('Location: ' . $authUrl);
@@ -24,7 +24,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'connect_zernio') {
     $network = strtolower(trim((string)($_GET['platform'] ?? '')));
     $authUrl = ThirdPartyGateway::getZernioAdConnectUrl($userId, $network);
     if ($authUrl === '') {
-        set_flash('error', 'Zernio could not start the ads connection (gateway key or connectivity issue). Check the gateway settings and try again.');
+        set_flash('error', 'The ad-account connection could not start — ' . (ThirdPartyGateway::lastConnectFailure() ?? 'gateway key or connectivity issue') . '. Check the gateway settings and try again.');
         redirect(url('dashboard'));
     }
     header('Location: ' . $authUrl);
@@ -278,7 +278,7 @@ if (time() > $promptDismissed) {
                 foreach ($organicPlatformList as $opKey => $op):
                     $isConnected = in_array($opKey, $connectedOrganicPlatforms, true);
                 ?>
-                    <a href="<?= e(url('dashboard')) ?>?action=connect_bundle&platform=<?= e($opKey) ?>" class="platform-card <?= $isConnected ? 'selected' : '' ?>" style="flex:0 0 auto;padding:6px 12px;gap:8px;border-radius:99px;font-size:12px" title="<?= $isConnected ? 'Connected' : 'Click to connect via Bundle.social' ?>">
+                    <a href="<?= e(url('dashboard')) ?>?action=connect_bundle&platform=<?= e($opKey) ?>" class="platform-card <?= $isConnected ? 'selected' : '' ?>" style="flex:0 0 auto;padding:6px 12px;gap:8px;border-radius:99px;font-size:12px" title="<?= $isConnected ? 'Connected' : 'Click to connect via Bundle.social' ?>" <?= $isConnected ? '' : 'onclick="return confirm(\'You will now be taken to the network sign-in page via Bundle.social. Sign in and approve there — you will return here automatically and the connection will be verified. Continue?\')"' ?>>
                         <i class="ph <?= $op['icon'] ?>" style="font-size:15px;color:<?= $isConnected ? 'var(--accent)' : 'var(--fg3)' ?>"></i>
                         <span><?= $op['label'] ?></span>
                         <span style="width:7px;height:7px;border-radius:50%;background:<?= $isConnected ? 'var(--green)' : 'var(--fg3)' ?>;flex-shrink:0"></span>
@@ -318,7 +318,7 @@ if (time() > $promptDismissed) {
                 foreach ($adPlatformList as $apKey => $ap):
                     $isConnected = in_array($apKey, $connectedAdPlatforms, true);
                 ?>
-                    <a href="<?= e(url('dashboard')) ?>?action=connect_zernio&platform=<?= e($apKey) ?>" class="platform-card <?= $isConnected ? 'selected' : '' ?>" style="flex:0 0 auto;padding:6px 12px;gap:8px;border-radius:99px;font-size:12px" title="<?= $isConnected ? 'Connected' : 'Click to link Ad Account via Zernio' ?>">
+                    <a href="<?= e(url('dashboard')) ?>?action=connect_zernio&platform=<?= e($apKey) ?>" class="platform-card <?= $isConnected ? 'selected' : '' ?>" style="flex:0 0 auto;padding:6px 12px;gap:8px;border-radius:99px;font-size:12px" title="<?= $isConnected ? 'Connected' : 'Click to link Ad Account via Zernio' ?>" <?= $isConnected ? '' : 'onclick="return confirm(\'You will now be taken to the ad network sign-in page via Zernio. Sign in and approve there — you will return here automatically and the account will be verified. Continue?\')"' ?>>
                         <i class="ph <?= $ap['icon'] ?>" style="font-size:15px;color:<?= $isConnected ? 'var(--blue)' : 'var(--fg3)' ?>"></i>
                         <span><?= $ap['label'] ?></span>
                         <span style="width:7px;height:7px;border-radius:50%;background:<?= $isConnected ? 'var(--green)' : 'var(--fg3)' ?>;flex-shrink:0"></span>

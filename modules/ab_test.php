@@ -180,7 +180,7 @@ class ABTest
             $db->commit();
 
             return (int) $winner['id'];
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             if (isset($db) && $db->inTransaction()) {
                 $db->rollBack();
             }

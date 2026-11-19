@@ -551,7 +551,20 @@ class AIEngine
             return ['success' => false, 'result' => null, 'credits_remaining' => $creditCheck['credits_remaining'], 'message' => $creditCheck['message']];
         }
 
-        $result = self::callImageAPI($prompt, $provider);
+        try {
+            $result = self::callImageAPI($prompt, $provider);
+        } catch (\Throwable $e) {
+            // Total generation failure: refund the debit and answer honestly
+            // instead of quietly serving a stock photo as "AI output".
+            error_log('Image generation failed: ' . $e->getMessage());
+            self::refundCredits($userId, self::IMAGE_CREDIT_COST);
+            return [
+                'success'           => false,
+                'result'            => null,
+                'credits_remaining' => self::currentCredits($userId),
+                'message'           => 'Image generation failed — no credits were charged. Please try again.',
+            ];
+        }
         self::logGeneration($userId, 'image', $prompt, $result['output'] ?? '', self::IMAGE_CREDIT_COST, $result['provider'] ?? 'unknown');
 
         return [
@@ -651,13 +664,11 @@ class AIEngine
             error_log('Image generation error: ' . $e->getMessage());
         }
 
-        // Last resort: curated reference creative (generation unavailable).
-        $encodedPrompt = urlencode($prompt);
-        return [
-            'output'   => "https://images.unsplash.com/photo-1557838923-2985c318be48?auto=format&fit=crop&w=1200&q=80",
-            'provider' => 'curated-cdn',
-            'model'    => 'adsbooster-creative-library',
-        ];
+        // Every generation route failed — that is a hard error, not an
+        // invitation to serve a stock photo masquerading as AI output.
+        // (generateImage catches this, refunds the credit debit, and
+        // answers the user honestly.)
+        throw new \RuntimeException('All image generation routes failed (no key configured and the free route is unavailable).');
     }
 
     private static function getBestProvider(string $type): ?string
@@ -776,23 +787,43 @@ class AIEngine
 
     private static function checkAndDeductCredits(int $userId, int $creditCost): array
     {
-        $user = db()->fetchOne("SELECT id, ai_credits FROM users WHERE id = ?", [$userId]);
-        if (!$user) return ['success' => false, 'credits_remaining' => 0, 'message' => 'User not found.'];
-
-        $current = (int)($user['ai_credits'] ?? 0);
-        if ($current < $creditCost) {
-            // Auto top-up for active users or provide trial allowance
-            $current = 100;
-            db()->update('users', ['ai_credits' => 100], 'id = ?', [$userId]);
+        // Atomic conditional debit: deducts ONLY when the balance covers the
+        // cost. The old implementation read the balance, silently topped it
+        // back up to 100 when short, and wrote an absolute value back —
+        // free unlimited generation plus a lost-update race under concurrency.
+        $stmt = db()->query(
+            "UPDATE users SET ai_credits = ai_credits - ? WHERE id = ? AND ai_credits >= ?",
+            [$creditCost, $userId, $creditCost]
+        );
+        if ($stmt->rowCount() === 0) {
+            $user = db()->fetchOne("SELECT ai_credits FROM users WHERE id = ?", [$userId]);
+            return [
+                'success'            => false,
+                'credits_remaining'  => (int)($user['ai_credits'] ?? 0),
+                'message'            => 'Not enough AI credits.',
+            ];
         }
+        $user = db()->fetchOne("SELECT ai_credits FROM users WHERE id = ?", [$userId]);
+        return ['success' => true, 'credits_remaining' => (int)($user['ai_credits'] ?? 0), 'message' => ''];
+    }
 
-        $new = max(0, $current - $creditCost);
+    /** Give a charged credit cost back (generation failed after the debit). */
+    private static function refundCredits(int $userId, int $creditCost): void
+    {
         try {
-            db()->update('users', ['ai_credits' => $new], 'id = ?', [$userId]);
-            return ['success' => true, 'credits_remaining' => $new, 'message' => ''];
+            db()->query(
+                "UPDATE users SET ai_credits = ai_credits + ? WHERE id = ?",
+                [$creditCost, $userId]
+            );
         } catch (\Throwable $e) {
-            return ['success' => false, 'credits_remaining' => $current, 'message' => 'Failed to deduct credits.'];
+            error_log('AI credit refund failed: ' . $e->getMessage());
         }
+    }
+
+    private static function currentCredits(int $userId): int
+    {
+        $user = db()->fetchOne("SELECT ai_credits FROM users WHERE id = ?", [$userId]);
+        return (int)($user['ai_credits'] ?? 0);
     }
 
     private static function logGeneration(int $userId, string $type, string $prompt, string $result, int $credits, string $provider = ''): void

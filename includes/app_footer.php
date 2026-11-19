@@ -280,10 +280,14 @@ if (is_logged_in() && empty($_SESSION['quick_guide_seen'])
 ?>
 <style>
   #quickGuideOverlay .qg-dialog { max-height:calc(100vh - 40px); overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  /* Mobile rules carry !important because the overlay/dialog/step layout
+     properties are written as inline style attributes below — without it the
+     intended bottom-sheet behaviour never applied (the popup read as
+     "non-responsive" on phones). */
   @media (max-width:480px) {
-    #quickGuideOverlay { padding:14px; align-items:flex-end; }
-    #quickGuideOverlay .qg-dialog { padding:22px 16px; border-radius:16px; }
-    #quickGuideOverlay .qg-step { padding:11px 12px; border-radius:10px; }
+    #quickGuideOverlay { padding:14px !important; align-items:flex-end !important; }
+    #quickGuideOverlay .qg-dialog { padding:22px 16px !important; border-radius:16px !important; }
+    #quickGuideOverlay .qg-step { padding:11px 12px !important; border-radius:10px !important; }
   }
 </style>
 <div id="quickGuideOverlay" style="position:fixed;inset:0;background:rgba(4,7,14,.78);backdrop-filter:blur(4px);z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px;">

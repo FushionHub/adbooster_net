@@ -1322,6 +1322,14 @@ class AIVideoEngine
         try {
             // Only debit once — guard against double-finalisation.
             $meta = json_decode((string)db()->fetchOne("SELECT metadata FROM ai_video_creatives WHERE id = ?", [$creativeId])['metadata'], true) ?: [];
+
+            // Honesty: a video assembled over hardcoded placeholder stills is
+            // a template slideshow, not a generated creative — billing real
+            // credits for it would be charging for nothing.
+            if (($meta['scene_source'] ?? '') === 'local-placeholder') {
+                error_log("debitCredits: waived {$credits} credits for creative #{$creativeId} (placeholder scene source).");
+                return;
+            }
             if (!empty($meta['credits_debited'])) {
                 return;
             }

@@ -130,6 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             if ($result['success']) {
                 $aiResult = $result['result'];
                 $aiCredits = $result['credits_remaining'];
+                $aiProvider = (string)($result['provider'] ?? '');
                 $success = $result['message'];
             } else {
                 $errors[] = $result['message'];
@@ -145,6 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         echo json_encode([
             'success'          => $aiResult !== null,
             'result'           => $aiResult,
+            'provider'         => $aiProvider ?? '',
             'credits'          => (int)$aiCredits,
             'message'          => $success !== '' ? $success : implode(' ', $errors),
             'credits_label'    => number_format((int)$aiCredits),
@@ -577,7 +579,7 @@ $pcQueueJs = array_map(static function (array $p): array {
             <!-- Inline result (filled by AJAX, never discarded) -->
             <div id="pcAiResult" style="display:none;">
                 <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-                    <h6 class="text-white fw-bold mb-0"><i class="ph ph-magic-wand text-warning me-2"></i>Generated copy</h6>
+                    <h6 class="text-white fw-bold mb-0" id="pcAiResultTitle"><i class="ph ph-magic-wand text-warning me-2"></i>Generated copy</h6>
                     <div class="d-flex gap-2 flex-wrap">
                         <button type="button" class="pc-pillbtn" onclick="pcMakeIllustration()">
                             <i class="ph ph-image me-1"></i> Make an illustration
@@ -938,7 +940,7 @@ document.getElementById('pcAiForm').addEventListener('submit', async e => {
     const res = await fetch('<?= url('post-creator') ?>', { method: 'POST', body: fd, credentials: 'same-origin' });
     const data = await res.json();
     if (!data.success) throw new Error(data.message || 'Generation failed — please try again.');
-    pcShowAiResult(data.result || '');
+    pcShowAiResult(data.result || '', data.provider || '');
     const credits = document.getElementById('pcCredits');
     if (credits && typeof data.credits === 'number') credits.textContent = data.credits.toLocaleString();
     pcToast(data.message || 'Copy generated.');
@@ -947,10 +949,18 @@ document.getElementById('pcAiForm').addEventListener('submit', async e => {
 });
 
 let pcLastResult = '';
-function pcShowAiResult(text) {
+function pcShowAiResult(text, provider) {
   pcLastResult = String(text ?? '');
   if (!pcLastResult) return;
   document.getElementById('pcAiResultText').textContent = pcLastResult;
+  // Honesty: without a live LLM key the copy comes from a deterministic
+  // template — say so instead of presenting it as AI output.
+  const title = document.getElementById('pcAiResultTitle');
+  if (title) {
+    title.innerHTML = String(provider) === 'adsbooster-heuristic'
+      ? '<i class="ph ph-magic-wand text-warning me-2"></i>Template copy <span style="font-weight:400;color:#f59e0b;">— no AI key configured on this server</span>'
+      : '<i class="ph ph-magic-wand text-warning me-2"></i>Generated copy';
+  }
   document.getElementById('pcAiResult').style.display = 'block';
 }
 

@@ -334,7 +334,7 @@ HTML;
                     <p>Your ad campaign <b>{{campaign_name}}</b> on {{platform}} is now <b>{{status}}</b>.</p>
                     <p style="color:#94a3b8;font-size:13px;">{{details}}</p>
                     <div style="text-align:center;">
-                        <a href="https://adsbooster.net/campaigns" class="btn-action">View Campaign Analytics &rarr;</a>
+                        <a href="<?= BASE_URL ?>/dashboard#campaigns" class="btn-action">View Campaign Analytics &rarr;</a>
                     </div>',
             ],
             'team_invite' => [
