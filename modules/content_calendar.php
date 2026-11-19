@@ -114,22 +114,35 @@ class ContentCalendar
             }
 
             $stmt = $db->prepare(
-                "UPDATE scheduled_posts 
-                 SET scheduled_time = ?, 
+                "UPDATE scheduled_posts
+                 SET scheduled_time = ?,
                      updated_at = NOW(),
                      status = 'scheduled'
                  WHERE id = ? AND status IN ('scheduled', 'pending')"
             );
-            $stmt->execute([$newTime, $postId]);
-            $rescheduled = $stmt->rowCount() > 0;
 
-            if ($rescheduled) {
-                // Sync the queued dispatch job's due time with the new slot
-                // (the worker publishes when the JOB is due, not the row).
-                if (!class_exists('AsyncQueue')) {
-                    require_once __DIR__ . '/AsyncQueue.php';
+            // The row update and the queue-job move must succeed together:
+            // a row moved without its job still publishes at the OLD hour.
+            $db->beginTransaction();
+            try {
+                $stmt->execute([$newTime, $postId]);
+                $rescheduled = $stmt->rowCount() > 0;
+
+                if ($rescheduled) {
+                    // Sync the queued dispatch job's due time with the new slot
+                    // (the worker publishes when the JOB is due, not the row).
+                    if (!class_exists('AsyncQueue')) {
+                        require_once __DIR__ . '/AsyncQueue.php';
+                    }
+                    AsyncQueue::rescheduleSubject('bundle_publish_post', 'post:' . (int)$postId, $newTime);
                 }
-                AsyncQueue::rescheduleSubject('bundle_publish_post', 'post:' . (int)$postId, $newTime);
+
+                $db->commit();
+            } catch (\Throwable $txErr) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
+                throw $txErr;
             }
 
             return $rescheduled;

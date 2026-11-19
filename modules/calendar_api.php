@@ -119,7 +119,7 @@ try {
                 if (!$own) {
                     $fail('That post does not belong to you.', 404);
                 }
-                $res = SocialPostEngine::publishScheduledRow($postId);
+                $res = SocialPostEngine::publishScheduledRow($postId, true);
                 if (!empty($res['success'])) {
                     echo json_encode(['success' => true, 'message' => 'Publishing now — the dispatch worker is sending it to ' . ucfirst($in('platform') ?: 'your channel') . '.']);
                 } else {

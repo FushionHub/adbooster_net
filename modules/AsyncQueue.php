@@ -30,6 +30,7 @@ class AsyncQueue
         'bundle_moderate_comment', // organic comment moderation via Bundle.social
         'zernio_launch_ad',      // paid campaign launch via Zernio
         'zernio_toggle_status',  // paid campaign pause/resume via Zernio
+        'zernio_set_budget',     // paid campaign budget change via Zernio
         'zernio_send_conversion', // server-side conversion-event delivery via Zernio
     ];
 
@@ -137,7 +138,29 @@ class AsyncQueue
                     []
                 );
             } catch (\Throwable $ignore) {}
-            return db()->update(
+
+            // Post publish jobs must go back to their OWNER's publish time, not
+            // "now": a failed post the user rescheduled to tomorrow must not
+            // publish today just because an operator re-queued the job.
+            $requeued = 0;
+            try {
+                $requeued += db()->query(
+                    "UPDATE async_job_queue q
+                     JOIN scheduled_posts sp
+                       ON q.subject_key = CONCAT('post:', sp.id)
+                      AND q.job_type = 'bundle_publish_post'
+                     SET q.status = 'pending',
+                         q.attempts = 0,
+                         q.scheduled_at = sp.scheduled_time,
+                         q.error_log = 'Re-queued for live-key retry at the post''s scheduled time'
+                     WHERE q.status = 'failed'"
+                )->rowCount();
+            } catch (\Throwable $joinErr) {
+                error_log('AsyncQueue::retryFailed publish-time join: ' . $joinErr->getMessage());
+            }
+
+            // Every other failed job type re-queues for "now".
+            $requeued += db()->update(
                 'async_job_queue',
                 [
                     'status'       => 'pending',
@@ -145,9 +168,12 @@ class AsyncQueue
                     'scheduled_at' => date('Y-m-d H:i:s'),
                     'error_log'    => 'Re-queued for live-key retry',
                 ],
-                $jobType !== null ? "status = 'failed' AND job_type = ?" : "status = 'failed'",
+                ($jobType !== null ? "job_type = ? AND " : "")
+                . "status = 'failed'"
+                . ($jobType === null ? " AND job_type <> 'bundle_publish_post'" : ""),
                 $jobType !== null ? [$jobType] : []
             );
+            return $requeued;
         } catch (\Throwable $e) {
             error_log('AsyncQueue::retryFailed: ' . $e->getMessage());
             return 0;
@@ -170,17 +196,16 @@ class AsyncQueue
         if ($ts === false) {
             return 0;
         }
-        try {
-            return db()->update(
-                'async_job_queue',
-                ['scheduled_at' => date('Y-m-d H:i:s', $ts)],
-                "job_type = ? AND subject_key = ? AND status = 'pending'",
-                [$jobType, $subjectKey]
-            );
-        } catch (\Throwable $e) {
-            error_log('AsyncQueue::rescheduleSubject: ' . $e->getMessage());
-            return 0;
-        }
+        // No try/catch here on purpose: callers wrap the owning row's update
+        // AND this move in one transaction, so a failure here must propagate
+        // and roll the row update back — otherwise the row says "tomorrow"
+        // while the job still fires at the original hour.
+        return db()->update(
+            'async_job_queue',
+            ['scheduled_at' => date('Y-m-d H:i:s', $ts)],
+            "job_type = ? AND subject_key = ? AND status = 'pending'",
+            [$jobType, $subjectKey]
+        );
     }
 
     /**
@@ -273,6 +298,21 @@ class AsyncQueue
                 ], 'id = ?', [$jobId]);
                 $log("[Worker] Job #{$jobId} COMPLETED.");
                 $stats['completed']++;
+            } catch (AsyncJobDeferred $e) {
+                // Not a failure: the owning record moved its schedule after
+                // this job was queued. Sleep until the record's new slot with
+                // no retry penalty and no failure notification.
+                try {
+                    db()->update('async_job_queue', [
+                        'status'       => 'pending',
+                        'error_log'    => mb_substr($e->getMessage(), 0, 900),
+                        'scheduled_at' => $e->resumeAt,
+                    ], 'id = ?', [$jobId]);
+                    $log("[Worker] Job #{$jobId} deferred to {$e->resumeAt}: {$e->getMessage()}");
+                } catch (\Throwable $deferErr) {
+                    error_log('AsyncQueue defer update failed: ' . $deferErr->getMessage());
+                    $stats['failed'] += self::failJob($job, $e, $log);
+                }
             } catch (\Throwable $e) {
                 $stats['failed'] += self::failJob($job, $e, $log);
             }
@@ -308,6 +348,9 @@ class AsyncQueue
                 return;
             case 'zernio_toggle_status':
                 self::handleZernioToggleStatus($payload, $log);
+                return;
+            case 'zernio_set_budget':
+                self::handleZernioSetBudget($payload, $log);
                 return;
             case 'zernio_send_conversion':
                 self::handleZernioSendConversion($payload, $log);
@@ -444,6 +487,14 @@ class AsyncQueue
         }
 
         $spec = json_decode((string)($campaign['targeting_spec'] ?? '{}'), true) ?: [];
+
+        // A permanently-rejected launch has already been refunded — the
+        // campaign is done; the user re-creates it (and pays again) if they
+        // want it. Never relaunch a refunded campaign for free.
+        if (!empty($spec['credits_refunded_at'])) {
+            $log("[Worker] Campaign #{$campaignId} was refunded after rejection — relaunch skipped (re-create the campaign to launch again).");
+            return;
+        }
         // Empty fallback on purpose: launchPaidCampaign() self-heals by
         // resolving a REAL Zernio connection id from GET /v1/accounts.
         // (Inventing 'zern_act_<userId>' here guaranteed a 404.)
@@ -473,6 +524,30 @@ class AsyncQueue
             $failReason = 'The ad gateway answered from its sandbox (placeholder API key), so the launch was held and no campaign was created.';
         } elseif (empty($res['success']) || $zid === '') {
             $failReason = 'The ad network rejected the launch: ' . mb_substr((string)($res['error'] ?? json_encode($res['data'] ?? [])), 0, 400);
+
+            // Permanent rejection → refund the launch fee exactly once.
+            // (A sandbox hold is NOT a rejection: the campaign stays
+            // retryable there, so the wallet must wait for a live key.)
+            if (empty($spec['credits_refunded_at'])) {
+                $fee = (float)($spec['launch_fee_usd'] ?? (((string)($campaign['budget_type'] ?? 'daily') === 'lifetime')
+                    ? (float)($campaign['budget_amount'] ?? 0)
+                    : ((float)($campaign['budget_amount'] ?? 0) * 30)));
+                if ($fee > 0) {
+                    try {
+                        db()->query("UPDATE users SET ad_credits = ad_credits + ? WHERE id = ?", [$fee, (int)$campaign['user_id']]);
+                        $spec['credits_refunded_at'] = date('c');
+                        $spec['credits_refunded_usd'] = $fee;
+                        db()->update('ad_campaigns', [
+                            'status'        => 'failed',
+                            'targeting_spec'=> json_encode($spec),
+                        ], 'id = ?', [$campaignId]);
+                        $failReason .= " Your " . number_format($fee, 2) . " ad credits have been refunded.";
+                        $log("[Worker] Campaign #{$campaignId} launch rejected — {$fee} ad credits refunded.");
+                    } catch (\Throwable $refundErr) {
+                        error_log('Ad-credit refund failed for campaign ' . $campaignId . ': ' . $refundErr->getMessage());
+                    }
+                }
+            }
         }
 
         if ($failReason !== null) {
@@ -589,6 +664,34 @@ class AsyncQueue
         $log("[Worker] Campaign #{$campaignId} {$targetStatus} confirmed by Zernio.");
     }
 
+    /** Apply a new daily budget to a LIVE Zernio campaign (worker-only). */
+    private static function handleZernioSetBudget(array $payload, callable $log): void
+    {
+        $campaignId = (int)($payload['internal_campaign_id'] ?? 0);
+        $zernioId   = (string)($payload['zernio_campaign_id'] ?? '');
+        $newBudget  = (float)($payload['new_budget_usd'] ?? 0);
+
+        if ($campaignId <= 0 || $zernioId === '' || $newBudget <= 0) {
+            throw new \RuntimeException('zernio_set_budget payload missing campaign id, Zernio id or budget.');
+        }
+
+        $res = ThirdPartyGateway::setCampaignBudget($zernioId, $newBudget, 'daily');
+
+        if (!empty($res['data']['simulated'])) {
+            throw new \RuntimeException('SIMULATED: Zernio sandbox budget update — local budget left unchanged (source of truth preserved).');
+        }
+
+        if (empty($res['success'])) {
+            throw new \RuntimeException('Zernio refused the budget update: ' . (string)($res['error'] ?? ('HTTP ' . ($res['status_code'] ?? 0))) . ' — local budget unchanged.');
+        }
+
+        // Local budget persists only on gateway confirmation (Zernio holds
+        // the live spend — the local row must follow, never lead).
+        db()->update('ad_campaigns', ['budget_amount' => $newBudget], 'id = ?', [$campaignId]);
+
+        $log('[Worker] Campaign #' . $campaignId . ' budget set to ' . number_format($newBudget, 2) . ' on Zernio.');
+    }
+
     /**
      * Deliver one queued conversion event through the Zernio Ads Engine
      * (one gateway call per destination pixel — Meta + TikTok are routing
@@ -702,5 +805,20 @@ class AsyncQueue
         } catch (\Throwable $e) {
             error_log('AsyncQueue stale reclaim failed: ' . $e->getMessage());
         }
+    }
+}
+
+/**
+ * Handler-level signal: put this job back to sleep until a specific time
+ * without burning a retry attempt or recording a failure. Thrown when the
+ * owning record was rescheduled after the job was queued.
+ */
+class AsyncJobDeferred extends \RuntimeException
+{
+    public function __construct(
+        string $message,
+        public readonly string $resumeAt
+    ) {
+        parent::__construct($message);
     }
 }

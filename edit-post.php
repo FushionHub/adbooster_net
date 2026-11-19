@@ -95,6 +95,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($errors)) {
             $dbTime = date('Y-m-d H:i:s', strtotime($scheduledTime));
             try {
+                // The row update and the queue sync must succeed together:
+                // a rescheduled row with a stale job publishes at the OLD
+                // hour; a cancelled row with a live job must never dispatch.
+                require_once __DIR__ . '/modules/AsyncQueue.php';
+                db()->beginTransaction();
                 db()->update('scheduled_posts', [
                     'caption' => $caption,
                     'platform' => $platform,
@@ -103,15 +108,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'status' => $status,
                 ], 'id = ? AND user_id = ?', [$postId, $userId]);
 
-                // Keep the async queue in sync with the edit: a rescheduled
-                // post must move its pending publish job's due time, and a
-                // post switched to cancelled must never dispatch.
-                require_once __DIR__ . '/modules/AsyncQueue.php';
                 if ($status === 'cancelled') {
                     AsyncQueue::cancelSubject('bundle_publish_post', 'post:' . $postId);
                 } else {
                     AsyncQueue::rescheduleSubject('bundle_publish_post', 'post:' . $postId, $dbTime);
                 }
+                db()->commit();
 
                 try {
                     require_once __DIR__ . '/modules/notification_service.php';
@@ -123,6 +125,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 set_flash('success', 'Post updated successfully.');
                 redirect(url('post-creator'));
             } catch (Throwable $e) {
+                if (db()->inTransaction()) {
+                    db()->rollBack();
+                }
                 error_log('Edit post failed: ' . $e->getMessage());
                 $errors[] = 'Failed to update post. Please try again.';
             }

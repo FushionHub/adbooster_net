@@ -98,6 +98,30 @@ class Database
         return $this->connection;
     }
 
+    // ── Transaction passthroughs ────────────────────────────────────────
+    // The wrapper methods above (insert/update/delete/…) all run on the SAME
+    // PDO connection, so a transaction opened through these passthroughs
+    // covers every db() call made between begin and commit.
+    public function beginTransaction(): bool
+    {
+        return $this->connection->beginTransaction();
+    }
+
+    public function commit(): bool
+    {
+        return $this->connection->commit();
+    }
+
+    public function rollBack(): bool
+    {
+        return $this->connection->rollBack();
+    }
+
+    public function inTransaction(): bool
+    {
+        return $this->connection->inTransaction();
+    }
+
     public function query(string $sql, array $params = []): PDOStatement
     {
         $stmt = $this->connection->prepare($sql);

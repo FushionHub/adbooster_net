@@ -254,14 +254,20 @@ class SocialPostEngine
      */
     public static function publishPost(int $postId): bool
     {
-        $res = self::publishScheduledRow($postId);
+        $res = self::publishScheduledRow($postId, true);
         return !empty($res['success']);
     }
 
     /**
-     * Publish one existing scheduled_posts row via Bundle.social
+     * Publish one existing scheduled_posts row via Bundle.social.
+     *
+     * @param bool $ignoreSchedule When true (explicit "publish now" user
+     *                             actions), the row's scheduled_time is not
+     *                             consulted. The queue-worker path (false)
+     *                             defers the job when the row was moved into
+     *                             the future after the job was queued.
      */
-    public static function publishScheduledRow(int $postId): array
+    public static function publishScheduledRow(int $postId, bool $ignoreSchedule = false): array
     {
         $post = db()->fetchOne("SELECT * FROM scheduled_posts WHERE id = ?", [$postId]);
         if (!$post) {
@@ -285,6 +291,17 @@ class SocialPostEngine
                 error_log('publishScheduledRow retry-reset error: ' . $resetErr->getMessage());
             }
             $post['status'] = 'scheduled';
+        }
+
+        // Due-time guard (worker path only): the owning row was rescheduled
+        // into the future but this job still fired (missed legacy sync).
+        // Defer the job to the row's new slot instead of publishing early.
+        $rowTime = strtotime((string)($post['scheduled_time'] ?? ''));
+        if (!$ignoreSchedule && $rowTime !== false && $rowTime > time() + 60) {
+            throw new AsyncJobDeferred(
+                'Owning post was rescheduled — publish deferred to its new slot.',
+                date('Y-m-d H:i:s', $rowTime)
+            );
         }
 
         $userId = (int)$post['user_id'];

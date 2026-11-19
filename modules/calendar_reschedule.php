@@ -24,6 +24,14 @@ if (!is_logged_in()) {
     exit;
 }
 
+// State-changing AJAX action — same contract as calendar_api.php, which
+// already sends the X-CSRF-Token header that this endpoint used to ignore.
+if (!csrf_verify()) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Your session expired — refresh the page and try again.']);
+    exit;
+}
+
 $userId = current_user_id();
 
 $body = json_decode(file_get_contents('php://input'), true);
@@ -78,19 +86,33 @@ if (!in_array($post['status'], ['scheduled', 'draft', 'failed'], true)) {
     exit;
 }
 
-db()->update('scheduled_posts', [
-    'scheduled_time' => date('Y-m-d H:i:s', $newTimestamp),
-    'status'         => 'scheduled',
-    'updated_at'     => date('Y-m-d H:i:s'),
-], 'id = ?', [$postId]);
+// The row update and the queue-job move must succeed together: a row moved
+// without its job still publishes at the ORIGINAL hour.
+db()->beginTransaction();
+try {
+    db()->update('scheduled_posts', [
+        'scheduled_time' => date('Y-m-d H:i:s', $newTimestamp),
+        'status'         => 'scheduled',
+        'updated_at'     => date('Y-m-d H:i:s'),
+    ], 'id = ?', [$postId]);
 
-// Keep the queued dispatch job in sync: the worker publishes when the JOB
-// becomes due, so the job's due time must follow the new slot (otherwise
-// the post still goes out at the original hour).
-if (!class_exists('AsyncQueue')) {
-    require_once __DIR__ . '/../modules/AsyncQueue.php';
+    // Keep the queued dispatch job in sync: the worker publishes when the JOB
+    // becomes due, so the job's due time must follow the new slot.
+    if (!class_exists('AsyncQueue')) {
+        require_once __DIR__ . '/../modules/AsyncQueue.php';
+    }
+    AsyncQueue::rescheduleSubject('bundle_publish_post', 'post:' . $postId, date('Y-m-d H:i:s', $newTimestamp));
+
+    db()->commit();
+} catch (\Throwable $txErr) {
+    if (db()->inTransaction()) {
+        db()->rollBack();
+    }
+    error_log('calendar_reschedule transaction failed: ' . $txErr->getMessage());
+    http_response_code(500);
+    echo json_encode(['error' => 'Could not reschedule the post. Please try again.']);
+    exit;
 }
-AsyncQueue::rescheduleSubject('bundle_publish_post', 'post:' . $postId, date('Y-m-d H:i:s', $newTimestamp));
 
 echo json_encode([
     'message'       => 'Post rescheduled successfully.',
