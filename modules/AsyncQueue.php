@@ -746,20 +746,56 @@ class AsyncQueue
         $spec['daily_budget_ngn'] = RateSheet::dailyBudget($newCommitted, $campaignDays);
 
         if ($changeToken !== '' && (string)($spec['budget_wallet_synced_token'] ?? '') !== $changeToken) {
-            if ($walletDelta > 0) {
-                db()->query("UPDATE users SET ad_credits = ad_credits - ? WHERE id = ?", [$walletDelta, (int)$campaign['user_id']]);
-            } elseif ($walletDelta < 0) {
-                db()->query("UPDATE users SET ad_credits = ad_credits + ? WHERE id = ?", [abs($walletDelta), (int)$campaign['user_id']]);
-            }
-            $spec['budget_wallet_synced_token'] = $changeToken;
-            $spec['budget_wallet_delta_ngn']    = $walletDelta;
-        }
+            // The wallet adjustment and the local row move together: a retry
+            // can never charge the same budget change twice, and the local
+            // budget can never move without its wallet entry.
+            db()->query("BEGIN");
+            try {
+                if ($walletDelta > 0) {
+                    $affected = db()->query(
+                        "UPDATE users SET ad_credits = ad_credits - ? WHERE id = ? AND ad_credits >= ?",
+                        [$walletDelta, (int)$campaign['user_id'], $walletDelta]
+                    )->rowCount();
+                    if ($affected < 1) {
+                        // The wallet lost the race between the pre-flight
+                        // check and this debit. The gateway already holds
+                        // the new budget, so the local row follows it and the
+                        // shortfall is recorded for reconciliation — never
+                        // silently ignored.
+                        $spec['wallet_shortfall_ngn'] = $walletDelta;
+                        error_log('Ad-credit shortfall on campaign ' . $campaignId . ': ₦' . number_format($walletDelta, 2)
+                            . ' could not be debited after the gateway confirmed the new budget.');
+                    }
+                } elseif ($walletDelta < 0) {
+                    db()->query(
+                        "UPDATE users SET ad_credits = ad_credits + ? WHERE id = ?",
+                        [abs($walletDelta), (int)$campaign['user_id']]
+                    );
+                }
+                $spec['budget_wallet_synced_token'] = $changeToken;
+                $spec['budget_wallet_delta_ngn']    = $walletDelta;
 
-        db()->update('ad_campaigns', [
-            'budget_amount'  => $newBudgetNgn,
-            'budget_type'    => $newBudgetType,
-            'targeting_spec' => json_encode($spec),
-        ], 'id = ?', [$campaignId]);
+                db()->update('ad_campaigns', [
+                    'budget_amount'  => $newBudgetNgn,
+                    'budget_type'    => $newBudgetType,
+                    'targeting_spec' => json_encode($spec),
+                ], 'id = ?', [$campaignId]);
+                db()->query("COMMIT");
+            } catch (\Throwable $walletErr) {
+                try {
+                    db()->query("ROLLBACK");
+                } catch (\Throwable $ignoreRollback) {
+                    // No open transaction — nothing to undo.
+                }
+                throw $walletErr;
+            }
+        } else {
+            db()->update('ad_campaigns', [
+                'budget_amount'  => $newBudgetNgn,
+                'budget_type'    => $newBudgetType,
+                'targeting_spec' => json_encode($spec),
+            ], 'id = ?', [$campaignId]);
+        }
 
         $log('[Worker] Campaign #' . $campaignId . ' budget set to ₦' . number_format($newBudgetNgn, 2) . ' on Zernio.');
     }
