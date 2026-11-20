@@ -139,12 +139,28 @@ require_once __DIR__ . '/includes/app_header.php';
           <?php else: ?>
           <div style="display:grid;gap:9px">
             <?php foreach ($rules as $r): ?>
+            <?php
+              $rm = (string)$r['condition_metric'];
+              $rv = (float)$r['condition_value'];
+              // CPA and spend thresholds are compared against the ad
+              // account's reporting currency (the gateway spend figure), so
+              // they render through price_fmt() exactly like the Analytics
+              // page does. CTR / ROAS / frequency are unit-less.
+              $isMoneyMetric = in_array($rm, ['cpa', 'spend_without_conv'], true);
+              $metricLabels = [
+                  'cpa'               => 'CPA',
+                  'ctr'               => 'CTR',
+                  'roas'              => 'ROAS',
+                  'spend_without_conv' => 'Spend w/o conv',
+                  'frequency'         => 'Frequency',
+              ];
+            ?>
             <div style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:13px 14px;border-radius:13px;background:var(--bg2,#0f172a);border:1px solid var(--border,rgba(255,255,255,.08))">
               <div style="min-width:0;flex:1">
                 <div style="font-size:13.5px;font-weight:700;color:var(--fg,#fff)"><?= e($r['rule_name']) ?></div>
                 <div class="pill-row" style="margin-top:7px">
                   <span class="pill" style="font-family:'JetBrains Mono',monospace;font-size:10.5px">
-                    <?= strtoupper(e($r['condition_metric'])) ?> <?= e($r['condition_operator']) ?> <?= (float)$r['condition_value'] ?>
+                    <?= e($metricLabels[$rm] ?? strtoupper($rm)) ?> <?= e($r['condition_operator']) ?> <?= $isMoneyMetric ? e(price_fmt($rv)) : e((string)$rv) ?>
                   </span>
                   <span class="pill info" style="font-size:10.5px">
                     <i class="ph ph-lightning"></i>
@@ -191,8 +207,18 @@ require_once __DIR__ . '/includes/app_header.php';
             <?php foreach ($campaigns as $camp):
               $fatigue = AutoBuyerEngine::predictFatigue((int)$camp['id']);
               $metrics = AutoBuyerEngine::getCampaignCalculatedMetrics((int)$camp['id']);
-              $score = (int)$fatigue['fatigue_score'];
-              $pillClass = $score >= 65 ? 'bad' : ($score >= 40 ? 'warn' : 'good');
+              // A campaign with no observed metrics has NO fatigue score —
+              // rendering it as 0% with a green bar told the user their ads
+              // were healthy when nothing had been measured yet.
+              $hasData = !empty($metrics['has_data']);
+              $score = $hasData ? (int)$fatigue['fatigue_score'] : null;
+              $pillClass = $hasData
+                  ? ($score >= 65 ? 'bad' : ($score >= 40 ? 'warn' : 'good'))
+                  : 'info';
+              $meterPct = $hasData ? max(0, min(100, $score)) : 0;
+              $meterColor = !$hasData
+                  ? 'linear-gradient(90deg,#64748b,#475569)'
+                  : ($score >= 65 ? 'linear-gradient(90deg,#f43f5e,#fb923c)' : ($score >= 40 ? 'linear-gradient(90deg,#fb923c,#facc15)' : 'linear-gradient(90deg,#10b981,#7ed957)'));
             ?>
             <div style="padding:14px;border-radius:13px;background:var(--bg2,#0f172a);border:1px solid var(--border,rgba(255,255,255,.08))">
               <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
@@ -209,14 +235,14 @@ require_once __DIR__ . '/includes/app_header.php';
               </div>
 
               <div class="meter" style="margin-top:12px">
-                <div class="r"><span>Fatigue score</span><b><?= $score ?>%</b></div>
-                <div class="fl-progress"><i style="width:<?= $score ?>%;background:<?= $score >= 65 ? 'linear-gradient(90deg,#f43f5e,#fb923c)' : ($score >= 40 ? 'linear-gradient(90deg,#fb923c,#facc15)' : 'linear-gradient(90deg,#10b981,#7ed957)') ?>"></i></div>
+                <div class="r"><span>Fatigue score</span><b><?= $hasData ? $score . '%' : 'No data' ?></b></div>
+                <div class="fl-progress"><i style="width:<?= $meterPct ?>%;background:<?= $meterColor ?>"></i></div>
               </div>
 
               <div class="pill-row" style="margin-top:11px">
-                <span class="pill" style="font-size:10.5px;font-family:'JetBrains Mono',monospace"><?= price_fmt((float)$camp['budget_amount']) ?> budget</span>
-                <span class="pill info" style="font-size:10.5px;font-family:'JetBrains Mono',monospace"><?= $metrics['ctr'] ?>% CTR</span>
-                <span class="pill warn" style="font-size:10.5px;font-family:'JetBrains Mono',monospace"><?= price_fmt((float)$metrics['cpa']) ?> CPA</span>
+                <span class="pill" style="font-size:10.5px;font-family:'JetBrains Mono',monospace"><?= price_ngn_fmt((float)$camp['budget_amount']) ?> budget</span>
+                <span class="pill info" style="font-size:10.5px;font-family:'JetBrains Mono',monospace"><?= $metrics['ctr'] === null ? 'No CTR data' : $metrics['ctr'] . '% CTR' ?></span>
+                <span class="pill warn" style="font-size:10.5px;font-family:'JetBrains Mono',monospace"><?= $metrics['cpa'] === null ? 'No CPA data' : price_fmt((float)$metrics['cpa']) . ' CPA' ?></span>
               </div>
               <div class="fl-help" style="margin-top:8px"><i class="ph ph-info"></i> <?= e($fatigue['recommendation']) ?></div>
             </div>
@@ -288,7 +314,7 @@ require_once __DIR__ . '/includes/app_header.php';
                   <option value="cpa">Cost per acquisition (CPA)</option>
                   <option value="ctr">Click-through rate (CTR %)</option>
                   <option value="roas">Return on ad spend (ROAS)</option>
-                  <option value="spend_without_conv">Spend without conversion ($)</option>
+                  <option value="spend_without_conv">Spend without conversion</option>
                   <option value="frequency">Ad frequency</option>
                 </select>
               </div>
@@ -304,6 +330,7 @@ require_once __DIR__ . '/includes/app_header.php';
               <div>
                 <label class="cv-label" for="cond-val">Threshold</label>
                 <input type="number" step="0.01" name="condition_value" id="cond-val" class="fl-in" placeholder="25.00" required>
+                <div class="fl-help" id="cond-unit" style="margin-top:5px;font-size:10.5px">CPA thresholds use the ad account's reporting currency.</div>
               </div>
             </div>
           </div>
@@ -337,5 +364,44 @@ require_once __DIR__ . '/includes/app_header.php';
     </div>
   </div>
 </div>
+
+<script>
+(function () {
+  // Keep the threshold hint truthful: CPA and spend compare against the ad
+  // account's reporting currency, while CTR / ROAS / frequency are
+  // unit-less. A metric the gateway never reported never triggers a rule,
+  // so the hint says so too.
+  var metricEl = document.getElementById('cond-metric');
+  var unitEl = document.getElementById('cond-unit');
+  var valEl = document.getElementById('cond-val');
+  if (!metricEl || !unitEl) return;
+
+  var units = {
+    cpa: "CPA thresholds use the ad account's reporting currency (the gateway spend figure).",
+    spend_without_conv: "Spend thresholds use the ad account's reporting currency (the gateway spend figure).",
+    ctr: 'CTR threshold is a percentage (e.g. 0.8 means 0.8%).',
+    roas: 'ROAS threshold is a multiple (e.g. 3 means 3× revenue per 1 spent).',
+    frequency: 'Frequency threshold is impressions ÷ reach — only networks that report reach can trigger this rule.'
+  };
+  var placeholders = {
+    cpa: '30.00',
+    spend_without_conv: '50.00',
+    ctr: '0.80',
+    roas: '3.00',
+    frequency: '2.50'
+  };
+
+  function sync() {
+    var key = metricEl.value;
+    unitEl.textContent = units[key] || '';
+    if (valEl && placeholders[key]) {
+      valEl.placeholder = placeholders[key];
+    }
+  }
+
+  metricEl.addEventListener('change', sync);
+  sync();
+})();
+</script>
 
 <?php require_once __DIR__ . '/includes/app_footer.php'; ?>

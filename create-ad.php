@@ -6,6 +6,7 @@ require_once __DIR__ . '/includes/auth_guard.php';
 $pageTitle = 'Launch Ad Campaign — ' . get_setting('site_name', 'Adsbooster.net');
 require_once __DIR__ . '/modules/ai_engine.php';
 require_once __DIR__ . '/modules/ThirdPartyGateway.php';
+require_once __DIR__ . '/modules/rate_sheet.php';
 
 $userId   = current_user_id();
 $userData = current_user();
@@ -106,7 +107,8 @@ $old = [
     'campaign_name'   => '',
     'objective'       => 'traffic',
     'budget_type'     => 'daily',
-    'budget_amount'   => '10.00',
+    'budget_amount'   => '15000',
+    'campaign_days'   => '30',
     'age_min'         => '18',
     'age_max'         => '65',
     'geo'             => 'United States, United Kingdom, Canada',
@@ -168,6 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $old['objective']       = trim($_POST['objective'] ?? 'traffic');
         $old['budget_type']     = trim($_POST['budget_type'] ?? 'daily');
         $old['budget_amount']   = trim($_POST['budget_amount'] ?? '');
+        $old['campaign_days']   = trim($_POST['campaign_days'] ?? '30');
         $old['age_min']         = trim($_POST['age_min'] ?? '18');
         $old['age_max']         = trim($_POST['age_max'] ?? '65');
         $old['geo']             = trim($_POST['geo'] ?? '');
@@ -190,18 +193,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($old['campaign_name'] === '') $errors[] = 'Campaign name is required.';
         if ($old['objective'] === '') $errors[] = 'Please select an objective.';
         if (!is_numeric($old['budget_amount']) || (float)$old['budget_amount'] <= 0) $errors[] = 'Please enter a valid budget amount.';
+
+        // Timeline: how many days the committed money is paced over. Any of
+        // the published options is valid; the number of leads the budget buys
+        // is rate-driven (money ÷ ₦/lead), the timeline only sets daily spend.
+        $campaignDays = (int)$old['campaign_days'];
+        if (!in_array($campaignDays, RateSheet::durationOptions(), true)) {
+            $campaignDays = 30;
+        }
+        $old['campaign_days'] = (string)$campaignDays;
         if ($old['headline'] === '') $errors[] = 'Headline is required.';
         if ($old['primary_text'] === '') $errors[] = 'Primary text is required.';
         if (!filter_var($old['destination_url'], FILTER_VALIDATE_URL)) $errors[] = 'Please enter a valid destination URL.';
 
-        // Budget is entered in ₦; ledger + wallet are USD-denominated credits.
-        $budgetNgn = (float)($old['budget_amount'] ?? 0);
-        $budgetAmount = round($budgetNgn / max(1.0, exchange_rate_ngn_per_usd()), 2);
-        $estimatedCost = ($old['budget_type'] === 'lifetime') ? $budgetAmount : $budgetAmount * 30;
+        // Budget is entered and stored in ₦ — the platform currency is NGN
+        // end-to-end (the ad gateway receives its own currency only at
+        // dispatch time). The wallet debit is the campaign's committed
+        // budget: a daily budget commits daily × chosen timeline days, a
+        // lifetime budget commits its full amount. Campaigns auto-stop when
+        // the commitment is spent, and topping up extends the run.
+        $budgetAmount = round((float)($old['budget_amount'] ?? 0), 2);
+        $estimatedCost = ($old['budget_type'] === 'lifetime')
+            ? $budgetAmount
+            : round($budgetAmount * $campaignDays, 2);
 
         if (empty($errors)) {
             if ($adCredits < $estimatedCost) {
-                $errors[] = 'Insufficient ad credits. You need ' . price_fmt($estimatedCost) . ' but have ' . price_fmt($adCredits) . '. Please top up your wallet.';
+                $errors[] = 'Insufficient ad credits. You need ' . price_ngn_fmt($estimatedCost) . ' but have ' . price_ngn_fmt($adCredits) . '. Please top up your wallet.';
             } else {
                 $creativePath = $old['media_url'] ?: null;
 
@@ -239,10 +257,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 'age_max'   => (int)$old['age_max'],
                                 'geo'       => $old['geo'],
                                 'interests' => $old['interests'],
-                                // The exact wallet debit for THIS campaign — the
-                                // launch worker refunds it (once) if the ad
+                                // Budget pacing: the exact timeline the user
+                                // picked and the resulting daily spend. Leads
+                                // are rate-driven; the timeline only paces.
+                                'campaign_days'      => $campaignDays,
+                                'daily_budget_ngn'   => RateSheet::dailyBudget($estimatedCost, $campaignDays),
+                                // The exact wallet debit for THIS campaign (₦) —
+                                // the launch worker refunds it (once) if the ad
                                 // network permanently rejects the launch.
-                                'launch_fee_usd' => $estimatedCost,
+                                'launch_fee_ngn' => $estimatedCost,
                             ]),
                             'headline'           => $old['headline'],
                             'primary_text'       => $old['primary_text'],
@@ -257,19 +280,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'gateway'     => 'wallet',
                             'type'        => 'ad_campaign_fee',
                             'amount'      => $estimatedCost,
-                            'currency'    => 'USD',
+                            // The wallet is NGN-native: the debit above is
+                            // naira, so the ledger row must say so. Labelling
+                            // it USD made every invoice and refund read the
+                            // amount as dollars.
+                            'currency'    => 'NGN',
                             'status'      => 'successful',
                         ]);
-
-                        db()->query("COMMIT");
 
                         // ── Launch Ad Campaign ASYNCHRONOUSLY via the Zernio Queue ──
                         // The local row stays 'pending' and no external API call
                         // happens in this request; cron/queue_worker.php performs
                         // the Zernio launch out-of-band and flips the status to
                         // 'active' only when the gateway confirms the launch.
+                        //
+                        // The queue row is inserted INSIDE the same transaction
+                        // as the wallet debit: when the queue is unavailable the
+                        // whole thing rolls back, so no money is ever taken for
+                        // a campaign that could not be queued (and no job exists
+                        // that would launch it later).
                         $adAccountId = !empty($connections[0]['external_account_id']) ? $connections[0]['external_account_id'] : ('zern_act_' . $userId);
-
                         if (!class_exists('AsyncQueue')) {
                             require_once __DIR__ . '/modules/AsyncQueue.php';
                         }
@@ -280,46 +310,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ], null, 'campaign:' . $campaignId);
 
                         if ($jobId <= 0) {
-                            error_log('Zernio queue insert failed for campaign ' . $campaignId . ' — pending retried by workers.');
-                            $errors[] = 'Campaign saved, but the background queue is temporarily unavailable. It will be launched when the queue is available.';
-                        } else {
-                            // Persist dispatch telemetry (queued state — Zernio ids are
-                            // recorded only from the worker's confirmed gateway answer)
-                            try {
-                                $spec = json_decode((string)db()->fetchOne("SELECT targeting_spec FROM ad_campaigns WHERE id = ?", [$campaignId])['targeting_spec'] ?? '{}', true) ?: [];
-                                $spec['platforms'] = $reqPlatforms;
-                                $spec['gateway']   = 'zernio';
-                                $spec['queued_job_id'] = $jobId;
-                                db()->update('ad_campaigns', ['targeting_spec' => json_encode($spec)], 'id = ?', [$campaignId]);
-                            } catch (\Throwable $sErr) {
-                                error_log('Ad spec log failed: ' . $sErr->getMessage());
-                            }
-
-                            $okLabels = array_map(fn($p) => $dispatchPlatforms[$p]['label'] ?? ucfirst($p), $reqPlatforms);
-                            set_flash('success', "🚀 Ad Campaign '{$old['campaign_name']}' queued for launch via the Zernio Ad Engine across: " . implode(', ', $okLabels) . ". Background workers are provisioning it now — status becomes active on Zernio confirmation (job #{$jobId}).");
-
-                            // Email-first: confirm the queue hand-off now, the
-                            // live/failure verdict arrives from the worker.
-                            try {
-                                require_once __DIR__ . '/modules/notifier.php';
-                                Notifier::user($userId, 'ad_launched', [
-                                    'campaign_name' => (string)$old['campaign_name'],
-                                    'platforms'     => implode(', ', $okLabels),
-                                    'budget'        => number_format((float)($old['budget_amount'] ?? 0), 2),
-                                    'objective'     => (string)($old['objective'] ?? 'conversions'),
-                                    'link'          => BASE_URL . '/dashboard#campaigns',
-                                ]);
-                            } catch (\Throwable $mailErr) {
-                                error_log('Ad-queued email failed: ' . $mailErr->getMessage());
-                            }
-
-                            redirect(url('create-ad') . '?launched=1');
+                            throw new \RuntimeException('queue-unavailable');
                         }
 
+                        // Persist dispatch telemetry (queued state — Zernio ids are
+                        // recorded only from the worker's confirmed gateway answer)
+                        try {
+                            $spec = json_decode((string)db()->fetchOne("SELECT targeting_spec FROM ad_campaigns WHERE id = ?", [$campaignId])['targeting_spec'] ?? '{}', true) ?: [];
+                            $spec['platforms'] = $reqPlatforms;
+                            $spec['gateway']   = 'zernio';
+                            $spec['queued_job_id'] = $jobId;
+                            db()->update('ad_campaigns', ['targeting_spec' => json_encode($spec)], 'id = ?', [$campaignId]);
+                        } catch (\Throwable $sErr) {
+                            error_log('Ad spec log failed: ' . $sErr->getMessage());
+                        }
+
+                        db()->query("COMMIT");
+
+                        $okLabels = array_map(fn($p) => $dispatchPlatforms[$p]['label'] ?? ucfirst($p), $reqPlatforms);
+                        set_flash('success', "🚀 Ad Campaign '{$old['campaign_name']}' queued for launch via the Zernio Ad Engine across: " . implode(', ', $okLabels) . ". Background workers are provisioning it now — status becomes active on Zernio confirmation (job #{$jobId}).");
+
+                        // Email-first: confirm the queue hand-off now, the
+                        // live/failure verdict arrives from the worker.
+                        try {
+                            require_once __DIR__ . '/modules/notifier.php';
+                            Notifier::user($userId, 'ad_launched', [
+                                'campaign_name' => (string)$old['campaign_name'],
+                                'platforms'     => implode(', ', $okLabels),
+                                'budget'        => number_format((float)($old['budget_amount'] ?? 0), 2),
+                                'objective'     => (string)($old['objective'] ?? 'conversions'),
+                                'link'          => BASE_URL . '/dashboard#campaigns',
+                            ]);
+                        } catch (\Throwable $mailErr) {
+                            error_log('Ad-queued email failed: ' . $mailErr->getMessage());
+                        }
+
+                        redirect(url('create-ad') . '?launched=1');
+
                     } catch (\Throwable $e) {
-                        db()->query("ROLLBACK");
+                        try {
+                            db()->query("ROLLBACK");
+                        } catch (\Throwable $ignoreRollback) {
+                            // No open transaction (the work was already committed).
+                        }
                         error_log("Create ad failed: " . $e->getMessage());
-                        $errors[] = 'Failed to create campaign: ' . $e->getMessage();
+                        if ($e->getMessage() === 'queue-unavailable') {
+                            $errors[] = 'The background queue is unavailable, so the campaign was not created. No ad credits were taken.';
+                        } else {
+                            $errors[] = 'Failed to create campaign: ' . $e->getMessage();
+                        }
                     }
                 }
             }
@@ -327,7 +366,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$estimatedCost = ($old['budget_type'] === 'lifetime') ? (float)$old['budget_amount'] : (float)$old['budget_amount'] * 30;
+$estimatedCost = ($old['budget_type'] === 'lifetime')
+    ? (float)$old['budget_amount']
+    : (float)$old['budget_amount'] * max(1, (int)$old['campaign_days']);
+
+// Rate-sheet projection for the initial render: how many leads the committed
+// budget buys at the published per-1k-leads rate. Every number comes from
+// modules/rate_sheet.php — never a hardcoded copy.
+$rateProjection = RateSheet::projectionForDuration(
+    $estimatedCost,
+    max(1, (int)$old['campaign_days']),
+    'campaign'
+);
 
 require_once __DIR__ . '/includes/app_header.php';
 ?>
@@ -413,16 +463,26 @@ require_once __DIR__ . '/includes/app_header.php';
 
                     <!-- Budget & Estimated Cost -->
                     <div class="row g-3 mb-4">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label for="budget_type" class="form-label" style="font-weight:600;color:var(--fg);font-size:13px;">Budget Structure</label>
                             <select id="budget_type" name="budget_type" class="form-select" onchange="updateEstimate()" style="background:#080c14;border:1px solid rgba(255,255,255,0.12);color:#fff;padding:10px 14px;">
-                                <option value="daily" <?= $old['budget_type'] === 'daily' ? 'selected' : '' ?>>Daily Budget (30 Days)</option>
-                                <option value="lifetime" <?= $old['budget_type'] === 'lifetime' ? 'selected' : '' ?>>Lifetime Budget</option>
+                                <option value="daily" <?= $old['budget_type'] === 'daily' ? 'selected' : '' ?>>Daily budget</option>
+                                <option value="lifetime" <?= $old['budget_type'] === 'lifetime' ? 'selected' : '' ?>>Lifetime budget</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label for="budget_amount" class="form-label" style="font-weight:600;color:var(--fg);font-size:13px;">Budget Amount (₦ NGN)</label>
-                            <input type="number" id="budget_amount" name="budget_amount" step="1" min="250" class="form-control" value="<?= e($old['budget_amount']) ?>" required placeholder="1550" oninput="updateEstimate()" style="background:#080c14;border:1px solid rgba(255,255,255,0.12);color:#fff;padding:10px 14px;">
+                            <input type="number" id="budget_amount" name="budget_amount" step="1" min="1500" class="form-control" value="<?= e($old['budget_amount']) ?>" required placeholder="15000" oninput="updateEstimate()" style="background:#080c14;border:1px solid rgba(255,255,255,0.12);color:#fff;padding:10px 14px;">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="campaign_days" class="form-label" style="font-weight:600;color:var(--fg);font-size:13px;">Timeline (how long the money lasts)</label>
+                            <select id="campaign_days" name="campaign_days" class="form-select" onchange="updateEstimate()" style="background:#080c14;border:1px solid rgba(255,255,255,0.12);color:#fff;padding:10px 14px;">
+                                <?php foreach (RateSheet::durationOptions() as $daysOption): ?>
+                                    <option value="<?= $daysOption ?>" <?= (int)$old['campaign_days'] === $daysOption ? 'selected' : '' ?>>
+                                        <?= $daysOption === 1 ? '1 day' : $daysOption . ' days' ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                     </div>
 
@@ -533,11 +593,26 @@ require_once __DIR__ . '/includes/app_header.php';
                     <div style="background:rgba(200,255,0,0.06);border:1px solid rgba(200,255,0,0.25);border-radius:12px;padding:18px 24px;margin-bottom:24px;">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
                             <span style="color:var(--fg2);font-size:13px;">Available Ad Credits:</span>
-                            <span style="color:#fff;font-weight:700;font-size:15px;"><?= price_fmt($adCredits) ?></span>
+                            <span style="color:#fff;font-weight:700;font-size:15px;"><?= price_ngn_fmt($adCredits) ?></span>
                         </div>
                         <div style="display:flex;align-items:center;justify-content:space-between;">
                             <span style="color:var(--fg2);font-size:13px;">Estimated Campaign Cost:</span>
-                            <span style="color:var(--accent);font-weight:700;font-size:17px;" id="estCost"><?= price_fmt($estimatedCost) ?></span>
+                            <span style="color:var(--accent);font-weight:700;font-size:17px;" id="estCost"><?= price_ngn_fmt($estimatedCost) ?></span>
+                        </div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+                            <span style="color:var(--fg2);font-size:12px;">Leads this budget buys:</span>
+                            <span style="color:var(--fg);font-weight:600;font-size:12px;" id="estLeads"><?= number_format($rateProjection['leads']) ?> leads</span>
+                        </div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
+                            <span style="color:var(--fg2);font-size:12px;">Daily pacing (<span id="estDaysLabel"><?= (int)$old['campaign_days'] ?></span> days):</span>
+                            <span style="color:var(--fg);font-weight:600;font-size:12px;" id="estDaily"><?= price_ngn_fmt($rateProjection['daily_budget_ngn']) ?> / day</span>
+                        </div>
+                        <div style="font-size:11px;color:var(--fg3);margin-top:8px;line-height:1.5;">
+                            <i class="ph-bold ph-info"></i>
+                            <?= price_ngn_fmt(RateSheet::ratePer1kLeads('campaign')) ?> per 1,000 leads (self-serve campaign)
+                            · <?= price_ngn_fmt(RateSheet::ratePer1kLeads('managed')) ?> per 1,000 leads (Adsbooster-managed ads)
+                            · <?= price_ngn_fmt(RateSheet::costPerLead('campaign')) ?> per lead.
+                            The campaign keeps running for exactly as long as the committed budget lasts — the timeline only sets daily pacing, topping up extends it.
                         </div>
                     </div>
 
@@ -794,12 +869,34 @@ function toastMsg(msg, sub) {
 }
 
 function updateEstimate() {
-    const NGN_RATE = <?= (float) exchange_rate_ngn_per_usd() ?>;
+    // The budget is entered and stored in NAIRA — the platform currency is
+    // NGN end-to-end, so the estimate is already naira. (It used to be
+    // multiplied by the USD exchange rate here, which inflated a ₦250
+    // daily budget into ₦11,625,000.)
     const type = document.getElementById('budget_type').value;
     const amount = parseFloat(document.getElementById('budget_amount').value) || 0;
-    const total = (type === 'lifetime') ? amount : amount * 30;
-    const ngn = Math.round(total * NGN_RATE / 25) * 25;
-    document.getElementById('estCost').textContent = '₦' + ngn.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    const daysEl = document.getElementById('campaign_days');
+    const days = Math.max(1, parseInt(daysEl ? daysEl.value : '30', 10) || 30);
+    // A daily budget commits daily × timeline days; a lifetime budget commits
+    // its full amount. Leads are rate-driven either way.
+    const total = (type === 'lifetime') ? amount : amount * days;
+    document.getElementById('estCost').textContent = '₦' + total.toLocaleString('en-US', { maximumFractionDigits: 0 });
+
+    // Leads the committed budget buys at the published rate. Rounded DOWN so
+    // the page never promises more leads than the money pays for.
+    const leadsEl = document.getElementById('estLeads');
+    if (leadsEl) {
+        const rate = <?= (float) RateSheet::ratePer1kLeads('campaign') ?>;
+        const leads = rate > 0 ? Math.floor((total / rate) * 1000) : 0;
+        leadsEl.textContent = leads.toLocaleString('en-US') + ' leads';
+    }
+
+    const dailyEl = document.getElementById('estDaily');
+    if (dailyEl) {
+        dailyEl.textContent = '₦' + (total / days).toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' / day';
+    }
+    const daysLabel = document.getElementById('estDaysLabel');
+    if (daysLabel) daysLabel.textContent = days;
 }
 
 function updateLivePreview() {

@@ -52,10 +52,73 @@ class ThirdPartyGateway
     /** Human-readable reason the last connect-URL build refused (null when none). */
     private static ?string $lastConnectFailure = null;
 
+    /** Why the last bundleTeamId() lookup failed (timeout vs auth vs DNS). */
+    private static ?string $lastBundleTeamFailure = null;
+
     /** Why did the last getBundleConnectUrl/getZernioAdConnectUrl call return ''? */
     public static function lastConnectFailure(): ?string
     {
         return self::$lastConnectFailure;
+    }
+
+    /**
+     * Turn a raw gateway envelope into an ACTIONABLE diagnostic.
+     *
+     * The old connect error collapsed every failure into "invalid gateway
+     * key or network failure", so an operator could not tell a DNS outage
+     * from a rejected key from a firewall timeout. This distinguishes:
+     *
+     *  • status 0 + curl error  → network-level (DNS / connect / timeout)
+     *  • HTTP 401 / 403         → the key was rejected
+     *  • HTTP 404               → wrong base URL or endpoint
+     *  • HTTP 429               → rate limited
+     *  • HTTP 5xx               → provider-side outage
+     *
+     * @param array<string,mixed> $res The legacy envelope from makeRequest().
+     */
+    public static function describeFailure(string $provider, array $res): string
+    {
+        $providerLabel = $provider === 'bundle_social' ? 'Bundle.social' : ucfirst(str_replace('_', ' ', $provider));
+        $status = (int)($res['status_code'] ?? 0);
+
+        if ($status === 0) {
+            $err = strtolower((string)($res['error'] ?? ''));
+            $errno = (int)($res['curl_errno'] ?? 0);
+            if ($errno === CURLE_COULDNT_RESOLVE_HOST || str_contains($err, 'could not resolve host')
+                || str_contains($err, 'name or service not known')
+                || str_contains($err, 'nodename nor servname')) {
+                return $providerLabel . ' could not be reached — DNS lookup failed for the gateway host. This is a DNS/network problem on the server, not an API-key problem.';
+            }
+            if ($errno === CURLE_OPERATION_TIMEDOUT || str_contains($err, 'timed out') || str_contains($err, 'timeout')) {
+                return $providerLabel . ' did not respond before the timeout (the connection stalled). This is usually a firewall/proxy or outbound-network block on the server — not an API-key problem.';
+            }
+            if ($errno === CURLE_COULDNT_CONNECT || str_contains($err, 'connection refused')) {
+                return $providerLabel . ' refused the connection on the configured port. Check the gateway base URL and whether outbound HTTPS is allowed from this server.';
+            }
+            if ($errno === CURLE_SSL_CONNECT_ERROR || str_contains($err, 'ssl') || str_contains($err, 'tls')) {
+                return $providerLabel . ' TLS negotiation failed — the certificate chain could not be verified. Check the server CA bundle or any TLS-intercepting proxy.';
+            }
+            $detail = trim((string)($res['error'] ?? ''));
+            return $providerLabel . ' could not be reached (network error).'
+                . ($detail !== '' ? ' Gateway said: ' . mb_substr($detail, 0, 160) : '');
+        }
+
+        if ($status === 401 || $status === 403) {
+            return $providerLabel . ' rejected the API key (HTTP ' . $status . '). The gateway credential is invalid, expired or lacks permission — rotate it and retry.';
+        }
+        if ($status === 404) {
+            return $providerLabel . ' returned HTTP 404 — the configured endpoint or base URL does not exist on the provider side. Verify the gateway base URL.';
+        }
+        if ($status === 429) {
+            return $providerLabel . ' rate-limited the request (HTTP 429). Wait a moment and retry.';
+        }
+        if ($status >= 500) {
+            return $providerLabel . ' is currently unavailable (HTTP ' . $status . '). This is a provider-side outage — retry later.';
+        }
+
+        $raw = trim((string)($res['raw'] ?? ''));
+        return $providerLabel . ' refused the request (HTTP ' . $status . ')'
+            . ($raw !== '' ? ': ' . mb_substr($raw, 0, 160) : '.');
     }
 
     private static function recordConnectFailure(string $reason): void
@@ -237,6 +300,7 @@ class ThirdPartyGateway
             $response = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $curlErr  = curl_error($ch);
+            $curlErrNo = curl_errno($ch);
             curl_close($ch);
 
             if ($response !== false && $httpCode > 0) {
@@ -253,6 +317,10 @@ class ThirdPartyGateway
                 'success'     => false,
                 'status_code' => 0,
                 'error'       => $curlErr ?: 'Gateway network connection failed.',
+                // cURL errno lets the caller tell a timeout (28) from a DNS
+                // failure (6) or a refused connection (7) without string
+                // matching the message.
+                'curl_errno'  => $curlErrNo,
                 'data'        => null,
             ];
         }
@@ -616,6 +684,8 @@ class ThirdPartyGateway
             return self::$bundleTeamId;
         }
 
+        self::$lastBundleTeamFailure = null;
+
         $res = self::makeRequest('bundle_social', 'team/', 'GET', [], ['query' => ['limit' => 10]]);
         if (!empty($res['success'])) {
             $items = $res['data']['items'] ?? ($res['data'] ?? []);
@@ -627,7 +697,23 @@ class ThirdPartyGateway
                     }
                 }
             }
+            // The call worked but the org has no team yet — create one.
+            $create = self::makeRequest('bundle_social', 'team/', 'POST', [
+                'name' => 'Adsbooster',
+            ]);
+            if (!empty($create['success']) && !empty($create['data']['id'])) {
+                self::$bundleTeamId = (string)$create['data']['id'];
+                return self::$bundleTeamId;
+            }
+            self::$lastBundleTeamFailure = self::describeFailure('bundle_social', $create);
+            self::$bundleTeamId = null;
+            return null;
         }
+
+        // The lookup itself failed. Keep the precise reason (timeout vs
+        // rejected key vs DNS) so the connect screen can tell the user what
+        // to actually fix.
+        self::$lastBundleTeamFailure = self::describeFailure('bundle_social', $res);
 
         // No team yet: create one (org defaults to the key's own organization).
         $create = self::makeRequest('bundle_social', 'team/', 'POST', [
@@ -670,7 +756,9 @@ class ThirdPartyGateway
 
         $teamId = self::bundleTeamId();
         if ($teamId === null) {
-            self::recordConnectFailure('Bundle.social team could not be resolved (invalid gateway key or network failure)');
+            $reason = self::$lastBundleTeamFailure
+                ?: 'Bundle.social team could not be resolved and no further detail was returned by the gateway.';
+            self::recordConnectFailure($reason);
             return '';
         }
 
@@ -689,8 +777,7 @@ class ThirdPartyGateway
             return (string)$res['data']['url'];
         }
 
-        self::recordConnectFailure('Bundle.social connect refused: HTTP ' . ($res['status_code'] ?? 0)
-            . ' — ' . mb_substr((string)($res['raw'] ?? ''), 0, 160));
+        self::recordConnectFailure(self::describeFailure('bundle_social', $res));
         return '';
     }
 
@@ -1215,8 +1302,7 @@ class ThirdPartyGateway
         }
 
         if ($profileId === '') {
-            self::recordConnectFailure('Zernio profile resolution failed: HTTP ' . ($res['status_code'] ?? 0)
-                . ' — ' . mb_substr((string)($res['raw'] ?? ''), 0, 160));
+            self::recordConnectFailure(self::describeFailure('zernio', $res));
             return '';
         }
 
@@ -1245,8 +1331,7 @@ class ThirdPartyGateway
             }
         }
 
-        self::recordConnectFailure('Zernio ads connect refused: HTTP ' . ($res['status_code'] ?? 0)
-            . ' — ' . mb_substr((string)($res['raw'] ?? ''), 0, 160));
+        self::recordConnectFailure(self::describeFailure('zernio', $res));
         return '';
     }
 

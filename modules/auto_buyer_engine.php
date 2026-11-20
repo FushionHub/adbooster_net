@@ -2,6 +2,11 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/ThirdPartyGateway.php';
+// Money helpers (naira formatting) — side-effect-free, safe in every entry
+// point (web, cron daemon, tests).
+require_once __DIR__ . '/money.php';
+// Rate sheet — the committed-budget maths (daily × timeline days).
+require_once __DIR__ . '/rate_sheet.php';
 
 /**
  * Autonomous AI Media Buyer & Anti-Burn Kill Switch Engine
@@ -14,11 +19,12 @@ class AutoBuyerEngine
      *  condition (e.g. roas >= 3) compounds the budget every daemon cycle. */
     private const ACTION_COOLDOWN_SECONDS = 3600;
 
-    /** Hard budget clamps for scale/reduce actions (USD, the canonical
-     *  campaign budget currency) — runaway compounding can never push a
-     *  budget into absurd territory. */
-    private const MAX_BUDGET_USD = 1000.00;
-    private const MIN_BUDGET_USD = 1.00;
+    /** Hard budget clamps for scale/reduce actions. Budgets are stored in
+     *  ₦ (the platform currency); the clamps mirror the previous USD guard
+     *  rails (≈$1 / ≈$1000) so runaway compounding can never push a budget
+     *  into absurd territory. */
+    private const MAX_BUDGET_NGN = 1550000.00;
+    private const MIN_BUDGET_NGN = 1500.00;
     /**
      * Get default anti-burn kill switch rules template
      */
@@ -132,7 +138,7 @@ class AutoBuyerEngine
                 // Skip campaigns with no observed performance data: acting on
                 // all-zero (or previously, fabricated) numbers would make
                 // budget/pause decisions from nothing.
-                if ((int)$metrics['impressions'] === 0 && (float)$metrics['spend'] === 0.0) {
+                if (empty($metrics['has_data'])) {
                     continue;
                 }
 
@@ -167,12 +173,34 @@ class AutoBuyerEngine
 
     /**
      * Calculate campaign metrics (CPA, CTR, ROAS, spend, etc.)
+     *
+     * HONESTY CONTRACT: a metric the gateway never reported is `null`
+     * (unavailable), NOT 0. A null revenue means "no purchase-value data",
+     * which is not the same as "the campaign made no revenue" — reading it
+     * as zero produced a fake ROAS of 0 and let rules fire on nothing.
+     * Callers must treat null as "no data" and skip the comparison.
      */
     public static function getCampaignCalculatedMetrics(int $campaignId): array
     {
+        // Column-aware: `revenue` and `reach` were added after the table was
+        // first shipped. A deployment whose SchemaGuard cannot ALTER the table
+        // (read-only DB user, locked schema) used to die with
+        // "Unknown column 'revenue' in 'field list'" — the exact crash that
+        // blanked the AI Media Buyer page. Probe once per process and only
+        // select the columns that really exist.
+        $hasRevenue = self::metricsColumnExists('revenue');
+        $hasReach   = self::metricsColumnExists('reach');
+
+        $select = "SUM(impressions) as imp, SUM(clicks) as clk, SUM(spend) as total_spend, SUM(conversions) as conv";
+        if ($hasRevenue) {
+            $select .= ", SUM(revenue) as rev";
+        }
+        if ($hasReach) {
+            $select .= ", SUM(reach) as reach_sum";
+        }
+
         $metricRow = db()->fetch(
-            "SELECT SUM(impressions) as imp, SUM(clicks) as clk, SUM(spend) as total_spend, SUM(conversions) as conv, SUM(revenue) as rev 
-             FROM campaign_metrics_daily WHERE campaign_id = ?",
+            "SELECT {$select} FROM campaign_metrics_daily WHERE campaign_id = ?",
             [$campaignId]
         );
 
@@ -186,39 +214,94 @@ class AutoBuyerEngine
         $clk = (int)($metricRow['clk'] ?? 0);
         $spend = (float)($metricRow['total_spend'] ?? 0.0);
         $conv = (int)($metricRow['conv'] ?? 0);
-        $rev = (float)($metricRow['rev'] ?? 0.0);
+        $rev = ($hasRevenue && isset($metricRow['rev']) && $metricRow['rev'] !== null)
+            ? (float)$metricRow['rev']
+            : null;
 
-        $ctr = $imp > 0 ? ($clk / $imp) * 100 : 0.0;
-        $cpa = $conv > 0 ? ($spend / $conv) : $spend;
-        $roas = $spend > 0 ? ($rev / $spend) : 0.0;
+        $reach = ($hasReach && isset($metricRow['reach_sum']) && $metricRow['reach_sum'] !== null)
+            ? (int)$metricRow['reach_sum']
+            : null;
+
+        $hasData = ($imp > 0 || $clk > 0 || $spend > 0.0 || $conv > 0);
+
+        $ctr = $imp > 0 ? ($clk / $imp) * 100 : null;
+        $cpa = $conv > 0 ? ($spend / $conv) : ($spend > 0 ? $spend : null);
+        $roas = ($spend > 0 && $rev !== null) ? ($rev / $spend) : null;
+        // Frequency = impressions / reach. Both must be observed.
+        $frequency = ($imp > 0 && $reach !== null && $reach > 0) ? ($imp / $reach) : null;
 
         return [
+            'has_data'    => $hasData,
             'impressions' => $imp,
             'clicks' => $clk,
             'spend' => $spend,
             'conversions' => $conv,
             'revenue' => $rev,
-            'ctr' => round($ctr, 2),
-            'cpa' => round($cpa, 2),
-            'roas' => round($roas, 2),
-            'frequency' => 0.0
+            'reach'   => $reach,
+            'ctr' => $ctr === null ? null : round($ctr, 2),
+            'cpa' => $cpa === null ? null : round($cpa, 2),
+            'roas' => $roas === null ? null : round($roas, 2),
+            // Frequency needs reach + impressions; reach is only reported by
+            // some ad networks, so it stays null (unavailable) otherwise.
+            'frequency' => $frequency === null ? null : round($frequency, 2)
         ];
     }
 
     /**
-     * Check if metric condition is met
+     * Does `campaign_metrics_daily` really have this column?
+     *
+     * Probed once per process and cached. A failed probe (missing
+     * information_schema access) is treated as "column absent" so the
+     * caller degrades to the older, narrower SELECT instead of crashing.
+     */
+    private static function metricsColumnExists(string $column): bool
+    {
+        static $cache = [];
+        if (array_key_exists($column, $cache)) {
+            return $cache[$column];
+        }
+
+        try {
+            $stmt = db()->getConnection()->prepare(
+                "SELECT COUNT(*) FROM information_schema.columns
+                 WHERE table_schema = DATABASE()
+                   AND table_name = 'campaign_metrics_daily'
+                   AND column_name = ?"
+            );
+            $stmt->execute([$column]);
+            $cache[$column] = ((int)$stmt->fetchColumn()) > 0;
+        } catch (\Throwable $e) {
+            $cache[$column] = false;
+        }
+
+        return $cache[$column];
+    }
+
+    /**
+     * Check if metric condition is met.
+     *
+     * A metric that is unavailable (null) NEVER satisfies a condition — a
+     * rule must not fire because the gateway did not report the number.
      */
     private static function checkCondition(string $metric, string $operator, float $targetVal, array $metrics): bool
     {
-        $currentVal = 0.0;
+        $currentVal = null;
         switch ($metric) {
-            case 'cpa': $currentVal = (float)$metrics['cpa']; break;
-            case 'ctr': $currentVal = (float)$metrics['ctr']; break;
-            case 'roas': $currentVal = (float)$metrics['roas']; break;
+            case 'cpa': $currentVal = $metrics['cpa'] ?? null; break;
+            case 'ctr': $currentVal = $metrics['ctr'] ?? null; break;
+            case 'roas': $currentVal = $metrics['roas'] ?? null; break;
             case 'spend_without_conv':
-                $currentVal = ($metrics['conversions'] == 0) ? (float)$metrics['spend'] : 0.0;
+                // Observed spend with zero conversions IS a real condition.
+                $currentVal = ((int)($metrics['conversions'] ?? 0) === 0 && (float)($metrics['spend'] ?? 0) > 0)
+                    ? (float)$metrics['spend']
+                    : 0.0;
                 break;
-            case 'frequency': $currentVal = (float)$metrics['frequency']; break;
+            case 'frequency': $currentVal = $metrics['frequency'] ?? null; break;
+        }
+
+        // Unavailable metric → the condition cannot be evaluated → no trigger.
+        if ($currentVal === null) {
+            return false;
         }
 
         switch ($operator) {
@@ -286,40 +369,62 @@ class AutoBuyerEngine
             $sign = $action === 'scale_budget_pct' ? 1.0 : -1.0;
             $newBudget = round((float)$campaign['budget_amount'] * (1 + $sign * ($pct / 100)), 2);
             // Hard clamps: the daemon runs every 15 minutes; a persistently
-            // true rule must never compound a budget past sane limits.
-            $newBudget = min(self::MAX_BUDGET_USD, max(self::MIN_BUDGET_USD, $newBudget));
+            // true rule must never compound a budget past sane limits (₦).
+            $newBudget = min(self::MAX_BUDGET_NGN, max(self::MIN_BUDGET_NGN, $newBudget));
 
             if (abs($newBudget - (float)$campaign['budget_amount']) < 0.01) {
-                $details = "Budget rule matched '{$campaign['campaign_name']}' but the computed budget (" . number_format($newBudget, 2)
-                    . " USD) is clamped at the " . number_format(self::MIN_BUDGET_USD, 2) . '/'
-                    . number_format(self::MAX_BUDGET_USD, 2) . " USD limits — nothing was changed.";
+                $details = "Budget rule matched '{$campaign['campaign_name']}' but the computed budget (" . price_ngn_fmt($newBudget)
+                    . ") is clamped at the " . price_ngn_fmt(self::MIN_BUDGET_NGN) . '/'
+                    . price_ngn_fmt(self::MAX_BUDGET_NGN) . " limits — nothing was changed.";
             } elseif (empty($campaign['zernio_campaign_id'])) {
                 $details = "Budget rule matched '{$campaign['campaign_name']}' but skipped: the campaign has no live Zernio id (still pending launch) — nothing was changed.";
             } else {
-                // Budget changes route through the Zernio queue like every
-                // other paid-platform mutation: the local row updates only
-                // on gateway confirmation (Zernio is the spend source of
-                // truth). The old code edited the local row only, so the
-                // live campaign kept its old budget forever.
-                if (!class_exists('AsyncQueue')) {
-                    require_once __DIR__ . '/AsyncQueue.php';
+                // The wallet is the spend ceiling: ads run "as much and as
+                // long as his money can do", so a scale-up is only allowed
+                // when the ad credits already cover the increase. A
+                // scale-down always returns the difference to the wallet.
+                $spec = json_decode((string)($campaign['targeting_spec'] ?? '{}'), true) ?: [];
+                $campaignDays = max(1, min(365, (int)($spec['campaign_days'] ?? 30)));
+                $budgetType   = (string)($campaign['budget_type'] ?? 'daily');
+                $oldCommitted = RateSheet::committedCampaignCost((float)($campaign['budget_amount'] ?? 0), $budgetType, $campaignDays);
+                $newCommitted = RateSheet::committedCampaignCost($newBudget, $budgetType, $campaignDays);
+                $walletDelta  = round($newCommitted - $oldCommitted, 2);
+                $wallet       = db()->fetchOne("SELECT ad_credits FROM users WHERE id = ?", [(int)$campaign['user_id']]);
+                $balance      = (float)($wallet['ad_credits'] ?? 0);
+
+                if ($walletDelta > $balance) {
+                    $details = "Budget rule matched '{$campaign['campaign_name']}' but skipped: the new budget needs "
+                        . price_ngn_fmt($walletDelta) . ' more and the wallet holds ' . price_ngn_fmt($balance)
+                        . ' — nothing was changed (ads run as much and as long as the money allows).';
+                } else {
+                    // Budget changes route through the Zernio queue like every
+                    // other paid-platform mutation: the local row updates only
+                    // on gateway confirmation (Zernio is the spend source of
+                    // truth). The old code edited the local row only, so the
+                    // live campaign kept its old budget forever.
+                    if (!class_exists('AsyncQueue')) {
+                        require_once __DIR__ . '/AsyncQueue.php';
+                    }
+                    $budgetJobId = AsyncQueue::push(
+                        (int)$campaign['user_id'],
+                        'zernio_set_budget',
+                        [
+                            'internal_campaign_id' => (int)$campaign['id'],
+                            'zernio_campaign_id'   => (string)$campaign['zernio_campaign_id'],
+                            'new_budget_ngn'       => $newBudget,
+                            'new_budget_type'      => $budgetType,
+                            'campaign_days'        => $campaignDays,
+                            'change_token'         => bin2hex(random_bytes(8)),
+                        ],
+                        null,
+                        'campaign-budget:' . (int)$campaign['id']
+                    );
+                    $details = ($action === 'scale_budget_pct' ? 'Scale +' : 'Reduce -') . $pct
+                        . '% → ' . price_ngn_fmt($newBudget) . " on '{$campaign['campaign_name']}': "
+                        . ($budgetJobId > 0
+                            ? "Zernio budget job #{$budgetJobId} queued (local budget and wallet update on gateway confirmation)."
+                            : "budget job could NOT be queued — nothing was changed.");
                 }
-                $budgetJobId = AsyncQueue::push(
-                    (int)$campaign['user_id'],
-                    'zernio_set_budget',
-                    [
-                        'internal_campaign_id' => (int)$campaign['id'],
-                        'zernio_campaign_id'   => (string)$campaign['zernio_campaign_id'],
-                        'new_budget_usd'       => $newBudget,
-                    ],
-                    null,
-                    'campaign-budget:' . (int)$campaign['id']
-                );
-                $details = ($action === 'scale_budget_pct' ? 'Scale +' : 'Reduce -') . $pct
-                    . '% → ' . number_format($newBudget, 2) . " USD on '{$campaign['campaign_name']}': "
-                    . ($budgetJobId > 0
-                        ? "Zernio budget job #{$budgetJobId} queued (local budget updates on gateway confirmation)."
-                        : "budget job could NOT be queued — nothing was changed.");
             }
         } elseif ($action === 'trigger_creative_refresh') {
             // A REAL in-app notification — the old code logged "notification
@@ -361,16 +466,30 @@ class AutoBuyerEngine
     }
 
     /**
-     * Predict creative fatigue
+     * Predict creative fatigue.
+     *
+     * Without observed performance data there is NOTHING to predict — the
+     * old code scored every empty campaign as 15/100 "Low fatigue", which
+     * told the user their ads were healthy when no data existed at all.
      */
     public static function predictFatigue(int $campaignId): array
     {
         $metrics = self::getCampaignCalculatedMetrics($campaignId);
+
+        if (empty($metrics['has_data'])) {
+            return [
+                'fatigue_score' => null,
+                'risk_level'    => 'No data',
+                'badge_class'   => 'bg-secondary',
+                'recommendation' => 'No performance data yet — the ad gateway has not reported impressions, clicks or spend for this campaign. Fatigue cannot be measured until it does.',
+            ];
+        }
+
         $score = 15; // default low fatigue
 
-        if ($metrics['ctr'] < 1.0) $score += 30;
-        if ($metrics['frequency'] > 2.0) $score += 35;
-        if ($metrics['cpa'] > 25.0) $score += 20;
+        if ($metrics['ctr'] !== null && $metrics['ctr'] < 1.0) $score += 30;
+        if ($metrics['frequency'] !== null && $metrics['frequency'] > 2.0) $score += 35;
+        if ($metrics['cpa'] !== null && $metrics['cpa'] > 25.0) $score += 20;
 
         $riskLevel = 'Low';
         $badgeClass = 'bg-success';
@@ -384,8 +503,8 @@ class AutoBuyerEngine
 
         return [
             'fatigue_score' => min(100, $score),
-            'risk_level' => $riskLevel,
-            'badge_class' => $badgeClass,
+            'risk_level'    => $riskLevel,
+            'badge_class'   => $badgeClass,
             'recommendation' => $score >= 65 ? '1-Click Creative Refresh Recommended' : 'Optimal Delivery Active'
         ];
     }

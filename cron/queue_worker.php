@@ -73,6 +73,11 @@ if (isset($args['once'])) {
 
 $logger('Starting Async Queue Daemon (dual gateway out-of-band processor)...');
 while (true) {
+    // Re-align MySQL's clock with PHP's clock (a DST change or a long-running
+    // daemon must not drift the due-date comparisons).
+    if (class_exists('Database')) {
+        Database::syncSessionTimezoneNow();
+    }
     $stats = AsyncQueue::processBatch(10, $logger);
     if ($stats['claimed'] > 0) {
         $logger('Batch: claimed=' . $stats['claimed'] . ' completed=' . $stats['completed'] . ' failed=' . $stats['failed']);

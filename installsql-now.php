@@ -174,7 +174,10 @@ if ($action === 'install') {
                     $upd = $pdo->prepare("UPDATE users SET email = ?, password = ?, status = 'active', role = 'admin' WHERE id = ?");
                     $upd->execute([$targetEmail, $hashed, $adm['id']]);
                 } else {
-                    $ins = $pdo->prepare("INSERT INTO users (full_name, email, password, role, status, ad_credits, ai_credits, plan_id) VALUES (?, ?, ?, 'admin', 'active', 500.00, 500, 4)");
+                    // ad_credits is naira-denominated (₦1 credit = ₦1 of ad
+                    // budget), so the seeded admin balance is ₦775,000 —
+                    // the naira equivalent of the old 500 USD-canonical units.
+                    $ins = $pdo->prepare("INSERT INTO users (full_name, email, password, role, status, ad_credits, ai_credits, plan_id) VALUES (?, ?, ?, 'admin', 'active', 775000.00, 500, 4)");
                     $ins->execute(['Admin User', $targetEmail, $hashed]);
                 }
             }

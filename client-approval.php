@@ -19,9 +19,19 @@ $portal = AgencyEngine::getAgencyPortal($agencyId);
 $approvals = db()->fetchAll("SELECT * FROM agency_client_approvals WHERE client_account_id = ? ORDER BY created_at DESC", [(int)$client['id']]);
 
 // Handle Client Action (Approve / Request Revision)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['approval_id']) && csrf_verify()) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['approval_id'])) {
+    // A failed CSRF check is a 403, not a silent no-op: the old code
+    // swallowed it and rendered a page with no decision recorded.
+    if (!csrf_verify()) {
+        http_response_code(403);
+        die('Your approval session expired. Please reload this page and try again.');
+    }
+
     $approvalId = (int)$_POST['approval_id'];
-    $clientAction = (string)($_POST['client_action'] ?? 'approved');
+    // The decision MUST be stated. The old code defaulted a missing
+    // `client_action` to 'approved', so a malformed POST silently approved
+    // the deliverable for the client.
+    $clientAction = trim((string)($_POST['client_action'] ?? ''));
     $feedback = trim((string)($_POST['client_feedback'] ?? ''));
 
     // Only the two real decisions are storable (the column is an ENUM).
@@ -30,40 +40,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['approval_id']) && csr
         redirect(url('client-approval', ['token' => $token]));
     }
 
+    // Only a PENDING deliverable owned by THIS client can be decided, and
+    // only once — a replayed approval must not re-notify the agency or
+    // overwrite a decision the client already made.
     $updated = db()->update('agency_client_approvals', [
         'approval_status' => $clientAction,
         'client_feedback' => $feedback,
         'approved_at' => $clientAction === 'approved' ? date('Y-m-d H:i:s') : null
-    ], 'id = ? AND client_account_id = ?', [$approvalId, (int)$client['id']]);
+    ], 'id = ? AND client_account_id = ? AND approval_status = ?', [$approvalId, (int)$client['id'], 'pending']);
 
-    if ($updated > 0) {
-        // Tell the agency what the client decided — the success message
-        // below promises this, so it has to actually happen.
-        try {
-            require_once __DIR__ . '/modules/notifier.php';
-            $apRow = db()->fetchOne("SELECT title FROM agency_client_approvals WHERE id = ?", [$approvalId]);
-            $apTitle = (string)($apRow['title'] ?? 'Deliverable');
-            Notifier::inApp(
-                $agencyId,
-                'agency_approval',
-                $clientAction === 'approved'
-                    ? 'Client approved: ' . $apTitle
-                    : 'Client requested changes: ' . $apTitle,
-                $clientAction === 'approved'
-                    ? $client['client_name'] . ' approved the deliverable.'
-                    : ($feedback !== ''
-                        ? $client['client_name'] . ' requested changes: ' . mb_substr($feedback, 0, 300)
-                        : $client['client_name'] . ' requested changes.'),
-                '/agency-portal.php'
-            );
-        } catch (\Throwable $e) {
-            error_log('Agency approval notification failed: ' . $e->getMessage());
-        }
+    if ($updated === 0) {
+        // Either the deliverable does not exist, belongs to another client,
+        // or was already decided. Never report success for a no-op.
+        set_flash('error', 'That deliverable is no longer awaiting your review. Refresh to see its current status.');
+        redirect(url('client-approval', ['token' => $token]));
     }
 
-    set_flash('success', $clientAction === 'approved'
-        ? 'Deliverable approved successfully — the agency has been notified.'
-        : 'Revision feedback submitted to the agency.');
+    // Tell the agency what the client decided — the success message below
+    // promises this, so it has to actually happen.
+    $notified = false;
+    try {
+        require_once __DIR__ . '/modules/notifier.php';
+        $apRow = db()->fetchOne("SELECT title FROM agency_client_approvals WHERE id = ?", [$approvalId]);
+        $apTitle = (string)($apRow['title'] ?? 'Deliverable');
+        $notified = (bool)Notifier::inApp(
+            $agencyId,
+            'agency_approval',
+            $clientAction === 'approved'
+                ? 'Client approved: ' . $apTitle
+                : 'Client requested changes: ' . $apTitle,
+            $clientAction === 'approved'
+                ? $client['client_name'] . ' approved the deliverable.'
+                : ($feedback !== ''
+                    ? $client['client_name'] . ' requested changes: ' . mb_substr($feedback, 0, 300)
+                    : $client['client_name'] . ' requested changes.'),
+            '/agency-portal.php'
+        );
+    } catch (\Throwable $e) {
+        error_log('Agency approval notification failed: ' . $e->getMessage());
+    }
+
+    if ($clientAction === 'approved') {
+        set_flash('success', $notified
+            ? 'Deliverable approved successfully — the agency has been notified.'
+            : 'Deliverable approved successfully. The agency will see it on their next sign-in (we could not send the instant notification).');
+    } else {
+        set_flash('success', $notified
+            ? 'Revision feedback submitted to the agency.'
+            : 'Revision feedback submitted. The agency will see it on their next sign-in (we could not send the instant notification).');
+    }
     redirect(url('client-approval', ['token' => $token]));
 }
 
@@ -109,6 +134,11 @@ $primaryColor = $portal['brand_primary_color'] ?? '#c8ff00';
     <i class="ph ph-check-circle me-1"></i> <?= e($msg) ?>
   </div>
   <?php endif; ?>
+  <?php if ($err = get_flash('error')): ?>
+  <div class="alert alert-danger bg-danger bg-opacity-20 border-danger text-white rounded-3 mb-4">
+    <i class="ph ph-warning-circle me-1"></i> <?= e($err) ?>
+  </div>
+  <?php endif; ?>
 
   <!-- Welcome Banner -->
   <div class="card bg-surface-card rounded-4 p-4 mb-4">
@@ -141,7 +171,7 @@ $primaryColor = $portal['brand_primary_color'] ?? '#c8ff00';
           <span class="badge bg-info-subtle text-info mb-1"><?= ucwords(str_replace('_', ' ', e($ap['item_type']))) ?></span>
           <h5 class="fw-bold text-white mb-0"><?= e($ap['title']) ?></h5>
           <?php if (!empty($preview['budget'])): ?>
-            <small class="text-secondary">Budget: <?= price_fmt((float)$preview['budget']) ?> / month</small>
+            <small class="text-secondary">Budget: <?= price_ngn_fmt((float)$preview['budget']) ?> / month</small>
           <?php endif; ?>
         </div>
         <span class="badge <?= $apStatus === 'approved' ? 'bg-success' : ($apStatus === 'rejected_revision' ? 'bg-danger text-white' : 'bg-warning text-dark') ?>">

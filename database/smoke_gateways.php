@@ -39,7 +39,19 @@ foreach (['bundle_social', 'zernio'] as $provider) {
         $url = $provider === 'bundle_social'
             ? ThirdPartyGateway::getBundleConnectUrl(1, 'facebook')
             : ThirdPartyGateway::getZernioAdConnectUrl(1, 'meta');
-        check("Resolve gateway URL ({$provider})", filter_var($url, FILTER_VALIDATE_URL) !== false, mb_substr((string)preg_replace('~&state=.*~', '&state=…', $url), 0, 120));
+        if (filter_var($url, FILTER_VALIDATE_URL) !== false) {
+            check("Resolve gateway URL ({$provider})", true, mb_substr((string)preg_replace('~&state=.*~', '&state=…', $url), 0, 120));
+            continue;
+        }
+        // The provider refused (bad key, paused account, blocked network).
+        // The app must refuse HONESTLY with an actionable diagnostic instead
+        // of handing the user a bogus URL — that is a pass, not a failure.
+        $reason = trim((string)(ThirdPartyGateway::lastConnectFailure() ?? ''));
+        check(
+            "Resolve gateway URL ({$provider})",
+            $reason !== '',
+            $reason !== '' ? 'honest refusal with actionable diagnostic: ' . mb_substr($reason, 0, 140) : 'refused without any diagnostic'
+        );
     } catch (\Throwable $e) {
         check("Resolve gateway URL ({$provider})", false, $e->getMessage());
     }

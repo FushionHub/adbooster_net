@@ -133,7 +133,7 @@ require_once __DIR__ . '/sidebar.php';
                         <?= htmlspecialchars($c['campaign_name'] ?? 'Untitled') ?>
                     </td>
                     <td><span class="badge-status"><?= $c['campaign_type'] ?></span></td>
-                    <td class="text-white"><?= price_fmt((float)$c['budget_amount']) ?></td>
+                    <td class="text-white"><?= price_ngn_fmt((float)$c['budget_amount']) ?></td>
                     <td><span class="badge-status <?= $c['status'] ?>"><?= $c['status'] ?></span></td>
                     <td class="text-muted" style="font-size:0.78rem;"><?= dt($c['created_at'], 'M d, Y') ?></td>
                     <td>
@@ -201,7 +201,7 @@ require_once __DIR__ . '/sidebar.php';
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-label-admin">Budget</div>
-                                        <div class="text-white"><?= price_fmt((float)$c['budget_amount']) ?></div>
+                                        <div class="text-white"><?= price_ngn_fmt((float)$c['budget_amount']) ?></div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-label-admin">Autopilot</div>

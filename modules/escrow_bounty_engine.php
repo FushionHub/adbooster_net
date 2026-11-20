@@ -6,6 +6,12 @@ declare(strict_types=1);
  * Adsbooster.net
  */
 
+require_once __DIR__ . '/../config/db.php';
+// The wallet money helpers (naira conversion) live in the application
+// bootstrap — bounty amounts are USD-canonical, but users.ad_credits is
+// naira-denominated, so the conversion happens at the wallet boundary.
+require_once __DIR__ . '/../config/site_setting_and_config.php';
+
 class EscrowBountyEngine
 {
     /**
@@ -123,8 +129,10 @@ class EscrowBountyEngine
         $platformFee = $bountyAmount * 0.10; // 10% platform take
         $netCreatorPayout = $bountyAmount - $platformFee;
 
-        // Credit creator wallet/ad_credits
-        db()->query("UPDATE users SET ad_credits = ad_credits + ? WHERE id = ?", [$netCreatorPayout, $creatorId]);
+        // Credit creator wallet/ad_credits. The bounty is priced in the
+        // USD-canonical units the marketplace uses; the wallet is
+        // naira-denominated, so convert once at this boundary.
+        db()->query("UPDATE users SET ad_credits = ad_credits + ? WHERE id = ?", [credit_units_to_ngn($netCreatorPayout), $creatorId]);
 
         // Update submission and bounty status
         db()->update('creator_bounty_submissions', [

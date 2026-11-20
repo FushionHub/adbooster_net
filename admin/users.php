@@ -48,13 +48,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     switch ($act) {
         case 'topup_ad':
-            // Admin enters the amount in ₦ (NGN-only workspace); the wallet
-            // itself is USD-denominated, so convert at the admin rate.
+            // Admin enters the amount in ₦ (NGN-only workspace) and the
+            // wallet is naira-denominated (₦1 credit = ₦1 of ad budget),
+            // so the credit is applied 1:1 — no exchange-rate conversion.
             $amountNgn = (float)($_POST['amount'] ?? 0);
             if ($amountNgn !== 0.0) {
-                $amountUsd = round($amountNgn / max(1.0, exchange_rate_ngn_per_usd()), 2);
-                db()->update('users', ['ad_credits' => max(0, (float)$user['ad_credits'] + $amountUsd)], 'id=?', [$uId]);
-                set_flash('success', sprintf('%s%+.0f ₦ of ad credits applied for %s.', $amountNgn > 0 ? '+' : '', $amountNgn, $user['email']));
+                db()->update('users', ['ad_credits' => max(0, (float)$user['ad_credits'] + $amountNgn)], 'id=?', [$uId]);
+                set_flash('success', sprintf('%s%.0f ₦ of ad credits applied for %s.', $amountNgn > 0 ? '+' : '', $amountNgn, $user['email']));
             }
             break;
 
@@ -328,7 +328,7 @@ require_once __DIR__ . '/sidebar.php';
                         </div>
                     </td>
                     <td class="text-capitalize"><?= e($u['role']) ?></td>
-                    <td class="text-white"><?= e(price_fmt((float)$u['ad_credits'])) ?></td>
+                    <td class="text-white"><?= e(price_ngn_fmt((float)$u['ad_credits'])) ?></td>
                     <td class="text-white"><?= number_format((int)$u['ai_credits']) ?></td>
                     <td><?= e($u['plan_name'] ?? 'Free') ?></td>
                     <td>
@@ -401,7 +401,7 @@ require_once __DIR__ . '/sidebar.php';
 
                                     <!-- Credits -->
                                     <div class="col-md-6">
-                                        <div class="form-label-admin mb-2"><i class="ph-bold ph-coins me-1"></i> Ad Credits (current: <?= e(price_fmt((float)$u['ad_credits'])) ?>)</div>
+                                        <div class="form-label-admin mb-2"><i class="ph-bold ph-coins me-1"></i> Ad Credits (current: <?= e(price_ngn_fmt((float)$u['ad_credits'])) ?>)</div>
                                         <form method="POST" class="d-flex gap-2">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="act" value="topup_ad">

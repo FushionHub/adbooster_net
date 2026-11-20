@@ -36,6 +36,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once __DIR__ . '/../../config/db.php';
+// Money helpers (naira formatting + wallet unit conversion). The API does
+// not load the full application bootstrap, so it pulls these in directly.
+require_once __DIR__ . '/../../modules/money.php';
 
 const API_RATE_LIMIT_PER_MINUTE = 60;
 

@@ -24,6 +24,10 @@
  */
 
 require_once __DIR__ . '/../config/db.php';
+// The wallet money helpers (naira conversion) live in the application
+// bootstrap — the referral ledger is still USD-canonical, but users.ad_credits
+// is naira-denominated, so the conversion happens at the wallet boundary.
+require_once __DIR__ . '/../config/site_setting_and_config.php';
 
 class ReferralService
 {
@@ -215,10 +219,13 @@ class ReferralService
             }
 
             // ── Pay the referrer ──────────────────────────────────────
+            // The ledger keeps the legacy USD-canonical credit units; the
+            // wallet is naira-denominated, so convert once at this boundary
+            // (₦1 credit = ₦1 of ad budget).
             if ($amount > 0) {
                 $db->query(
                     "UPDATE users SET ad_credits = COALESCE(ad_credits, 0) + ? WHERE id = ?",
-                    [$amount, $referrerId]
+                    [credit_units_to_ngn($amount), $referrerId]
                 );
             }
 
@@ -226,7 +233,7 @@ class ReferralService
             if ($referredBonus > 0) {
                 $db->query(
                     "UPDATE users SET ad_credits = COALESCE(ad_credits, 0) + ? WHERE id = ?",
-                    [$referredBonus, $userId]
+                    [credit_units_to_ngn($referredBonus), $userId]
                 );
             }
 
@@ -258,14 +265,14 @@ class ReferralService
                 'referral_reward',
                 'Referral Bonus Earned!',
                 'Your referral made their first payment! You received '
-                    . number_format($amount, 2) . ' ad credits.',
+                    . price_ngn_fmt(credit_units_to_ngn($amount)) . ' in ad credits.',
                 '/referrals.php'
             );
             self::notify(
                 $userId,
                 'referral_bonus',
                 'Welcome Bonus Credited',
-                'Your first payment unlocked ' . number_format($referredBonus, 2) . ' ad credits from your referral.',
+                'Your first payment unlocked ' . price_ngn_fmt(credit_units_to_ngn($referredBonus)) . ' in ad credits from your referral.',
                 '/dashboard.php'
             );
 
@@ -356,13 +363,13 @@ class ReferralService
             if ($amount > 0 && $referrerId > 0) {
                 $db->query(
                     "UPDATE users SET ad_credits = COALESCE(ad_credits, 0) + ? WHERE id = ?",
-                    [$amount, $referrerId]
+                    [credit_units_to_ngn($amount), $referrerId]
                 );
             }
             if ($referredBonus > 0 && $referredId > 0) {
                 $db->query(
                     "UPDATE users SET ad_credits = COALESCE(ad_credits, 0) + ? WHERE id = ?",
-                    [$referredBonus, $referredId]
+                    [credit_units_to_ngn($referredBonus), $referredId]
                 );
             }
 
@@ -386,7 +393,7 @@ class ReferralService
             $result['referrer_id'] = $referrerId;
             $result['amount']      = $amount;
             $result['message']     = 'Referral #' . $referralId . ' rewarded: '
-                . number_format($amount, 2) . ' ad credits to the referrer.'
+                . number_format($amount, 2) . ' ad credits (' . price_ngn_fmt(credit_units_to_ngn($amount)) . ') to the referrer.'
                 . ($note !== '' ? ' (' . $note . ')' : '');
 
             if ($referrerId > 0) {
@@ -394,7 +401,7 @@ class ReferralService
                     $referrerId,
                     'referral_reward',
                     'Referral Bonus Earned!',
-                    'You received ' . number_format($amount, 2) . ' ad credits from a referral.',
+                    'You received ' . price_ngn_fmt(credit_units_to_ngn($amount)) . ' in ad credits from a referral.',
                     '/referrals.php'
                 );
             }

@@ -337,6 +337,18 @@ HTML;
                         <a href="<?= BASE_URL ?>/dashboard#campaigns" class="btn-action">View Campaign Analytics &rarr;</a>
                     </div>',
             ],
+            'agency_approval_requested' => [
+                'subject' => '{{agency_name}} sent you a deliverable for review',
+                'body' => '
+                    <h2>New Deliverable Awaiting Your Approval</h2>
+                    <p>Hi {{name}},</p>
+                    <p><b>{{agency_name}}</b> sent you <b>{{title}}</b> for review.</p>
+                    <p style="color:#94a3b8;font-size:13px;">{{notes}}</p>
+                    <div style="text-align:center;margin:30px 0;">
+                        <a href="{{review_link}}" class="btn-action">Review & Approve &rarr;</a>
+                    </div>
+                    <p style="color:#94a3b8;font-size:13px;">You can approve it or request changes in one click.</p>',
+            ],
             'team_invite' => [
                 'subject' => 'Team Collaboration Invitation on Adsbooster.net',
                 'body' => '

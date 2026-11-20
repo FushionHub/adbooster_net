@@ -147,7 +147,7 @@ require_once __DIR__ . '/sidebar.php';
                     <div class="text-white text-capitalize fw-medium" style="font-size:0.85rem;"><?= $cp['campaign_type'] ?></div>
                     <div class="d-flex align-items-center gap-3">
                         <span class="text-muted" style="font-size:0.78rem;"><?= $cp['count'] ?> campaigns</span>
-                        <span class="text-white fw-bold" style="font-size:0.85rem;"><?= price_fmt((float)$cp['total_budget']) ?></span>
+                        <span class="text-white fw-bold" style="font-size:0.85rem;"><?= price_ngn_fmt((float)$cp['total_budget']) ?></span>
                     </div>
                 </div>
             <?php endforeach; ?>
@@ -206,7 +206,7 @@ require_once __DIR__ . '/sidebar.php';
                     </td>
                     <td class="text-muted"><?= $tu['campaign_count'] ?></td>
                     <td class="text-white fw-bold"><?= price_fmt((float)$tu['total_spent']) ?></td>
-                    <td class="text-white"><?= e(price_fmt((float)$tu['ad_credits'])) ?></td>
+                    <td class="text-white"><?= e(price_ngn_fmt((float)$tu['ad_credits'])) ?></td>
                 </tr>
             <?php endforeach; ?>
             <?php if (empty($topUsers)): ?>

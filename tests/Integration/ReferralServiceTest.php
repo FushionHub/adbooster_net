@@ -194,8 +194,8 @@ final class ReferralServiceTest extends TestCase
         $referrer = db()->fetchOne("SELECT ad_credits FROM users WHERE id = ?", [$this->referrerId]);
         $referred = db()->fetchOne("SELECT ad_credits FROM users WHERE id = ?", [$this->referredId]);
 
-        $this->assertSame(10.00, (float)$referrer['ad_credits'], 'referrer earns the reward');
-        $this->assertSame(5.00, (float)$referred['ad_credits'], 'referred account earns the welcome bonus');
+        $this->assertSame(credit_units_to_ngn(10.00), (float)$referrer['ad_credits'], 'referrer earns the reward (naira wallet)');
+        $this->assertSame(credit_units_to_ngn(5.00), (float)$referred['ad_credits'], 'referred account earns the welcome bonus (naira wallet)');
 
         $row = db()->fetchOne("SELECT status, credited_at FROM referrals WHERE referred_id = ?", [$this->referredId]);
         $this->assertSame('rewarded', $row['status']);
@@ -229,7 +229,7 @@ final class ReferralServiceTest extends TestCase
         $this->assertSame('Referral was already rewarded.', $second['message']);
 
         $referrer = db()->fetchOne("SELECT ad_credits FROM users WHERE id = ?", [$this->referrerId]);
-        $this->assertSame(10.00, (float)$referrer['ad_credits'], 'credits must be paid exactly once');
+        $this->assertSame(credit_units_to_ngn(10.00), (float)$referrer['ad_credits'], 'credits must be paid exactly once');
     }
 
     public function testRewardForPaymentSkipsWhenNoPendingReferral(): void
@@ -282,7 +282,7 @@ final class ReferralServiceTest extends TestCase
         $this->assertSame(10.00, $result['amount']);
 
         $referrer = db()->fetchOne("SELECT ad_credits FROM users WHERE id = ?", [$this->referrerId]);
-        $this->assertSame(10.00, (float)$referrer['ad_credits']);
+        $this->assertSame(credit_units_to_ngn(10.00), (float)$referrer['ad_credits']);
     }
 
     public function testPayRewardRefusesToPayTwice(): void
@@ -300,7 +300,7 @@ final class ReferralServiceTest extends TestCase
         $this->assertFalse($second['rewarded']);
 
         $referrer = db()->fetchOne("SELECT ad_credits FROM users WHERE id = ?", [$this->referrerId]);
-        $this->assertSame(10.00, (float)$referrer['ad_credits'], 'a manual payout must never double-pay');
+        $this->assertSame(credit_units_to_ngn(10.00), (float)$referrer['ad_credits'], 'a manual payout must never double-pay');
     }
 
     public function testPayRewardHonoursAdjustedAmount(): void
@@ -317,7 +317,7 @@ final class ReferralServiceTest extends TestCase
 
         $this->assertSame(42.00, $result['amount']);
         $referrer = db()->fetchOne("SELECT ad_credits FROM users WHERE id = ?", [$this->referrerId]);
-        $this->assertSame(42.00, (float)$referrer['ad_credits']);
+        $this->assertSame(credit_units_to_ngn(42.00), (float)$referrer['ad_credits']);
     }
 
     public function testPayRewardRejectsUnknownId(): void
@@ -404,10 +404,11 @@ final class ReferralServiceTest extends TestCase
         $referrer = db()->fetchOne("SELECT ad_credits FROM users WHERE id = ?", [$this->referrerId]);
         $referred = db()->fetchOne("SELECT ad_credits FROM users WHERE id = ?", [$this->referredId]);
 
-        // 20.00 top-up + 5.00 referral welcome bonus
-        $this->assertSame(25.00, (float)$referred['ad_credits']);
+        // 20.00 top-up + 5.00 referral welcome bonus (the wallet is
+        // naira-denominated, so both legs land as their naira value)
+        $this->assertSame(credit_units_to_ngn(25.00), (float)$referred['ad_credits']);
         // 10.00 referral reward
-        $this->assertSame(10.00, (float)$referrer['ad_credits']);
+        $this->assertSame(credit_units_to_ngn(10.00), (float)$referrer['ad_credits']);
 
         $row = db()->fetchOne("SELECT status FROM referrals WHERE referred_id = ?", [$this->referredId]);
         $this->assertSame('rewarded', $row['status']);
@@ -427,7 +428,7 @@ final class ReferralServiceTest extends TestCase
         )['id']);
 
         $referrer = db()->fetchOne("SELECT ad_credits FROM users WHERE id = ?", [$this->referrerId]);
-        $this->assertSame(10.00, (float)$referrer['ad_credits'], 'the referrer is paid exactly once');
+        $this->assertSame(credit_units_to_ngn(10.00), (float)$referrer['ad_credits'], 'the referrer is paid exactly once');
 
         $ledgerCount = db()->count('referral_rewards', 'referred_user_id = ?', [$this->referredId]);
         $this->assertSame(1, $ledgerCount, 'exactly one ledger row per referred account');

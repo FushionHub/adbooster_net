@@ -3,15 +3,17 @@
 require_once __DIR__ . '/config/site_setting_and_config.php';
 require_once __DIR__ . '/modules/payments.php';
 require_once __DIR__ . '/modules/payment_gateways.php';
+require_once __DIR__ . '/modules/rate_sheet.php';
 
 $userId  = current_user_id();
 $errors  = [];
 
 $planId    = (int)($_GET['plan'] ?? 0);
-$creditUsd = (float)($_GET['credits'] ?? 0);   // credits requested, in USD value
+$creditNgn = (float)($_GET['credits'] ?? 0);   // credits requested, in ₦ (the platform currency)
 $currency  = currency_current();
 $cycle     = ($_GET['cycle'] ?? 'monthly') === 'yearly' ? 'yearly' : 'monthly';
 $gateway   = '';
+$minTopup  = RateSheet::minTopupNgn();          // ₦15,000 minimum for ads/AI credit top-ups
 
 // Gateways that are fully configured on this deployment. Resolved once
 // here so BOTH the GET render (gateway picker) and the POST handler
@@ -36,26 +38,24 @@ if ($planId > 0) {
     }
 }
 
-$isCredits = false;
-$usdAmount = 0.0;
-// What the user actually pays: USD-canonical price converted to NGN.
-$displayCharge = 0.0;
+$isCredits  = false;
+$chargeNgn  = 0.0;   // what the user pays, in ₦ — the platform currency
+$aiCredits  = 0;
 if ($planDetails) {
-    $isOneOff = ($planDetails['billing_cycle'] ?? '') === 'pay_as_you_go';
-    $usdAmount = (float)($planDetails['price'] ?? 0);
+    $isOneOff  = ($planDetails['billing_cycle'] ?? '') === 'pay_as_you_go';
+    $chargeNgn = (float)($planDetails['price_ngn'] ?? $planDetails['price'] ?? 0);
     if ($cycle === 'yearly' && !$isOneOff) {
-        $usdAmount = round($usdAmount * 12 * 0.75, 2);   // 25% yearly discount
+        $chargeNgn = round($chargeNgn * 12 * 0.75, 2);   // 25% yearly discount
     }
-    $displayCharge = price_convert($usdAmount, $currency);
-} elseif ($creditUsd > 0) {
-    $creditUsd = max(2.5, $creditUsd);               // platform minimum top-up
-    $isCredits = true;
-    $usdAmount = $creditUsd;
-    $displayCharge = price_convert($usdAmount, $currency);
+} elseif ($creditNgn > 0) {
+    $creditNgn  = max($minTopup, $creditNgn);         // ₦15,000 minimum top-up
+    $isCredits  = true;
+    $chargeNgn  = $creditNgn;
+    $aiCredits  = (int)round($chargeNgn / max(1.0, exchange_rate_ngn_per_usd()) * 100);
     $planDetails = [
-        'name'        => number_format($creditUsd * 100) . ' AI Credits',
+        'name'        => number_format($aiCredits) . ' AI Credits',
         'description' => 'AI credit top-up — charged in ₦ NGN',
-        'price'       => $creditUsd,
+        'price'       => $creditNgn,
     ];
 }
 
@@ -70,18 +70,22 @@ if (!$planDetails && $txnRow !== null) {
             $planDetails = $recovered;
             $planId      = (int)$recovered['id'];
             $cycle       = ($txnMeta['cycle'] ?? 'monthly') === 'yearly' ? 'yearly' : 'monthly';
-            $usdAmount   = (float)($recovered['price'] ?? 0);
-            $displayCharge = price_convert($usdAmount, $currency);
+            $isOneOff    = ($recovered['billing_cycle'] ?? '') === 'pay_as_you_go';
+            $chargeNgn   = (float)($recovered['price_ngn'] ?? $recovered['price'] ?? 0);
+            if ($cycle === 'yearly' && !$isOneOff) {
+                $chargeNgn = round($chargeNgn * 12 * 0.75, 2);
+            }
         }
-    } elseif (isset($txnMeta['amount_usd']) && (float)$txnMeta['amount_usd'] > 0) {
-        $creditUsd = max(2.5, (float)$txnMeta['amount_usd']);
+    } elseif ((float)($txnRow['amount'] ?? 0) > 0) {
+        // Recovery shows the transaction's own charged amount (₦).
+        $creditNgn = max($minTopup, (float)$txnRow['amount']);
         $isCredits = true;
-        $usdAmount = $creditUsd;
-        $displayCharge = price_convert($usdAmount, $currency);
+        $chargeNgn = $creditNgn;
+        $aiCredits = (int)round($chargeNgn / max(1.0, exchange_rate_ngn_per_usd()) * 100);
         $planDetails = [
-            'name'        => number_format($creditUsd * 100) . ' AI Credits',
+            'name'        => number_format($aiCredits) . ' AI Credits',
             'description' => 'AI credit top-up — charged in ₦ NGN',
-            'price'       => $creditUsd,
+            'price'       => $creditNgn,
         ];
     }
 }
@@ -97,22 +101,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $planDetails = db()->fetchOne("SELECT * FROM pricing_plans WHERE id = ? AND status = 'active'", [$planId]);
             if ($planDetails !== null) {
                 $cycle = (($_POST['cycle'] ?? $cycle) === 'yearly') ? 'yearly' : 'monthly';
-                $usdAmount = (float)($planDetails['price'] ?? 0);
-                if ($cycle === 'yearly' && ($planDetails['billing_cycle'] ?? '') !== 'pay_as_you_go') {
-                    $usdAmount = round($usdAmount * 12 * 0.75, 2);
+                $isOneOff = ($planDetails['billing_cycle'] ?? '') === 'pay_as_you_go';
+                $chargeNgn = (float)($planDetails['price_ngn'] ?? $planDetails['price'] ?? 0);
+                if ($cycle === 'yearly' && !$isOneOff) {
+                    $chargeNgn = round($chargeNgn * 12 * 0.75, 2);
                 }
-                $displayCharge = price_convert($usdAmount, $currency);
             }
         }
-        if ($planDetails === null && (float)($_POST['credits_usd'] ?? 0) > 0) {
-            $creditUsd = max(2.5, (float)$_POST['credits_usd']);
+        if ($planDetails === null && (float)($_POST['credits_ngn'] ?? 0) > 0) {
+            $creditNgn = max($minTopup, (float)$_POST['credits_ngn']);
             $isCredits = true;
-            $usdAmount = $creditUsd;
-            $displayCharge = price_convert($usdAmount, $currency);
+            $chargeNgn = $creditNgn;
+            $aiCredits = (int)round($chargeNgn / max(1.0, exchange_rate_ngn_per_usd()) * 100);
             $planDetails = [
-                'name'        => number_format($creditUsd * 100) . ' AI Credits',
+                'name'        => number_format($aiCredits) . ' AI Credits',
                 'description' => 'AI credit top-up — charged in ₦ NGN',
-                'price'       => $creditUsd,
+                'price'       => $creditNgn,
             ];
         }
 
@@ -125,22 +129,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = $gateway !== '' && isset(PaymentGateways::REGISTRY[$gateway])
                 ? PaymentGateways::config($gateway)['label'] . ' is not available. ' . PaymentGateways::unavailableReason($gateway)
                 : 'No payment method is currently available. Please contact support.';
-        } elseif ($usdAmount <= 0) {
+        } elseif ($chargeNgn <= 0) {
             $errors[] = 'Nothing to pay for.';
         } else {
+            $amountUsdMeta = round($chargeNgn / max(1.0, exchange_rate_ngn_per_usd()), 2);
             if ($isCredits) {
                 $type   = 'ai_credit_topup';
-                $charge = price_convert($usdAmount, $currency);
-                $meta   = ['amount_usd' => $usdAmount];
+                $charge = $chargeNgn;
+                $meta   = ['amount_usd' => $amountUsdMeta];
             } else {
-                $type   = 'plan_subscription';
-                $charge = price_convert($usdAmount, $currency);
+                // The '1,000 Leads' product is a one-off fulfilment order,
+                // not a subscription — it must open a lead_orders row.
+                $isLeadPack = RateSheet::isLeadPackPlan($planDetails);
+                $type   = $isLeadPack ? 'lead_pack' : 'plan_subscription';
+                $charge = $chargeNgn;
                 $meta   = [
                     'plan_id'    => (int)$planDetails['id'],
                     'plan_name'  => (string)($planDetails['name'] ?? ''),
                     'cycle'      => ($planDetails['billing_cycle'] ?? '') === 'pay_as_you_go' ? 'monthly' : $cycle,
-                    'amount_usd' => $usdAmount,
+                    'amount_usd' => $amountUsdMeta,
                 ];
+                if ($isLeadPack) {
+                    $meta['leads_count'] = RateSheet::leadPackCount();
+                }
             }
 
             $result = PaymentProcessor::initiatePayment($userId, $type, $charge, $currency, $gateway, $meta);
@@ -230,12 +241,12 @@ require_once __DIR__ . '/includes/app_header.php';
                         <?php endif; ?>
                     </div>
                     <div class="text-end">
-                        <span class="text-main-600 fw-bold h4 mb-0"><?= e(txn_money($displayCharge, $currency)) ?></span>
+                        <span class="text-main-600 fw-bold h4 mb-0"><?= e(txn_money($chargeNgn, $currency)) ?></span>
                     </div>
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
                     <span class="text-white fw-semibold">Total</span>
-                    <span class="text-main-600 fw-bold h4 mb-0"><?= e(txn_money($displayCharge, $currency)) ?></span>
+                    <span class="text-main-600 fw-bold h4 mb-0"><?= e(txn_money($chargeNgn, $currency)) ?></span>
                 </div>
             </div>
 
@@ -243,7 +254,7 @@ require_once __DIR__ . '/includes/app_header.php';
             <form method="POST" id="checkoutForm">
                 <?= csrf_field() ?>
                 <?php if ($isCredits): ?>
-                    <input type="hidden" name="credits_usd" value="<?= e((string)$creditUsd) ?>">
+                    <input type="hidden" name="credits_ngn" value="<?= e((string)$creditNgn) ?>">
                 <?php else: ?>
                     <input type="hidden" name="plan_id" value="<?= (int)($planDetails['id'] ?? $planId) ?>">
                     <input type="hidden" name="cycle" value="<?= e($cycle) ?>">
@@ -283,7 +294,7 @@ require_once __DIR__ . '/includes/app_header.php';
                     <span class="button__flair"></span>
                     <span class="button__label">
                         <i class="ph-bold ph-lock me-1"></i>
-                        Pay <?= e(txn_money($displayCharge, $currency)) ?>
+                        Pay <?= e(txn_money($chargeNgn, $currency)) ?>
                     </span>
                 </button>
 

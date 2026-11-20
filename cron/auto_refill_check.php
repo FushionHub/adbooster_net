@@ -20,6 +20,9 @@ if (PHP_SAPI !== 'cli') {
  */
 
 require_once __DIR__ . '/../config/db.php';
+// The bootstrap carries the admin-tunable naira exchange rate and the
+// currency helpers used by the refill maths below.
+require_once __DIR__ . '/../config/site_setting_and_config.php';
 
 $jobName = 'auto_refill_check';
 $logId = null;
@@ -49,22 +52,28 @@ try {
     foreach ($users as $user) {
         try {
             $checked++;
+            // The wallet is naira-denominated; the stored threshold/refill
+            // amounts are legacy USD-canonical credit units. Convert them
+            // once, here, so the comparison and the charge are in the same
+            // unit the user actually holds.
             $currentCredits = (float) $user['ad_credits'];
             $threshold = (float) $user['auto_refill_threshold'];
             $refillAmount = (float) $user['auto_refill_amount'];
+            $thresholdNgn = credit_units_to_ngn($threshold);
+            $refillAmountNgn = credit_units_to_ngn($refillAmount);
             $gateway = $user['auto_refill_gateway'] ?: 'paystack';
 
-            if ($currentCredits >= $threshold) {
+            if ($currentCredits >= $thresholdNgn) {
                 $skipped++;
                 continue;
             }
 
-            if ($refillAmount <= 0) {
+            if ($refillAmountNgn <= 0) {
                 $failed++;
                 db()->insert('campaign_run_logs', [
                     'campaign_id' => 0,
                     'action'      => 'auto_refill_invalid_amount',
-                    'details'     => json_encode(['user_id' => $user['id'], 'amount' => $refillAmount]),
+                    'details'     => json_encode(['user_id' => $user['id'], 'amount' => $refillAmountNgn]),
                     'created_at'  => date('Y-m-d H:i:s'),
                 ]);
                 continue;
@@ -82,14 +91,14 @@ try {
                 continue;
             }
 
-            $currency = 'USD';
+            $currency = 'NGN';
             $reference = strtoupper('AR-' . bin2hex(random_bytes(8)));
 
             $transactionId = db()->insert('transactions', [
                 'user_id'        => $user['id'],
                 'gateway'        => $gateway,
                 'type'           => 'ad_credit_topup',
-                'amount'         => $refillAmount,
+                'amount'         => $refillAmountNgn,
                 'currency'       => $currency,
                 'status'         => 'pending',
                 'invoice_number' => 'INV-' . date('Ymd') . '-' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 6)),
@@ -98,7 +107,9 @@ try {
                     'auto_refill' => true,
                     'triggered_by' => 'cron',
                     'threshold'   => $threshold,
+                    'threshold_ngn' => $thresholdNgn,
                     'current'     => $currentCredits,
+                    'amount_usd'  => $refillAmount,
                 ]),
                 'created_at'     => date('Y-m-d H:i:s'),
             ]);
@@ -109,10 +120,11 @@ try {
                 'details'     => json_encode([
                     'user_id'        => $user['id'],
                     'email'          => $user['email'],
-                    'amount'         => $refillAmount,
+                    'amount'         => $refillAmountNgn,
+                    'amount_ngn'     => $refillAmountNgn,
                     'gateway'        => $gateway,
                     'transaction_id' => $transactionId,
-                    'reason'         => "Credits ({$currentCredits}) below threshold ({$threshold})",
+                    'reason'         => "Credits (₦" . number_format($currentCredits, 2) . ") below threshold (₦" . number_format($thresholdNgn, 2) . ")",
                 ]),
                 'created_at'  => date('Y-m-d H:i:s'),
             ]);

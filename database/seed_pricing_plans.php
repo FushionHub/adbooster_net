@@ -1,17 +1,27 @@
 <?php declare(strict_types=1);
 
 /**
- * Pricing plan seed.
+ * Pricing plan seed — NGN-native.
  *
- * Installs the platform's six plans:
- *   - 4 subscription plans (Starter, Growth, Pro, Scale) that can be
- *     billed monthly or yearly (yearly = 12 months at 25% off).
+ * Installs the platform's seven products (ALL prices in ₦ — the platform's
+ * currency is NGN end-to-end):
+ *
+ *   - 4 subscription plans (Starter, Growth, Pro, Scale) billable monthly
+ *     or yearly (yearly = 12 months at 25% off).
  *   - 2 pay-as-you-go plans (Launch Kit, Power Pack) that never renew.
+ *   - The '1,000 Leads' product (₦3,500) — verified directory/lead-list
+ *     delivery, fulfilled by the admin team.
  *
- * The credit numbers are derived from the live product rates:
- *   * 1 USD of ad credit = 1 USD of ad spend.
- *   * 100 AI credits per USD. One AI UGC image costs 5 AI credits,
- *     one AI script costs 1 AI credit.
+ * Money units:
+ *   * `price` and `price_ngn` both hold the NAIRA price (the platform's
+ *     currency is NGN; there is no USD-canonical pricing).
+ *   * `ad_credits` are NAIRA-denominated wallet credit (₦1 credit = ₦1 of
+ *     ad budget).
+ *   * AI credits are a usage unit (one AI UGC image costs 5 AI credits,
+ *     one AI script costs 1 AI credit) — not a currency.
+ *
+ * Ads rate sheet (modules/rate_sheet.php): ₦4,200 / ₦3,800 per 1k leads
+ * (managed / self-serve), ₦15,000 minimum wallet top-up.
  *
  * Idempotent: running it again updates the existing rows instead of
  * creating duplicates.
@@ -29,8 +39,8 @@ $plans = [
     [
         'name'        => 'Starter',
         'description' => 'Everything a solo creator needs to publish consistently and run small paid tests.',
-        'price'       => 9.00,
-        'ad_credits'  => 5.00,
+        'price_ngn'   => 13950.00,
+        'ad_credits'  => 7750.00,
         'ai_credits'  => 900,
         'featured'    => 0,
         'features'    => [
@@ -46,8 +56,8 @@ $plans = [
     [
         'name'        => 'Growth',
         'description' => 'For growing brands: more networks, A/B testing, audiences and a bigger creative budget.',
-        'price'       => 24.00,
-        'ad_credits'  => 15.00,
+        'price_ngn'   => 37200.00,
+        'ad_credits'  => 23250.00,
         'ai_credits'  => 2400,
         'featured'    => 1,
         'features'    => [
@@ -66,8 +76,8 @@ $plans = [
     [
         'name'        => 'Pro',
         'description' => 'For agencies and scaling brands running multi-network funnels every single day.',
-        'price'       => 59.00,
-        'ad_credits'  => 45.00,
+        'price_ngn'   => 91450.00,
+        'ad_credits'  => 69750.00,
         'ai_credits'  => 5900,
         'featured'    => 0,
         'features'    => [
@@ -87,8 +97,8 @@ $plans = [
     [
         'name'        => 'Scale',
         'description' => 'The full platform for high-volume teams, agencies and white-label operations.',
-        'price'       => 149.00,
-        'ad_credits'  => 120.00,
+        'price_ngn'   => 230950.00,
+        'ad_credits'  => 186000.00,
         'ai_credits'  => 14900,
         'featured'    => 0,
         'features'    => [
@@ -110,8 +120,8 @@ $plans = [
     [
         'name'        => 'Launch Kit',
         'description' => 'A single payment that unlocks the whole platform for 30 days. No card on file, no renewal.',
-        'price'       => 9.00,
-        'ad_credits'  => 5.00,
+        'price_ngn'   => 13950.00,
+        'ad_credits'  => 7750.00,
         'ai_credits'  => 900,
         'featured'    => 0,
         'cycle'       => 'pay_as_you_go',
@@ -129,8 +139,8 @@ $plans = [
     [
         'name'        => 'Power Pack',
         'description' => 'Our most popular one-off pack: everything unlocked for 30 days with a serious creative budget.',
-        'price'       => 29.00,
-        'ad_credits'  => 20.00,
+        'price_ngn'   => 44950.00,
+        'ad_credits'  => 31000.00,
         'ai_credits'  => 2900,
         'featured'    => 1,
         'cycle'       => 'pay_as_you_go',
@@ -146,13 +156,33 @@ $plans = [
             'Never renews — you are only charged once',
         ],
     ],
+
+    // ── Lead product ──────────────────────────────────────────────────
+    [
+        'name'        => '1,000 Leads',
+        'description' => 'One thousand verified business leads from the Adsbooster directory, delivered as a ready-to-call list. Adsbooster fulfils every order manually.',
+        'price_ngn'   => 3500.00,
+        'ad_credits'  => 0.00,
+        'ai_credits'  => 0,
+        'featured'    => 1,
+        'cycle'       => 'pay_as_you_go',
+        'product_type'=> 'lead_pack',
+        'features'    => [
+            '1,000 verified business leads (₦3,500 per 1,000)',
+            'Name, business category, phone/WhatsApp and location columns',
+            'Delivered as a downloadable CSV from your Billing page',
+            'Sourced from the Adsbooster verified business directory',
+            'Fulfilled by the Adsbooster team — usually within 48 hours',
+            'Ads run on your budget: self-serve campaigns convert at ₦3,800 per 1,000 leads, managed campaigns at ₦4,200',
+        ],
+    ],
 ];
 
 $pdo = db()->getConnection();
 $inserted = 0;
 $updated   = 0;
 
-echo "Seeding pricing plans\n";
+echo "Seeding pricing plans (NGN-native)\n";
 echo str_repeat('-', 66) . "\n";
 
 foreach ($plans as $plan) {
@@ -166,22 +196,27 @@ foreach ($plans as $plan) {
 
     $data = [
         'description'         => $plan['description'],
-        'price'               => $plan['price'],
+        // `price` IS the NGN price (the platform currency is NGN), mirrored
+        // into price_ngn so every consumer agrees regardless of which column
+        // it reads.
+        'price'               => $plan['price_ngn'],
+        'price_ngn'           => $plan['price_ngn'],
         'billing_cycle'       => $cycle,
         'ad_credits_included' => $plan['ad_credits'],
         'ai_credits_included' => $plan['ai_credits'],
         'features_json'       => $featuresJson,
         'is_featured'         => $plan['featured'],
+        'product_type'        => $plan['product_type'] ?? 'plan',
         'status'              => 'active',
     ];
 
     if ($existing) {
         db()->update('pricing_plans', $data, 'id = ?', [(int)$existing['id']]);
-        echo "  [updated] {$plan['name']} ({$cycle})\n";
+        echo "  [updated] {$plan['name']} ({$cycle}) — " . price_ngn_fmt((float)$plan['price_ngn']) . "\n";
         $updated++;
     } else {
         db()->insert('pricing_plans', array_merge(['name' => $plan['name']], $data));
-        echo "  [created] {$plan['name']} ({$cycle}) — $" . number_format($plan['price'], 2) . "\n";
+        echo "  [created] {$plan['name']} ({$cycle}) — " . price_ngn_fmt((float)$plan['price_ngn']) . "\n";
         $inserted++;
     }
 }
@@ -192,15 +227,14 @@ echo "Created: {$inserted} | Updated: {$updated} | Total active plans: "
 
 // ── Summary ─────────────────────────────────────────────────────────────
 echo "\nPlan summary\n";
-echo str_pad('Plan', 16) . str_pad('Cycle', 16) . str_pad('Monthly', 12)
-    . str_pad('Yearly', 12) . str_pad('Ad $', 10) . "AI credits\n";
+echo str_pad('Plan', 16) . str_pad('Cycle', 16) . str_pad('Price (₦)', 14)
+    . str_pad('Ad credits (₦)', 16) . "AI credits\n";
 foreach (db()->fetchAll("SELECT * FROM pricing_plans WHERE status='active' ORDER BY billing_cycle DESC, price ASC") as $p) {
-    $monthly = (float)$p['price'];
-    $yearly  = $p['billing_cycle'] === 'pay_as_you_go' ? null : round($monthly * 12 * YEARLY_DISCOUNT, 2);
+    $ngn = (float)($p['price_ngn'] ?? $p['price']);
+    $yearly = $p['billing_cycle'] === 'pay_as_you_go' ? null : round($ngn * 12 * YEARLY_DISCOUNT, 2);
     echo str_pad((string)$p['name'], 16)
         . str_pad((string)$p['billing_cycle'], 16)
-        . str_pad('$' . number_format($monthly, 2), 12)
-        . str_pad($yearly === null ? '—' : '$' . number_format($yearly, 2), 12)
-        . str_pad('$' . number_format((float)$p['ad_credits_included'], 2), 10)
+        . str_pad('₦' . number_format($ngn, 2), 14)
+        . str_pad('₦' . number_format((float)$p['ad_credits_included'], 2), 16)
         . (int)$p['ai_credits_included'] . "\n";
 }

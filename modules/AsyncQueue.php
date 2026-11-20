@@ -19,6 +19,11 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/ThirdPartyGateway.php';
+// Money helpers — the naira → gateway-currency conversion uses the
+// admin-tunable rate even when the full application bootstrap is absent.
+require_once __DIR__ . '/money.php';
+// Rate sheet — the committed-budget maths (daily × timeline days).
+require_once __DIR__ . '/rate_sheet.php';
 
 class AsyncQueue
 {
@@ -501,12 +506,17 @@ class AsyncQueue
         $adAccountId = (string)($payload['ad_account_id'] ?: ($spec['zernio_ad_account_id'] ?? ''));
         $platforms = (array)($payload['platforms'] ?: ($spec['platforms'] ?? ['meta']));
 
+        // The platform currency is NGN; the ad gateway bills in its own
+        // currency — convert at THIS boundary only (admin-tunable rate).
+        $budgetNgn = (float)($campaign['budget_amount'] ?? 0);
+        $budgetGateway = round($budgetNgn / money_ngn_per_usd_rate(), 2);
+
         $res = ThirdPartyGateway::launchPaidCampaign([
             'ad_account_id'      => $adAccountId,
             'platforms'          => $platforms,
             'title'              => (string)($campaign['campaign_name'] ?? 'Adsbooster Campaign'),
             'objective'          => (string)($campaign['objective'] ?? 'conversions'),
-            'budget_amount'      => (float)($campaign['budget_amount'] ?? 10),
+            'budget_amount'      => $budgetGateway > 0 ? $budgetGateway : 10,
             'headline'           => (string)($campaign['headline'] ?? ''),
             'primary_text'       => (string)($campaign['primary_text'] ?? ''),
             'destination_url'    => (string)($campaign['destination_url'] ?? ''),
@@ -529,20 +539,22 @@ class AsyncQueue
             // (A sandbox hold is NOT a rejection: the campaign stays
             // retryable there, so the wallet must wait for a live key.)
             if (empty($spec['credits_refunded_at'])) {
-                $fee = (float)($spec['launch_fee_usd'] ?? (((string)($campaign['budget_type'] ?? 'daily') === 'lifetime')
+                // launch_fee_ngn is the exact debit recorded at creation (₦).
+                // Legacy rows fall back to the budget-derived amount, also ₦.
+                $fee = (float)($spec['launch_fee_ngn'] ?? (((string)($campaign['budget_type'] ?? 'daily') === 'lifetime')
                     ? (float)($campaign['budget_amount'] ?? 0)
                     : ((float)($campaign['budget_amount'] ?? 0) * 30)));
                 if ($fee > 0) {
                     try {
                         db()->query("UPDATE users SET ad_credits = ad_credits + ? WHERE id = ?", [$fee, (int)$campaign['user_id']]);
                         $spec['credits_refunded_at'] = date('c');
-                        $spec['credits_refunded_usd'] = $fee;
+                        $spec['credits_refunded_ngn'] = $fee;
                         db()->update('ad_campaigns', [
                             'status'        => 'failed',
                             'targeting_spec'=> json_encode($spec),
                         ], 'id = ?', [$campaignId]);
-                        $failReason .= " Your " . number_format($fee, 2) . " ad credits have been refunded.";
-                        $log("[Worker] Campaign #{$campaignId} launch rejected — {$fee} ad credits refunded.");
+                        $failReason .= " ₦" . number_format($fee, 2) . " in ad credits has been refunded.";
+                        $log("[Worker] Campaign #{$campaignId} launch rejected — ₦{$fee} ad credits refunded.");
                     } catch (\Throwable $refundErr) {
                         error_log('Ad-credit refund failed for campaign ' . $campaignId . ': ' . $refundErr->getMessage());
                     }
@@ -664,18 +676,61 @@ class AsyncQueue
         $log("[Worker] Campaign #{$campaignId} {$targetStatus} confirmed by Zernio.");
     }
 
-    /** Apply a new daily budget to a LIVE Zernio campaign (worker-only). */
+    /** Apply a new budget to a LIVE Zernio campaign (worker-only).
+     *  The platform stores budgets in ₦; the gateway amount is converted
+     *  here at the dispatch boundary. */
     private static function handleZernioSetBudget(array $payload, callable $log): void
     {
         $campaignId = (int)($payload['internal_campaign_id'] ?? 0);
         $zernioId   = (string)($payload['zernio_campaign_id'] ?? '');
-        $newBudget  = (float)($payload['new_budget_usd'] ?? 0);
+        $newBudgetNgn = (float)($payload['new_budget_ngn'] ?? 0);
+        $requestedType = strtolower(trim((string)($payload['new_budget_type'] ?? 'daily')));
+        $newBudgetType = in_array($requestedType, ['daily', 'lifetime'], true) ? $requestedType : 'daily';
+        // Idempotency token for the wallet adjustment — a worker retry must
+        // never charge (or credit) the same budget change twice.
+        $changeToken = (string)($payload['change_token'] ?? '');
 
-        if ($campaignId <= 0 || $zernioId === '' || $newBudget <= 0) {
+        if ($campaignId <= 0 || $zernioId === '' || $newBudgetNgn <= 0) {
             throw new \RuntimeException('zernio_set_budget payload missing campaign id, Zernio id or budget.');
         }
 
-        $res = ThirdPartyGateway::setCampaignBudget($zernioId, $newBudget, 'daily');
+        $campaign = db()->fetchOne("SELECT * FROM ad_campaigns WHERE id = ?", [$campaignId]);
+        if (!$campaign) {
+            throw new \RuntimeException("Campaign #{$campaignId} no longer exists.");
+        }
+
+        $spec = json_decode((string)($campaign['targeting_spec'] ?? '{}'), true) ?: [];
+        $campaignDays = max(1, min(365, (int)($payload['campaign_days'] ?? ($spec['campaign_days'] ?? 30))));
+
+        // The wallet is the spend ceiling: a daily budget commits daily ×
+        // timeline days, a lifetime budget commits its full amount.
+        $oldCommitted = RateSheet::committedCampaignCost(
+            (float)($campaign['budget_amount'] ?? 0),
+            (string)($campaign['budget_type'] ?? 'daily'),
+            $campaignDays
+        );
+        $newCommitted = RateSheet::committedCampaignCost($newBudgetNgn, $newBudgetType, $campaignDays);
+        $walletDelta = round($newCommitted - $oldCommitted, 2);
+
+        // A budget increase is only applied when the ad credits already cover
+        // it. Checked BEFORE the gateway call so the live campaign can never
+        // drift ahead of the money behind it.
+        if ($walletDelta > 0) {
+            $wallet = db()->fetchOne("SELECT ad_credits FROM users WHERE id = ?", [(int)$campaign['user_id']]);
+            $balance = (float)($wallet['ad_credits'] ?? 0);
+            if ($balance < $walletDelta) {
+                throw new \RuntimeException('Not enough ad credits for the new budget: the wallet holds ₦'
+                    . number_format($balance, 2) . ' but the change needs ₦' . number_format($walletDelta, 2)
+                    . ' more. The live budget was left unchanged.');
+            }
+        }
+
+        $newBudgetGateway = round($newBudgetNgn / money_ngn_per_usd_rate(), 2);
+        $res = ThirdPartyGateway::setCampaignBudget(
+            $zernioId,
+            $newBudgetGateway > 0 ? $newBudgetGateway : 10,
+            $newBudgetType
+        );
 
         if (!empty($res['data']['simulated'])) {
             throw new \RuntimeException('SIMULATED: Zernio sandbox budget update — local budget left unchanged (source of truth preserved).');
@@ -686,10 +741,27 @@ class AsyncQueue
         }
 
         // Local budget persists only on gateway confirmation (Zernio holds
-        // the live spend — the local row must follow, never lead).
-        db()->update('ad_campaigns', ['budget_amount' => $newBudget], 'id = ?', [$campaignId]);
+        // the live spend — the local row follows in ₦, never leads).
+        $spec['launch_fee_ngn']   = $newCommitted;
+        $spec['daily_budget_ngn'] = RateSheet::dailyBudget($newCommitted, $campaignDays);
 
-        $log('[Worker] Campaign #' . $campaignId . ' budget set to ' . number_format($newBudget, 2) . ' on Zernio.');
+        if ($changeToken !== '' && (string)($spec['budget_wallet_synced_token'] ?? '') !== $changeToken) {
+            if ($walletDelta > 0) {
+                db()->query("UPDATE users SET ad_credits = ad_credits - ? WHERE id = ?", [$walletDelta, (int)$campaign['user_id']]);
+            } elseif ($walletDelta < 0) {
+                db()->query("UPDATE users SET ad_credits = ad_credits + ? WHERE id = ?", [abs($walletDelta), (int)$campaign['user_id']]);
+            }
+            $spec['budget_wallet_synced_token'] = $changeToken;
+            $spec['budget_wallet_delta_ngn']    = $walletDelta;
+        }
+
+        db()->update('ad_campaigns', [
+            'budget_amount'  => $newBudgetNgn,
+            'budget_type'    => $newBudgetType,
+            'targeting_spec' => json_encode($spec),
+        ], 'id = ?', [$campaignId]);
+
+        $log('[Worker] Campaign #' . $campaignId . ' budget set to ₦' . number_format($newBudgetNgn, 2) . ' on Zernio.');
     }
 
     /**

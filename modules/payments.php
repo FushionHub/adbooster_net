@@ -615,16 +615,37 @@ class PaymentProcessor
             $amount = (float) $transaction['amount'];
             $meta = json_decode((string)($transaction['metadata'] ?? '{}'), true) ?: [];
 
-            // Wallets are USD-denominated. NGN charges are converted to their
-            // USD equivalent (pinned at initiation when available) before any
-            // credit is granted.
-            $usdAmount = $amount;
-            if (strtoupper((string)($transaction['currency'] ?? 'USD')) === 'NGN') {
-                $usdAmount = isset($meta['amount_usd'])
-                    ? (float) $meta['amount_usd']
-                    : round($amount / max(1.0, function_exists('exchange_rate_ngn_per_usd') ? exchange_rate_ngn_per_usd() : 1550.0), 2);
+            // The platform currency is NAIRA. Ad-credit wallets are naira-
+            // denominated (₦1 credit = ₦1 of ad budget), so an NGN charge
+            // credits the wallet 1:1 with the charged amount. Legacy
+            // non-NGN transactions keep their old USD-canonical meaning: the
+            // amount IS the dollar value and must never be divided by the
+            // naira exchange rate. AI credits remain a usage unit (100 per
+            // $1-equivalent of spend) and are not affected by the wallet
+            // denomination.
+            $isNgn = strtoupper((string)($transaction['currency'] ?? 'USD')) === 'NGN';
+            $rate = max(1.0, function_exists('exchange_rate_ngn_per_usd') ? exchange_rate_ngn_per_usd() : 1550.0);
+
+            if ($isNgn) {
+                // Naira in, naira out — the wallet is the ad budget.
+                $walletAmount = $amount;
+                // The USD twin (used for AI-credit maths and legacy ledgers)
+                // comes from the pinned metadata when present, otherwise from
+                // the live rate.
+                $usdAmount = isset($meta['amount_usd']) && (float)$meta['amount_usd'] > 0
+                    ? (float)$meta['amount_usd']
+                    : round($amount / $rate, 2);
+            } else {
+                // Legacy dollar transaction: the amount already IS dollars.
+                $usdAmount = isset($meta['amount_usd']) && (float)$meta['amount_usd'] > 0
+                    ? (float)$meta['amount_usd']
+                    : $amount;
+                // The wallet is naira-denominated, so the dollar value is
+                // converted once, at the wallet boundary — a legacy $25.50
+                // top-up must still be worth ₦39,525 of ad budget.
+                $walletAmount = credit_units_to_ngn($usdAmount);
             }
-            $aiCreditsPerUsd = 100; // 100 AI credits per $1 — matches the billing UI
+            $aiCreditsPerUsd = 100; // 100 AI credits per $1-equivalent — matches the billing UI
 
             db()->query("BEGIN");
 
@@ -639,9 +660,9 @@ class PaymentProcessor
             if ($transaction['type'] === 'ad_credit_topup') {
                 db()->query(
                     "UPDATE users SET ad_credits = COALESCE(ad_credits, 0) + ? WHERE id = ?",
-                    [$usdAmount, $userId]
+                    [$walletAmount, $userId]
                 );
-                $creditNote = price_fmt($usdAmount) . ' in ad credits';
+                $creditNote = price_ngn_fmt($walletAmount) . ' in ad credits';
             } elseif ($transaction['type'] === 'ai_credit_topup') {
                 $granted = (int) round($usdAmount * $aiCreditsPerUsd);
                 db()->query(
@@ -649,28 +670,59 @@ class PaymentProcessor
                     [$granted, $userId]
                 );
                 $creditNote = $granted . ' AI credits';
+            } elseif ($transaction['type'] === 'lead_pack') {
+                // The '1,000 Leads — ₦3,500' product: a verified purchase
+                // opens a fulfillment order the Adsbooster team delivers as
+                // a CSV lead list (no auto-generated data is ever invented).
+                $leadsCount = (int)($meta['leads_count'] ?? 1000);
+                db()->insert('lead_orders', [
+                    'user_id'        => $userId,
+                    'transaction_id' => $transactionId,
+                    'leads_count'    => $leadsCount,
+                    'price_ngn'      => $amount,
+                    'status'         => 'pending',
+                    'created_at'     => date('Y-m-d H:i:s'),
+                ]);
+                $creditNote = number_format($leadsCount) . ' verified leads ordered — the Adsbooster team will deliver your CSV list from the Billing page';
             } elseif ($transaction['type'] === 'plan_subscription' && !empty($meta['plan_id'])) {
                 $plan = db()->fetchOne(
-                    "SELECT id, name, billing_cycle, ad_credits_included, ai_credits_included FROM pricing_plans WHERE id = ? AND status = 'active'",
+                    "SELECT id, name, billing_cycle, product_type, ad_credits_included, ai_credits_included FROM pricing_plans WHERE id = ? AND status = 'active'",
                     [(int) $meta['plan_id']]
                 );
                 if ($plan !== null) {
-                    // Explicit cycle from checkout metadata wins over the plan row
-                    // (supports monthly / yearly-25% variants of the same plan).
-                    $cycle  = (string)($meta['cycle'] ?? $plan['billing_cycle'] ?? 'monthly');
-                    $months = ($cycle === 'yearly') ? 12 : 1;
-                    $adCredits = (float)($plan['ad_credits_included'] ?? 0);
-                    $aiCredits = (int)($plan['ai_credits_included'] ?? 0);
+                    // A lead-list product bought through the generic
+                    // 'plan_subscription' type (older pending transactions)
+                    // must open a fulfilment order, NOT a recurring plan.
+                    if (function_exists('RateSheet::isLeadPackPlan')
+                        && RateSheet::isLeadPackPlan($plan)) {
+                        $leadsCount = (int)($meta['leads_count'] ?? 1000);
+                        db()->insert('lead_orders', [
+                            'user_id'        => $userId,
+                            'transaction_id' => $transactionId,
+                            'leads_count'    => $leadsCount,
+                            'price_ngn'      => $amount,
+                            'status'         => 'pending',
+                            'created_at'     => date('Y-m-d H:i:s'),
+                        ]);
+                        $creditNote = number_format($leadsCount) . ' verified leads ordered — the Adsbooster team will deliver your CSV list from the Billing page';
+                    } else {
+                        // Explicit cycle from checkout metadata wins over the plan row
+                        // (supports monthly / yearly-25% variants of the same plan).
+                        $cycle  = (string)($meta['cycle'] ?? $plan['billing_cycle'] ?? 'monthly');
+                        $months = ($cycle === 'yearly') ? 12 : 1;
+                        $adCredits = (float)($plan['ad_credits_included'] ?? 0);
+                        $aiCredits = (int)($plan['ai_credits_included'] ?? 0);
 
-                    db()->query(
-                        "UPDATE users SET plan_id = ?, billing_cycle = ?, 
-                         plan_expiry = DATE_ADD(GREATEST(COALESCE(plan_expiry, CURDATE()), CURDATE()), INTERVAL {$months} MONTH),
-                         ad_credits = COALESCE(ad_credits, 0) + ?,
-                         ai_credits = COALESCE(ai_credits, 0) + ?
-                         WHERE id = ?",
-                        [(int) $plan['id'], $cycle, $adCredits, $aiCredits, $userId]
-                    );
-                    $creditNote = 'plan "' . ($plan['name'] ?? 'Subscription') . '" activated with ' . price_fmt($adCredits) . ' Ad Credits & ' . $aiCredits . ' AI Credits included';
+                        db()->query(
+                            "UPDATE users SET plan_id = ?, billing_cycle = ?,
+                             plan_expiry = DATE_ADD(GREATEST(COALESCE(plan_expiry, CURDATE()), CURDATE()), INTERVAL {$months} MONTH),
+                             ad_credits = COALESCE(ad_credits, 0) + ?,
+                             ai_credits = COALESCE(ai_credits, 0) + ?
+                             WHERE id = ?",
+                            [(int) $plan['id'], $cycle, $adCredits, $aiCredits, $userId]
+                        );
+                        $creditNote = 'plan "' . ($plan['name'] ?? 'Subscription') . '" activated with ' . price_ngn_fmt($adCredits) . ' Ad Credits & ' . $aiCredits . ' AI Credits included';
+                    }
                 }
             }
 
@@ -683,7 +735,7 @@ class PaymentProcessor
                 if ($reward['rewarded']) {
                     $creditNote = trim(
                         $creditNote . ($creditNote !== '' ? ' · ' : '')
-                        . 'referral reward ' . number_format((float)$reward['amount'], 2) . ' credits issued'
+                        . 'referral reward ' . price_ngn_fmt(credit_units_to_ngn((float)$reward['amount'])) . ' issued'
                     );
                 }
             } catch (\Throwable $refErr) {

@@ -384,6 +384,8 @@ CREATE TABLE IF NOT EXISTS `campaign_metrics_daily` (
   `conversions` int DEFAULT '0',
   `ctr` decimal(8,2) DEFAULT '0.00',
   `cpc` decimal(12,2) DEFAULT '0.00',
+  `revenue` decimal(12,2) DEFAULT NULL,
+  `reach` int DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_general_ci;
 
@@ -979,15 +981,40 @@ CREATE TABLE IF NOT EXISTS `pricing_plans` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(150) COLLATE utf8mb4_general_ci NOT NULL,
   `description` text COLLATE utf8mb4_general_ci,
-  `price` decimal(10,2) DEFAULT '0.00',
+  `price` decimal(12,2) DEFAULT '0.00',
+  `price_ngn` decimal(12,2) DEFAULT NULL,
   `billing_cycle` varchar(30) COLLATE utf8mb4_general_ci DEFAULT 'monthly',
   `ad_credits_included` int DEFAULT '0',
   `ai_credits_included` int DEFAULT '0',
   `features_json` json DEFAULT NULL,
   `is_featured` tinyint(1) DEFAULT '0',
+  `product_type` varchar(40) COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'plan',
   `status` varchar(20) COLLATE utf8mb4_general_ci DEFAULT 'active',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_general_ci;
+
+-- -----------------------------------------------------
+-- Table structure for `lead_orders`
+-- -----------------------------------------------------
+-- Fulfillment ledger for the '1,000 Leads — ₦3,500' product. A purchase
+-- creates a 'pending' order; the Adsbooster team attaches the delivered
+-- CSV and flips it to 'delivered', after which the customer downloads it
+-- from their Billing page.
+CREATE TABLE IF NOT EXISTS `lead_orders` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `transaction_id` int DEFAULT NULL,
+  `leads_count` int NOT NULL DEFAULT 1000,
+  `price_ngn` decimal(12,2) NOT NULL DEFAULT 3500.00,
+  `status` enum('pending','processing','delivered','refunded') NOT NULL DEFAULT 'pending',
+  `deliverable_path` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `notes` varchar(500) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `delivered_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_lead_orders_user` (`user_id`),
+  KEY `idx_lead_orders_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_general_ci;
 
 -- Seed data for `pricing_plans` (INSERT IGNORE — existing rows win)

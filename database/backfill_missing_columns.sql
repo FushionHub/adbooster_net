@@ -72,6 +72,18 @@ CALL `adsb_add_column_if_missing`('transactions', 'invoice_path', 'VARCHAR(255) 
 -- ── ticket_messages: reply attachments ──────────────────────────────
 CALL `adsb_add_column_if_missing`('ticket_messages', 'attachment_path', 'VARCHAR(255) NULL');
 
+-- ── pricing_plans: NGN-native price + product marker ─────────────────
+-- price_ngn is the naira price; NULL = legacy USD-canonical pricing.
+-- product_type = 'plan' | 'lead_pack' (the '1,000 Leads' product).
+CALL `adsb_add_column_if_missing`('pricing_plans', 'price_ngn',    'DECIMAL(12,2) NULL');
+CALL `adsb_add_column_if_missing`('pricing_plans', 'product_type', "VARCHAR(40) NOT NULL DEFAULT 'plan'");
+
+-- ── campaign_metrics_daily: real conversion value + reach ────────────
+-- NULL means the gateway did not report the metric (unavailable) — it is
+-- NOT the same as zero. The auto-buyer reads NULL as "no data".
+CALL `adsb_add_column_if_missing`('campaign_metrics_daily', 'revenue', 'DECIMAL(12,2) NULL');
+CALL `adsb_add_column_if_missing`('campaign_metrics_daily', 'reach',   'INT NULL');
+
 DROP PROCEDURE IF EXISTS `adsb_add_column_if_missing`;
 
 -- ── Data backfill: mirror the pre-existing reward_credits value ─────

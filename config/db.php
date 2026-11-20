@@ -67,6 +67,52 @@ class Database
                 $e
             );
         }
+
+        // Align MySQL's clock with PHP's clock.
+        //
+        // Every timestamp this application writes is produced by PHP
+        // (date('Y-m-d H:i:s')), but several queries compare those columns
+        // against the DATABASE clock (NOW(), DATE_ADD(NOW(), …)). MySQL's
+        // session timezone defaults to the server's system timezone, which
+        // is NOT guaranteed to match PHP's timezone — on a Windows/Laragon
+        // box MySQL reports 'Argentina Standard Time' (UTC-3) while PHP
+        // runs in UTC, so a row written for "now" looked three hours in
+        // the future and the async worker never claimed it.
+        //
+        // Pinning the session timezone to PHP's current UTC offset makes
+        // NOW() and date() return the same wall-clock value, so every
+        // due-date comparison in the app is correct on any host.
+        $this->syncSessionTimezone();
+    }
+
+    /**
+     * Pin the MySQL session timezone to PHP's current UTC offset.
+     *
+     * Safe to call repeatedly (the long-running queue daemon calls it on
+     * every pass so a DST change is picked up mid-run).
+     */
+    public function syncSessionTimezone(): void
+    {
+        $offset = date('P'); // e.g. '+00:00' / '+01:00'
+        if (!preg_match('/^[+-]\d{2}:\d{2}$/', $offset)) {
+            return;
+        }
+        try {
+            $this->connection->exec("SET time_zone = '{$offset}'");
+        } catch (\Throwable $e) {
+            // A restricted DB user may not be allowed to SET time_zone.
+            // That is not fatal: the app still works, but the due-date
+            // comparisons may drift by the server offset — log it loudly.
+            error_log('Database: could not pin session time_zone to ' . $offset . ': ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Re-apply the PHP/MySQL clock alignment (used by long-running workers).
+     */
+    public static function syncSessionTimezoneNow(): void
+    {
+        self::getInstance()->syncSessionTimezone();
     }
 
     /**

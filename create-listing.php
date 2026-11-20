@@ -14,8 +14,12 @@ if ($planId > 0) {
     $userPlan = db()->fetchOne("SELECT * FROM pricing_plans WHERE id = ?", [$planId]);
 }
 $isPlanSubscribed = ($userPlan !== null && (float)($userPlan['price'] ?? 0) > 0);
+// The listing fee is priced in the marketplace's USD-canonical units; the
+// wallet is naira-denominated, so the debit is converted once, at the
+// wallet boundary (₦1 credit = ₦1 of ad budget).
 $standardListingFee = 5.00;
 $actualFee = $isPlanSubscribed ? 0.00 : $standardListingFee;
+$actualFeeNgn = credit_units_to_ngn($actualFee);
 
 $errors = [];
 $success = '';
@@ -40,8 +44,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($title === '') $errors[] = 'Title or Business name is required.';
         if ($description === '') $errors[] = 'Description is required.';
 
-        if ($actualFee > 0 && $adCredits < $actualFee) {
-            $errors[] = "Listing fee is \${$standardListingFee} for free accounts, but you have \${$adCredits} credits. Please upgrade to a plan or top up your balance.";
+        if ($actualFeeNgn > 0 && $adCredits < $actualFeeNgn) {
+            $errors[] = 'Listing fee is ' . price_fmt($standardListingFee) . ' for free accounts, but you have ' . price_ngn_fmt($adCredits) . ' in ad credits. Please upgrade to a plan or top up your balance.';
         }
 
         // Handle Image Upload
@@ -76,16 +80,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 db()->query("BEGIN");
 
-                if ($actualFee > 0) {
-                    $newBalance = $adCredits - $actualFee;
+                if ($actualFeeNgn > 0) {
+                    $newBalance = $adCredits - $actualFeeNgn;
                     db()->update('users', ['ad_credits' => $newBalance], 'id = ?', [$userId]);
                     db()->insert('transactions', [
                         'user_id'  => $userId,
                         'gateway'  => 'wallet',
                         'type'     => 'marketplace_listing_fee',
-                        'amount'   => $actualFee,
-                        'currency' => 'USD',
+                        'amount'   => $actualFeeNgn,
+                        'currency' => 'NGN',
                         'status'   => 'successful',
+                        'metadata' => json_encode(['amount_usd' => $actualFee, 'source' => 'marketplace_listing_fee']),
                     ]);
                 }
 
@@ -167,7 +172,7 @@ require_once __DIR__ . '/includes/app_header.php';
                     <?php if ($isPlanSubscribed): ?>
                         <span class="text-success fw-bold"><i class="ph ph-check-circle me-1"></i>Included in your <?= htmlspecialchars($userPlan['name']) ?> subscription! Fee: waived</span>
                     <?php else: ?>
-                        Standard fee: <b><?= price_fmt($standardListingFee) ?></b> (or <a href="<?= url('pricing-plan') ?>" style="color:var(--accent);text-decoration:underline;">upgrade to a plan</a> to list for free). Balance: <?= price_fmt($adCredits) ?>.
+                        Standard fee: <b><?= price_fmt($standardListingFee) ?></b> (or <a href="<?= url('pricing-plan') ?>" style="color:var(--accent);text-decoration:underline;">upgrade to a plan</a> to list for free). Balance: <?= price_ngn_fmt($adCredits) ?>.
                     <?php endif; ?>
                 </p>
             </div>

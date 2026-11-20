@@ -1,6 +1,7 @@
 <?php declare(strict_types=1);
 require_once __DIR__ . '/config/site_setting_and_config.php';
 require_once __DIR__ . '/modules/ThirdPartyGateway.php';
+require_once __DIR__ . '/modules/rate_sheet.php';
 
 $userId   = current_user_id();
 $userData = current_user();
@@ -191,7 +192,7 @@ if (time() > $promptDismissed) {
 <div class="kpi-band">
     <a href="<?= url('billing') ?>" class="kpi-cell">
         <div class="kpi-label">Ad Wallet Credits</div>
-        <div class="kpi-value money"><?= price_fmt($adCredits) ?></div>
+        <div class="kpi-value money"><?= e(price_ngn_fmt($adCredits)) ?></div>
         <div class="kpi-delta"><span class="kpi-link">Top up →</span></div>
     </a>
     <a href="<?= url('post-creator') ?>" class="kpi-cell">
@@ -209,6 +210,36 @@ if (time() > $promptDismissed) {
         <div class="kpi-value"><?= count($organicAccounts) + count($adAccounts) ?></div>
         <div class="kpi-delta"><span class="kpi-link"><?= count($organicAccounts) ?> organic · <?= count($adAccounts) ?> ads →</span></div>
     </a>
+</div>
+
+<!-- Lead economics: the published rate sheet, applied to this wallet -->
+<div class="card-dark" style="margin-bottom:24px;padding:20px 22px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <h6 style="margin:0;font-size:13px;font-weight:600;font-family:'IBM Plex Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--fg3)">Lead Economics</h6>
+        <a href="<?= url('pricing-plan') ?>" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--fg3);text-decoration:none;border-bottom:1px solid var(--border2);padding-bottom:1px">Rate sheet →</a>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(170px,100%),1fr));gap:1px;background:var(--border-soft);border:1px solid var(--border-soft);border-radius:10px;overflow:hidden">
+        <div style="background:var(--surface);padding:13px 15px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);margin-bottom:5px">Wallet buys (self-serve)</div>
+            <div style="font-size:1.05rem;font-weight:700;color:var(--fg)"><?= number_format(RateSheet::leadsForBudget($adCredits, 'campaign')) ?> leads</div>
+            <div style="font-size:11px;color:var(--fg3);margin-top:2px"><?= e(price_ngn_fmt(RateSheet::ratePer1kLeads('campaign'))) ?> / 1,000</div>
+        </div>
+        <div style="background:var(--surface);padding:13px 15px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);margin-bottom:5px">Wallet buys (managed)</div>
+            <div style="font-size:1.05rem;font-weight:700;color:var(--fg)"><?= number_format(RateSheet::leadsForBudget($adCredits, 'managed')) ?> leads</div>
+            <div style="font-size:11px;color:var(--fg3);margin-top:2px"><?= e(price_ngn_fmt(RateSheet::ratePer1kLeads('managed'))) ?> / 1,000</div>
+        </div>
+        <div style="background:var(--surface);padding:13px 15px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);margin-bottom:5px">Cost per lead</div>
+            <div style="font-size:1.05rem;font-weight:700;color:var(--fg)"><?= e(price_ngn_fmt(RateSheet::costPerLead('campaign'))) ?></div>
+            <div style="font-size:11px;color:var(--fg3);margin-top:2px">self-serve · no platform fee</div>
+        </div>
+        <div style="background:var(--surface);padding:13px 15px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);margin-bottom:5px">Minimum top-up</div>
+            <div style="font-size:1.05rem;font-weight:700;color:var(--fg)"><?= e(price_ngn_fmt(RateSheet::minTopupNgn())) ?></div>
+            <div style="font-size:11px;color:var(--fg3);margin-top:2px">one wallet, all campaigns</div>
+        </div>
+    </div>
 </div>
 
 <!-- Tool directory: two columns of hairline rows, mono index, no icon tiles -->
@@ -380,7 +411,7 @@ if (time() > $promptDismissed) {
                                     </td>
                                     <td><span class="badge-platform"><?= e(ucfirst($c['campaign_type'])) ?></span></td>
                                     <td><span class="badge-status badge-<?= $sc ?>"><?= e(ucfirst($c['status'] ?? 'draft')) ?></span></td>
-                                    <td style="font-weight:700;font-family:'IBM Plex Mono',monospace"><?= price_fmt((float)$c['budget_amount']) ?></td>
+                                    <td style="font-weight:700;font-family:'IBM Plex Mono',monospace"><?= e(price_ngn_fmt((float)$c['budget_amount'])) ?></td>
                                     <td style="text-align:right;white-space:nowrap">
                                         <!-- Instant Pause / Resume Toggle -->
                                         <form method="POST" style="display:inline-block;margin-right:4px;">

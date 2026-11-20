@@ -21,6 +21,7 @@ uploads/tickets/*
 uploads/invoices/*
 uploads/marketplace/*
 uploads/dating/*
+uploads/leads/*
 !uploads/**/.htaccess
 
 # Local artifacts of this build (spec snapshots, scratch dumps) stay out

@@ -15,7 +15,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'connect_bundle') {
     $platform = strtolower(trim((string)($_GET['platform'] ?? '')));
     $authUrl  = ThirdPartyGateway::getBundleConnectUrl($userId, $platform, 'social-connect.php');
     if ($authUrl === '') {
-        set_flash('error', 'The organic connection could not start — ' . (ThirdPartyGateway::lastConnectFailure() ?? 'gateway key or connectivity issue') . '. Check the gateway settings and try again.');
+        // The gateway explains WHY it refused (invalid key / paused account /
+        // DNS failure / timeout). Show that verbatim — a generic "try again"
+        // would send the user chasing the wrong problem.
+        $reason = trim((string)(ThirdPartyGateway::lastConnectFailure() ?? ''));
+        if ($reason === '') {
+            $reason = 'the gateway returned no diagnostic. Check the gateway settings and try again.';
+        }
+        set_flash('error', 'The organic connection could not start — ' . $reason);
         redirect(url('social-connect'));
     }
     header('Location: ' . $authUrl);
@@ -27,7 +34,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'connect_zernio') {
     $network = strtolower(trim((string)($_GET['platform'] ?? '')));
     $authUrl = ThirdPartyGateway::getZernioAdConnectUrl($userId, $network, 'social-connect.php');
     if ($authUrl === '') {
-        set_flash('error', 'The ad-account connection could not start — ' . (ThirdPartyGateway::lastConnectFailure() ?? 'gateway key or connectivity issue') . '. Check the gateway settings and try again.');
+        $reason = trim((string)(ThirdPartyGateway::lastConnectFailure() ?? ''));
+        if ($reason === '') {
+            $reason = 'the gateway returned no diagnostic. Check the gateway settings and try again.';
+        }
+        set_flash('error', 'The ad-account connection could not start — ' . $reason);
         redirect(url('social-connect'));
     }
     header('Location: ' . $authUrl);

@@ -107,6 +107,18 @@ try {
         $ctr         = isset($payload['ctr']) ? (float)$payload['ctr'] : ($impressions > 0 ? round(($clicks / $impressions) * 100, 2) : 0.0);
         $cpc         = isset($payload['cpc']) ? (float)$payload['cpc'] : ($clicks > 0 ? round($spend / $clicks, 2) : 0.0);
 
+        // Real conversion value and reach, when the network reports them.
+        // `null` means "the gateway did not report this" and is stored as
+        // NULL — never coerced to 0, because a fake zero revenue produces a
+        // fake ROAS of 0 and fires auto-buyer rules on campaigns that simply
+        // have no purchase-value data yet.
+        $purchaseValue = array_key_exists('purchaseValue', $payload) && is_numeric($payload['purchaseValue'])
+            ? round((float)$payload['purchaseValue'], 2)
+            : null;
+        $reach = array_key_exists('reach', $payload) && is_numeric($payload['reach'])
+            ? (int)$payload['reach']
+            : null;
+
         try {
             $existing = db()->fetchOne(
                 "SELECT id FROM campaign_metrics_daily
@@ -124,6 +136,16 @@ try {
                 'ctr'         => $ctr,
                 'cpc'         => $cpc,
             ];
+
+            // Only write the optional columns when the live schema actually
+            // has them — a deployment one migration behind must not turn a
+            // metrics pull into a failed write.
+            if (metrics_daily_column_exists('revenue')) {
+                $row['revenue'] = $purchaseValue;
+            }
+            if (metrics_daily_column_exists('reach')) {
+                $row['reach'] = $reach;
+            }
 
             if ($existing) {
                 db()->update('campaign_metrics_daily', $row, 'id = ?', [$existing['id']]);
@@ -177,4 +199,35 @@ function finish(?int $logId, string $status, string $note): void
         'status'      => $status,
         'notes'       => $note,
     ], 'id = ?', [$logId]);
+}
+
+/**
+ * Does `campaign_metrics_daily` really have this column?
+ *
+ * `revenue` and `reach` were added after the table was first shipped. The
+ * SchemaGuard normally adds them on boot, but a read-only DB user or a
+ * locked schema can leave them missing — and writing to a missing column
+ * would abort the whole metrics pull. Probed once per run and cached.
+ */
+function metrics_daily_column_exists(string $column): bool
+{
+    static $cache = [];
+    if (array_key_exists($column, $cache)) {
+        return $cache[$column];
+    }
+
+    try {
+        $stmt = db()->getConnection()->prepare(
+            "SELECT COUNT(*) FROM information_schema.columns
+             WHERE table_schema = DATABASE()
+               AND table_name = 'campaign_metrics_daily'
+               AND column_name = ?"
+        );
+        $stmt->execute([$column]);
+        $cache[$column] = ((int)$stmt->fetchColumn()) > 0;
+    } catch (\Throwable $e) {
+        $cache[$column] = false;
+    }
+
+    return $cache[$column];
 }

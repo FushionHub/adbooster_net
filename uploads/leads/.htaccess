@@ -1,0 +1,18 @@
+# =============================================================
+# Lead-list deliverables — owner-only download via Billing
+# =============================================================
+# The delivered '1,000 Leads' CSVs live here. They contain customer
+# contact details (name, phone/WhatsApp, location), so they must never
+# be fetchable by guessing a URL. Billing.php streams the file to the
+# authenticated owner after an ownership + status check.
+#
+# Deny every direct request; the parent uploads/.htaccess additionally
+# disables script execution.
+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

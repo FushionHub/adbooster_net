@@ -225,6 +225,12 @@ require_once ROOT_PATH . '/config/apikeys.php';
 // ============================================================
 require_once ROOT_PATH . '/includes/security.php';
 
+// ============================================================
+// Money helpers (naira formatting + wallet unit conversion).
+// Side-effect-free and shared with the REST API + CLI workers.
+// ============================================================
+require_once ROOT_PATH . '/modules/money.php';
+
 // Auto-check and migrate third-party gateway tables (Bundle.social & Zernio)
 function maybe_migrate_gateways(): void
 {
@@ -875,8 +881,10 @@ function currency_set(string $code): void
 /** NGN units per 1 USD (admin-tunable via Settings → ngn_usd_rate). */
 function exchange_rate_ngn_per_usd(): float
 {
-    $rate = (float)get_setting('ngn_usd_rate', '1550');
-    return $rate > 0 ? $rate : 1550.0;
+    // One source of truth: modules/money.php reads the same site_settings
+    // row and is also available to the REST API + CLI workers, which do
+    // not load this bootstrap.
+    return money_ngn_per_usd_rate();
 }
 
 /**

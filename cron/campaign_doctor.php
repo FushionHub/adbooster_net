@@ -21,6 +21,9 @@ if (PHP_SAPI !== 'cli') {
  */
 
 require_once __DIR__ . '/../config/db.php';
+// The bootstrap carries the admin-tunable naira exchange rate and the
+// currency helpers used by the health checks below.
+require_once __DIR__ . '/../config/site_setting_and_config.php';
 
 $jobName = 'campaign_doctor';
 $logId = null;
@@ -150,13 +153,20 @@ function analyzeCampaignHealth(array $campaign, array $metrics): array
         ];
     }
 
+    // Unit split: campaign_metrics_daily.spend is reported by the ad
+    // gateway in the gateway's currency (USD-canonical), while
+    // ad_campaigns.budget_amount is NAIRA-native. Compare them in ONE unit
+    // — convert the naira budget into the gateway's reporting currency —
+    // otherwise a ₦15,000 budget looks "exhausted" against a $9 spend.
     $totalSpend = array_sum(array_column($metrics, 'spend'));
-    $budget = (float) $campaign['budget_amount'];
+    $budgetNgn = (float) $campaign['budget_amount'];
+    $rate = function_exists('exchange_rate_ngn_per_usd') ? exchange_rate_ngn_per_usd() : 1550.0;
+    $budgetGateway = $budgetNgn / max(1.0, $rate);
 
-    if ($budget > 0 && $totalSpend >= $budget * 0.9) {
+    if ($budgetGateway > 0 && $totalSpend >= $budgetGateway * 0.9) {
         $issues[] = [
             'type'              => 'budget_exhaustion',
-            'message'           => "Campaign has used " . round(($totalSpend / $budget) * 100, 1) . "% of its budget (\$" . number_format($totalSpend, 2) . " / \$" . number_format($budget, 2) . ").",
+            'message'           => "Campaign has used " . round(($totalSpend / $budgetGateway) * 100, 1) . "% of its budget (₦" . number_format($totalSpend * $rate, 0) . " / ₦" . number_format($budgetNgn, 0) . ").",
             'action'            => 'Increase budget or pause campaign to prevent overspend.',
             'safe_for_autopilot' => false,
         ];

@@ -14,8 +14,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id          = (int)($_POST['id'] ?? 0);
             $name        = trim($_POST['name'] ?? '');
             $description = $_POST['description'] ?? '';
+            // Prices are NAIRA (the platform currency is NGN end-to-end).
+            // `price` and `price_ngn` are mirrored so every consumer agrees.
             $price       = (float)($_POST['price'] ?? 0);
             $cycle       = $_POST['billing_cycle'] ?? 'monthly';
+            $productType = in_array($_POST['product_type'] ?? '', ['plan', 'lead_pack'], true)
+                ? (string)$_POST['product_type']
+                : 'plan';
             $adCredits   = (float)($_POST['ad_credits_included'] ?? 0);
             $aiCredits   = (int)($_POST['ai_credits_included'] ?? 0);
             $features    = trim($_POST['features'] ?? '');
@@ -24,13 +29,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($name === '') {
                 set_flash('error', 'Plan name is required.');
+            } elseif ($price < 0) {
+                set_flash('error', 'Price cannot be negative.');
             } else {
                 $featuresJson = json_encode(array_filter(array_map('trim', explode("\n", $features))));
                 $data = [
                     'name'                => $name,
                     'description'         => $description,
                     'price'               => $price,
+                    'price_ngn'           => $price,
                     'billing_cycle'       => $cycle,
+                    'product_type'        => $productType,
                     'ad_credits_included' => $adCredits,
                     'ai_credits_included' => $aiCredits,
                     'features_json'       => $featuresJson,
@@ -84,9 +93,9 @@ require_once __DIR__ . '/sidebar.php';
                 </div>
                 <div class="row g-2 mb-3">
                     <div class="col">
-                        <label class="form-label-admin">Price (USD canonical — shown as <?= e(price_fmt((float)($editPlan['price'] ?? 0))) ?>)</label>
+                        <label class="form-label-admin">Price (₦ NGN)</label>
                         <input type="number" name="price" class="form-control-admin" step="0.01" min="0"
-                               value="<?= $editPlan['price'] ?? '0.00' ?>">
+                               value="<?= htmlspecialchars((string)($editPlan['price_ngn'] ?? $editPlan['price'] ?? '0.00')) ?>">
                     </div>
                     <div class="col">
                         <label class="form-label-admin">Cycle</label>
@@ -99,7 +108,15 @@ require_once __DIR__ . '/sidebar.php';
                 </div>
                 <div class="row g-2 mb-3">
                     <div class="col">
-                        <label class="form-label-admin">Ad Credits (USD credits)</label>
+                        <label class="form-label-admin">Product type</label>
+                        <select name="product_type" class="form-select-admin">
+                            <?php foreach (['plan' => 'Subscription plan', 'lead_pack' => 'Lead list product'] as $k => $lbl): ?>
+                                <option value="<?= $k ?>" <?= (string)($editPlan['product_type'] ?? 'plan') === $k ? 'selected' : '' ?>><?= e($lbl) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col">
+                        <label class="form-label-admin">Ad Credits (₦ wallet credit)</label>
                         <input type="number" step="0.01" name="ad_credits_included" class="form-control-admin" placeholder="0.00"
                                value="<?= htmlspecialchars((string)($editPlan['ad_credits_included'] ?? '0.00')) ?>">
                     </div>
@@ -143,12 +160,13 @@ require_once __DIR__ . '/sidebar.php';
             <h6 class="text-white fw-bold mb-3">Plans (<?= count($plans) ?>)</h6>
             <div class="table-responsive">
                 <table class="admin-table">
-                    <thead><tr><th>Name</th><th>Price</th><th>Cycle</th><th>Featured</th><th>Status</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>Name</th><th>Price</th><th>Type</th><th>Cycle</th><th>Featured</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody>
                     <?php foreach ($plans as $p): ?>
                         <tr>
                             <td class="text-white fw-medium"><?= htmlspecialchars($p['name']) ?></td>
-                            <td class="text-white"><?= price_fmt((float)$p['price']) ?></td>
+                            <td class="text-white"><?= e(price_ngn_fmt((float)($p['price_ngn'] ?? $p['price']))) ?></td>
+                            <td class="text-capitalize"><?= (string)($p['product_type'] ?? 'plan') === 'lead_pack' ? 'Lead list' : 'Plan' ?></td>
                             <td class="text-capitalize"><?= str_replace('_',' ',$p['billing_cycle']) ?></td>
                             <td><?= $p['is_featured'] ? '<span class="badge-status active">Yes</span>' : '<span class="badge-status inactive">No</span>' ?></td>
                             <td><span class="badge-status <?= $p['status'] ?>"><?= $p['status'] ?></span></td>
@@ -164,7 +182,7 @@ require_once __DIR__ . '/sidebar.php';
                         </tr>
                     <?php endforeach; ?>
                     <?php if (empty($plans)): ?>
-                        <tr><td colspan="6" class="text-muted text-center py-4">No plans yet.</td></tr>
+                        <tr><td colspan="7" class="text-muted text-center py-4">No plans yet.</td></tr>
                     <?php endif; ?>
                     </tbody>
                 </table>

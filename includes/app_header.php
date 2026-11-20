@@ -1414,7 +1414,7 @@ body.nav-open { overflow: hidden; touch-action: none; }
   <!-- User app design system ("Order Book" user shell) — loaded last, re-skins the legacy inline layer -->
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app-pro.css?v=2">
 <?php if (($_appPage ?? '') === 'pricing-plan'): ?>
-  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/pricing-pro.css?v=1">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/pricing-pro.css?v=2">
 <?php endif; ?>
 </head>
 <body>
@@ -1718,7 +1718,7 @@ body.nav-open { overflow: hidden; touch-action: none; }
         <!-- Quick Balance / Topup Pill -->
         <a href="<?= url('billing') ?>" class="topbar-pill-wallet" title="Ad & AI Credits - Click to Manage">
           <i class="ph ph-monetization-on" style="color:var(--accent)"></i>
-          <span class="wallet-credits"><?= e(price_fmt($_adCredits)) ?></span>
+          <span class="wallet-credits"><?= e(price_ngn_fmt($_adCredits)) ?></span>
           <span class="wallet-divider"></span>
           <i class="ph ph-sparkle" style="color:var(--blue)"></i>
           <span class="wallet-ai"><?= number_format($_aiCredits) ?></span>

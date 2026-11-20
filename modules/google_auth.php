@@ -254,7 +254,10 @@ switch ($action) {
                 'account_type'         => 'individual',
                 'referral_code'        => $referralCode,
                 'referred_by'          => $referrerId,
-                'ad_credits'           => 5.00,
+                // Welcome bonus: the wallet is naira-denominated, so the
+                // legacy 5-credit (USD-canonical) amount is converted once,
+                // here at the wallet boundary.
+                'ad_credits'           => credit_units_to_ngn(5.00),
                 'ai_credits'           => 25,
                 'onboarding_completed' => 1,
                 'status'               => 'active',

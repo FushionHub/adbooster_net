@@ -27,6 +27,15 @@ if (!empty($campaign['targeting_spec'])) {
 
 $errors = [];
 
+// The status a campaign currently holds is always selectable — a campaign
+// that is still 'pending' must not be forced to 'active' just to edit its
+// copy. Only 'active'/'paused' are real toggle requests.
+$allowedStatuses = ['active', 'paused'];
+$currentStatus = (string)($campaign['status'] ?? '');
+if ($currentStatus !== '' && !in_array($currentStatus, $allowedStatuses, true)) {
+    $allowedStatuses[] = $currentStatus;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify()) {
         $errors[] = 'Invalid security token. Please try again.';
@@ -58,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!is_numeric($budgetAmount) || (float)$budgetAmount <= 0) {
             $errors[] = 'Please enter a valid budget amount.';
         }
-        if (!in_array($status, ['active', 'paused'], true)) {
+        if (!in_array($status, $allowedStatuses, true)) {
             $errors[] = 'Please select a valid status.';
         }
         if ($destinationUrl !== '' && !filter_var($destinationUrl, FILTER_VALIDATE_URL)) {
@@ -76,6 +85,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($errors)) {
             try {
+                require_once __DIR__ . '/modules/rate_sheet.php';
+
                 $persistStatus = $status;
                 // Asynchronize status Synchronization With The Zernio Ad Engine.
                 // When mapped and the requested status differs from the confirmed
@@ -101,35 +112,130 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
-                db()->update('ad_campaigns', [
-                    'campaign_name' => $campaignName,
-                    'objective' => $objective,
-                    'budget_type' => $budgetType,
-                    'budget_amount' => (float)$budgetAmount,
-                    'status' => $persistStatus,
-                    'headline' => $headline !== '' ? $headline : null,
-                    'primary_text' => $primaryText !== '' ? $primaryText : null,
-                    'destination_url' => $destinationUrl !== '' ? $destinationUrl : null,
-                    'targeting_spec' => json_encode([
-                        'age_min' => $ageMin !== '' ? (int)$ageMin : null,
-                        'age_max' => $ageMax !== '' ? (int)$ageMax : null,
-                        'geo' => $geo,
-                        'interests' => $interests,
-                    ]),
-                ], 'id = ? AND user_id = ?', [$campaignId, $userId]);
+                // ── Budget + wallet ─────────────────────────────────────
+                // The budget is ₦ and the wallet is the spend ceiling. What a
+                // campaign commits is daily × timeline days (a lifetime budget
+                // commits its full amount) — the same number the launcher
+                // debited and the worker refunds if the launch is rejected.
+                $campaignDays    = max(1, min(365, (int)($spec['campaign_days'] ?? 30)));
+                $oldBudgetType   = (string)($campaign['budget_type'] ?? 'daily');
+                $oldBudgetAmount = (float)($campaign['budget_amount'] ?? 0);
+                $oldCommitted    = RateSheet::committedCampaignCost($oldBudgetAmount, $oldBudgetType, $campaignDays);
+                $newCommitted    = RateSheet::committedCampaignCost((float)$budgetAmount, $budgetType, $campaignDays);
+                $walletDelta     = round($newCommitted - $oldCommitted, 2);
+                $budgetChanged   = abs($walletDelta) >= 0.01;
 
-                try {
-                    require_once __DIR__ . '/modules/notification_service.php';
-                    NotificationService::create((int)$userId, 'campaign', 'Campaign Updated', 'Campaign "' . $campaignName . '" was updated.');
-                } catch (Throwable $e) {
-                    error_log('Campaign notification failed: ' . $e->getMessage());
+                // Preserve every key already in the spec (launch fee, refund
+                // marker, gateway routing, timeline). The editable targeting
+                // fields are merged INTO it — replacing the whole JSON used
+                // to erase the refund marker and the launch fee.
+                $newSpec = $spec;
+                $newSpec['age_min']   = $ageMin !== '' ? (int)$ageMin : null;
+                $newSpec['age_max']   = $ageMax !== '' ? (int)$ageMax : null;
+                $newSpec['geo']       = $geo;
+                $newSpec['interests'] = $interests;
+
+                $isLive       = !empty($campaign['zernio_campaign_id']);
+                $budgetJobId  = 0;
+
+                if ($budgetChanged && $isLive) {
+                    // A live campaign is changed on the ad network FIRST: the
+                    // gateway confirms the new budget, and only then do the
+                    // local row and the wallet follow (worker-side).
+                    $wallet  = db()->fetchOne("SELECT ad_credits FROM users WHERE id = ?", [$userId]);
+                    $balance = (float)($wallet['ad_credits'] ?? 0);
+                    if ($walletDelta > 0 && $balance < $walletDelta) {
+                        $errors[] = 'Not enough ad credits: this change needs ' . price_ngn_fmt($walletDelta)
+                            . ' more and your wallet holds ' . price_ngn_fmt($balance) . '. The live budget was left unchanged.';
+                    } else {
+                        if (!class_exists('AsyncQueue')) {
+                            require_once __DIR__ . '/modules/AsyncQueue.php';
+                        }
+                        $budgetJobId = AsyncQueue::push((int)$userId, 'zernio_set_budget', [
+                            'internal_campaign_id' => (int)$campaignId,
+                            'zernio_campaign_id'   => (string)$campaign['zernio_campaign_id'],
+                            'new_budget_ngn'       => (float)$budgetAmount,
+                            'new_budget_type'      => $budgetType,
+                            'campaign_days'        => $campaignDays,
+                            'change_token'         => bin2hex(random_bytes(8)),
+                        ], null, 'campaign-budget:' . (int)$campaignId);
+
+                        if ($budgetJobId <= 0) {
+                            $errors[] = 'The background queue is unavailable, so the budget change was not applied.';
+                        }
+                    }
                 }
 
-                set_flash('success', 'Campaign updated successfully.');
-                redirect(url('dashboard'));
+                if (empty($errors)) {
+                    $campaignUpdate = [
+                        'campaign_name' => $campaignName,
+                        'objective' => $objective,
+                        'status' => $persistStatus,
+                        'headline' => $headline !== '' ? $headline : null,
+                        'primary_text' => $primaryText !== '' ? $primaryText : null,
+                        'destination_url' => $destinationUrl !== '' ? $destinationUrl : null,
+                        'targeting_spec' => json_encode($newSpec),
+                    ];
+
+                    if ($budgetChanged && !$isLive) {
+                        // Not launched yet → the change is applied locally and
+                        // the wallet follows immediately (the launch worker
+                        // reads the row when it runs).
+                        $campaignUpdate['budget_type']      = $budgetType;
+                        $campaignUpdate['budget_amount']    = (float)$budgetAmount;
+                        $newSpec['launch_fee_ngn']   = $newCommitted;
+                        $newSpec['daily_budget_ngn'] = RateSheet::dailyBudget($newCommitted, $campaignDays);
+                        $campaignUpdate['targeting_spec'] = json_encode($newSpec);
+
+                        db()->query("BEGIN");
+                        try {
+                            if ($walletDelta > 0) {
+                                $affected = db()->query(
+                                    "UPDATE users SET ad_credits = ad_credits - ? WHERE id = ? AND ad_credits >= ?",
+                                    [$walletDelta, $userId, $walletDelta]
+                                )->rowCount();
+                                if ($affected < 1) {
+                                    throw new \RuntimeException('insufficient ad credits');
+                                }
+                            } elseif ($walletDelta < 0) {
+                                db()->query(
+                                    "UPDATE users SET ad_credits = ad_credits + ? WHERE id = ?",
+                                    [abs($walletDelta), $userId]
+                                );
+                            }
+                            db()->update('ad_campaigns', $campaignUpdate, 'id = ? AND user_id = ?', [$campaignId, $userId]);
+                            db()->query("COMMIT");
+                        } catch (\Throwable $walletErr) {
+                            db()->query("ROLLBACK");
+                            throw $walletErr;
+                        }
+                    } else {
+                        db()->update('ad_campaigns', $campaignUpdate, 'id = ? AND user_id = ?', [$campaignId, $userId]);
+                    }
+
+                    try {
+                        require_once __DIR__ . '/modules/notification_service.php';
+                        NotificationService::create((int)$userId, 'campaign', 'Campaign Updated', 'Campaign "' . $campaignName . '" was updated.');
+                    } catch (Throwable $e) {
+                        error_log('Campaign notification failed: ' . $e->getMessage());
+                    }
+
+                    if ($budgetJobId > 0) {
+                        set_flash('success', 'Campaign updated. The new budget was sent to Zernio (job #' . $budgetJobId . ') — the campaign and your wallet follow when the gateway confirms it.');
+                    } elseif ($budgetChanged) {
+                        set_flash('success', 'Campaign updated. Your ad credits were adjusted for the new budget.');
+                    } else {
+                        set_flash('success', 'Campaign updated successfully.');
+                    }
+                    redirect(url('dashboard'));
+                }
             } catch (Throwable $e) {
                 error_log('Edit campaign failed: ' . $e->getMessage());
-                $errors[] = 'Failed to update campaign. Please try again.';
+                if ($e->getMessage() === 'insufficient ad credits') {
+                    $errors[] = 'Not enough ad credits for the new budget. Please top up your wallet first.';
+                } else {
+                    $errors[] = 'Failed to update campaign. Please try again.';
+                }
             }
         }
 
@@ -194,6 +300,9 @@ $statusBadge = ($campaign['status'] ?? '') === 'active' ? 'badge-active' : 'badg
                 <div>
                     <label for="status" class="form-label">Status</label>
                     <select id="status" name="status" class="form-select" required>
+                        <?php if (!in_array($currentStatus, ['active', 'paused'], true)): ?>
+                            <option value="<?= e($currentStatus) ?>" selected><?= e(ucfirst($currentStatus)) ?> (current)</option>
+                        <?php endif; ?>
                         <option value="active" <?= ($campaign['status'] ?? '') === 'active' ? 'selected' : '' ?>>Active</option>
                         <option value="paused" <?= ($campaign['status'] ?? '') === 'paused' ? 'selected' : '' ?>>Paused</option>
                     </select>
@@ -208,7 +317,7 @@ $statusBadge = ($campaign['status'] ?? '') === 'active' ? 'badge-active' : 'badg
                     </select>
                 </div>
                 <div>
-                    <label for="budget_amount" class="form-label">Budget Amount ($)</label>
+                    <label for="budget_amount" class="form-label">Budget Amount (₦ NGN)</label>
                     <input type="number" id="budget_amount" name="budget_amount" class="form-control" step="0.01" min="1" value="<?= e((string)($campaign['budget_amount'] ?? '')) ?>" required placeholder="0.00">
                 </div>
             </div>

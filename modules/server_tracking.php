@@ -213,6 +213,11 @@ class ServerTrackingEngine
 
     /**
      * Map one gateway answer to the honest status string.
+     *
+     * The status text is what the operator sees in the conversion feed, so it
+     * must name the REAL reason the gateway gave. A non-2xx answer carries
+     * its explanation in the decoded body (`data.error`, `data.message`) or
+     * in the raw payload — never a generic "unknown gateway answer".
      */
     private static function deriveStatus(array $res, bool &$simulated): string
     {
@@ -224,8 +229,31 @@ class ServerTrackingEngine
         if ($code >= 200 && $code < 300) {
             return 'gateway_dispatched (' . $code . ')';
         }
-        $msg = (string)($res['data']['message'] ?? ($res['error'] ?? 'unknown gateway answer'));
-        return 'error: ' . mb_substr(trim(strip_tags($msg)), 0, 140);
+
+        $data = is_array($res['data'] ?? null) ? $res['data'] : [];
+        $candidates = [
+            $data['message'] ?? null,
+            $data['error'] ?? null,
+            $res['error'] ?? null,
+            $res['raw'] ?? null,
+        ];
+        $msg = '';
+        foreach ($candidates as $candidate) {
+            $candidate = is_scalar($candidate) ? trim((string)$candidate) : '';
+            if ($candidate !== '') {
+                $msg = $candidate;
+                break;
+            }
+        }
+        if ($msg === '') {
+            $msg = 'no diagnostic returned by the gateway';
+        }
+
+        $msg = trim(strip_tags($msg));
+        if ($code > 0) {
+            return 'error (HTTP ' . $code . '): ' . mb_substr($msg, 0, 140);
+        }
+        return 'error: ' . mb_substr($msg, 0, 140);
     }
 
     private static function persistStatuses(int $rowId, array $result): void

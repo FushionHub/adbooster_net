@@ -42,7 +42,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
         // The client must belong to THIS agency — never trust the posted id.
         $client = db()->fetchOne(
-            "SELECT id, client_name, client_company FROM agency_client_accounts WHERE id = ? AND agency_user_id = ?",
+            "SELECT id, client_user_id, client_name, client_email, client_company
+             FROM agency_client_accounts WHERE id = ? AND agency_user_id = ?",
             [$clientId, $userId]
         );
 
@@ -52,6 +53,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         }
         if ($title === '') {
             set_flash('error', 'Give the deliverable a title before sending it for approval.');
+            redirect(url('agency-portal'));
+        }
+        // The column is VARCHAR(500) — a longer title was silently truncated
+        // (or rejected by strict mode) after the agency thought it was sent.
+        if (mb_strlen($title) > 500) {
+            set_flash('error', 'The title is too long — keep it under 500 characters.');
             redirect(url('agency-portal'));
         }
         if (!in_array($itemType, $validTypes, true)) {
@@ -82,7 +89,49 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         ]);
 
         if ($approvalId > 0) {
-            set_flash('success', "Sent to {$client['client_name']} for approval (item #{$approvalId}).");
+            // Tell the CLIENT the deliverable is waiting. Without this the
+            // agency was told "Sent to X" while the client had no idea.
+            $clientNotified = false;
+            $clientUserId = (int)($client['client_user_id'] ?? 0);
+            $magicLink = BASE_URL . '/client-approval/' . (string)($client['access_token'] ?? '');
+            try {
+                require_once __DIR__ . '/modules/notifier.php';
+                if ($clientUserId > 0) {
+                    $clientNotified = Notifier::inApp(
+                        $clientUserId,
+                        'agency_approval',
+                        'New deliverable for review: ' . $title,
+                        $notes !== ''
+                            ? mb_substr($notes, 0, 300)
+                            : 'Your agency sent a new deliverable for your approval.',
+                        url('client-approval', ['token' => (string)($client['access_token'] ?? '')])
+                    );
+                }
+                if (!$clientNotified) {
+                    // No linked Adsbooster account (or the in-app insert
+                    // failed) — email the client directly so the deliverable
+                    // is not silently waiting for a client who never heard
+                    // about it.
+                    require_once __DIR__ . '/modules/email_service.php';
+                    $clientEmail = trim((string)($client['client_email'] ?? ''));
+                    if ($clientEmail !== '' && filter_var($clientEmail, FILTER_VALIDATE_EMAIL)) {
+                        $res = EmailService::sendTransactional($clientEmail, 'agency_approval_requested', [
+                            'name'        => (string)($client['client_name'] ?? 'there'),
+                            'agency_name' => (string)($portal['portal_name'] ?? 'Your agency'),
+                            'title'       => $title,
+                            'notes'       => $notes !== '' ? $notes : 'No additional notes were provided.',
+                            'review_link' => $magicLink,
+                        ]);
+                        $clientNotified = !empty($res['success']);
+                    }
+                }
+            } catch (\Throwable $e) {
+                error_log('Agency send-to-client notification failed: ' . $e->getMessage());
+            }
+
+            set_flash('success', $clientNotified
+                ? "Sent to {$client['client_name']} for approval (item #{$approvalId}) — they have been notified."
+                : "Saved as item #{$approvalId} for {$client['client_name']}. We could not send the notification — share their review link manually.");
         } else {
             set_flash('error', 'Could not create the approval item. Please try again.');
         }
@@ -120,8 +169,29 @@ $approvals = db()->fetchAll(
      ORDER BY a.created_at DESC LIMIT 50",
     [$userId]
 );
-$pendingApprovals  = count(array_filter($approvals, static fn($a) => $a['approval_status'] === 'pending'));
-$approvedApprovals = count(array_filter($approvals, static fn($a) => $a['approval_status'] === 'approved'));
+$pendingApprovals  = 0;
+$approvedApprovals = 0;
+try {
+    // COUNT(*) over the whole pipeline — the badge used to be derived from
+    // the LIMIT 50 ledger, so a busy agency saw a frozen "50 pending" and
+    // an approved count that could never exceed 50.
+    $statusCounts = db()->fetchAll(
+        "SELECT approval_status, COUNT(*) AS cnt
+         FROM agency_client_approvals
+         WHERE agency_user_id = ?
+         GROUP BY approval_status",
+        [$userId]
+    );
+    foreach ($statusCounts as $sc) {
+        if ((string)$sc['approval_status'] === 'pending') {
+            $pendingApprovals = (int)$sc['cnt'];
+        } elseif ((string)$sc['approval_status'] === 'approved') {
+            $approvedApprovals = (int)$sc['cnt'];
+        }
+    }
+} catch (\Throwable $e) {
+    error_log('Agency portal approval counts failed: ' . $e->getMessage());
+}
 
 require_once __DIR__ . '/includes/app_header.php';
 ?>
@@ -392,8 +462,8 @@ require_once __DIR__ . '/includes/app_header.php';
             <input type="text" name="title" class="form-control" placeholder="e.g. Q4 Meta + TikTok Scaling Campaign" required>
           </div>
           <div class="mb-3">
-            <label class="form-label small text-secondary">Monthly Budget ($ USD, optional)</label>
-            <input type="number" step="0.01" name="budget" class="form-control" placeholder="2500.00">
+            <label class="form-label small text-secondary">Monthly Budget (₦ NGN, optional)</label>
+            <input type="number" step="0.01" name="budget" class="form-control" placeholder="150000.00">
           </div>
           <div class="mb-3">
             <label class="form-label small text-secondary">Platforms (comma separated, optional)</label>

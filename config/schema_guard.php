@@ -78,6 +78,47 @@ class SchemaGuard
             'reminder_count'  => 'INT NULL DEFAULT 3',
             'reminders_sent'  => 'INT NULL DEFAULT 0',
         ],
+        // NGN-native pricing for products that must never drift with the
+        // admin-tunable USD exchange rate (e.g. the '1,000 Leads — ₦3,500'
+        // SKU). NULL = legacy USD-canonical pricing.
+        'pricing_plans' => [
+            'price_ngn' => 'DECIMAL(12,2) NULL',
+            // 'plan' (subscription) | 'lead_pack' (the 1,000 Leads product).
+            'product_type' => "VARCHAR(40) NOT NULL DEFAULT 'plan'",
+        ],
+        // Real conversion value + reach pulled from the ad gateway.
+        // NULL = the gateway did not report the metric (unavailable), which
+        // is NOT the same as zero — the auto-buyer must never read a
+        // missing column as "no revenue".
+        'campaign_metrics_daily' => [
+            'revenue' => 'DECIMAL(12,2) NULL',
+            'reach'   => 'INT NULL',
+        ],
+    ];
+
+    /**
+     * Tables the application creates on boot when missing (idempotent).
+     * table => CREATE TABLE statement.
+     */
+    private const TABLES = [
+        // Directory/lead-list fulfillment for the '1,000 Leads' product:
+        // a purchase creates a pending order; an admin attaches the
+        // delivered lead list and flips it to 'delivered'.
+        'lead_orders' => "CREATE TABLE IF NOT EXISTS `lead_orders` (
+            `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `user_id` INT NOT NULL,
+            `transaction_id` INT NULL,
+            `leads_count` INT NOT NULL DEFAULT 1000,
+            `price_ngn` DECIMAL(12,2) NOT NULL DEFAULT 3500.00,
+            `status` ENUM('pending','processing','delivered','refunded') NOT NULL DEFAULT 'pending',
+            `deliverable_path` VARCHAR(255) NULL,
+            `notes` VARCHAR(500) NULL,
+            `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `delivered_at` DATETIME NULL,
+            PRIMARY KEY (`id`),
+            KEY `idx_lead_orders_user` (`user_id`),
+            KEY `idx_lead_orders_status` (`status`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci",
     ];
 
     /**
@@ -89,6 +130,12 @@ class SchemaGuard
             'referrer_reward' => 'reward_credits',
         ],
     ];
+
+    /**
+     * Bumped whenever a hand-written data migration below changes, so the
+     * on-disk probe cache is invalidated and the migration runs again.
+     */
+    private const MIGRATIONS_VERSION = 2;
 
     private static bool $done = false;
 
@@ -115,7 +162,7 @@ class SchemaGuard
 
     private static function fingerprint(): string
     {
-        return sha1(serialize([self::COLUMNS, self::BACKFILL]));
+        return sha1(serialize([self::COLUMNS, self::BACKFILL, self::MIGRATIONS_VERSION]));
     }
 
     /**
@@ -165,6 +212,16 @@ class SchemaGuard
                 }
             }
 
+            // Tables (CREATE TABLE IF NOT EXISTS is idempotent by design).
+            foreach (self::TABLES as $table => $createSql) {
+                if (self::tableExists($pdo, $table)) {
+                    continue;
+                }
+                $pdo->exec($createSql);
+                $added[] = $table;
+                error_log("SchemaGuard: created table {$table}");
+            }
+
             // Backfills (only after the columns exist).
             foreach (self::BACKFILL as $table => $columns) {
                 foreach ($columns as $column => $expression) {
@@ -177,6 +234,9 @@ class SchemaGuard
                     );
                 }
             }
+
+            // Hand-written data migrations (NGN pricing, product catalogue).
+            self::migratePricingPlans($pdo);
         } catch (\Throwable $e) {
             error_log('SchemaGuard: ' . $e->getMessage());
             return ['added' => $added, 'skipped' => false, 'error' => $e->getMessage()];
@@ -202,6 +262,196 @@ class SchemaGuard
         );
         $stmt->execute([$table]);
         return (int)$stmt->fetchColumn() > 0;
+    }
+
+    /**
+     * Run the NGN pricing migration on demand (ignores the probe cache).
+     *
+     * The guard calls this automatically on boot; this entry point exists for
+     * operators (and tests) that need to force the migration, e.g. right
+     * after importing a legacy database dump.
+     */
+    public static function migratePricingPlansNow(): void
+    {
+        try {
+            self::migratePricingPlans(db()->getConnection());
+        } catch (\Throwable $e) {
+            error_log('SchemaGuard: pricing migration failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Translate the legacy USD-canonical price sheet into NGN and guarantee
+     * the published '1,000 Leads' product exists.
+     *
+     * WHY THIS MATTERS
+     * -----------------
+     * The platform currency is NGN, and every price is rendered with
+     * price_ngn_fmt(). Before this migration, pricing_plans.price held a
+     * USD-canonical number (9 / 24 / 59 / 149) and price_ngn was NULL, so
+     * the pricing page would have offered "Starter — ₦9.00" and the
+     * checkout would have charged ₦9 instead of ₦13,950 — a 1,550×
+     * undercharge on every subscription.
+     *
+     * The legacy signal is price_ngn IS NULL: a row that already carries a
+     * naira price is a migrated row and is left alone. The translation uses
+     * the admin-tunable naira rate (1550 by default), which reproduces the
+     * published price sheet exactly (9 → ₦13,950, 24 → ₦37,200,
+     * 59 → ₦91,450, 149 → ₦230,950, 29 → ₦44,950).
+     *
+     * Idempotent: once price_ngn is populated the rows no longer match, so
+     * re-running the guard changes nothing.
+     */
+    private static function migratePricingPlans(\PDO $pdo): void
+    {
+        if (!self::tableExists($pdo, 'pricing_plans')
+            || !self::columnExists($pdo, 'pricing_plans', 'price_ngn')) {
+            return;
+        }
+
+        // ── 1. Legacy ad-credit bundles were USD-canonical too ────────────
+        // ad_credits_included is INT; ₦186,000 still fits comfortably.
+        $rate = self::ngnPerUsdRate();
+
+        try {
+            $pdo->exec(
+                'UPDATE `pricing_plans`
+                    SET `ad_credits_included` = ROUND(`ad_credits_included` * ' . $rate . ')
+                  WHERE `price_ngn` IS NULL
+                    AND `ad_credits_included` IS NOT NULL
+                    AND `ad_credits_included` > 0'
+            );
+        } catch (\Throwable $e) {
+            error_log('SchemaGuard: ad-credit currency migration failed: ' . $e->getMessage());
+        }
+
+        // ── 2. Legacy plan price → naira ──────────────────────────────────
+        try {
+            $pdo->exec(
+                'UPDATE `pricing_plans`
+                    SET `price_ngn` = `price` * ' . $rate . '
+                  WHERE `price_ngn` IS NULL
+                    AND `price` IS NOT NULL
+                    AND `price` > 0'
+            );
+            // `price` now holds the naira price, so every consumer agrees on
+            // which column to read.
+            $pdo->exec(
+                'UPDATE `pricing_plans` SET `price` = `price_ngn` WHERE `price_ngn` IS NOT NULL'
+            );
+        } catch (\Throwable $e) {
+            error_log('SchemaGuard: plan price currency migration failed: ' . $e->getMessage());
+        }
+
+        self::installLeadPackProduct($pdo);
+    }
+
+    /**
+     * Make sure the published lead-list product exists.
+     *
+     * The '1,000 Leads — ₦3,500' SKU is part of the price sheet, so a
+     * deployment that never ran the seed script must still offer it. An
+     * existing row is only repaired (product type / status / zero price),
+     * never re-priced — an admin may have edited it deliberately.
+     */
+    private static function installLeadPackProduct(\PDO $pdo): void
+    {
+        $packName  = '1,000 Leads';
+        $packPrice = 3500.0;
+        $packCount = 1000;
+        if (function_exists('get_setting')) {
+            try {
+                $name = trim((string)get_setting('leads_pack_product_name', $packName));
+                if ($name !== '') {
+                    $packName = $name;
+                }
+                $price = (float)get_setting('leads_pack_price_ngn', (string)$packPrice);
+                if ($price > 0) {
+                    $packPrice = $price;
+                }
+                $count = (int)get_setting('leads_pack_count', (string)$packCount);
+                if ($count > 0) {
+                    $packCount = $count;
+                }
+            } catch (\Throwable $e) {
+                // Settings not ready — the published defaults are used.
+            }
+        }
+
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT id FROM `pricing_plans`
+                  WHERE `name` = ? AND `billing_cycle` = 'pay_as_you_go'
+                  LIMIT 1"
+            );
+            $stmt->execute([$packName]);
+            $existingId = $stmt->fetchColumn();
+
+            if ($existingId) {
+                // Repair only — never overwrite an administrator's price.
+                $pdo->prepare(
+                    "UPDATE `pricing_plans`
+                        SET `product_type` = 'lead_pack',
+                            `status` = 'active',
+                            `price` = CASE WHEN `price` IS NULL OR `price` <= 0 THEN ? ELSE `price` END,
+                            `price_ngn` = CASE WHEN `price_ngn` IS NULL OR `price_ngn` <= 0 THEN ? ELSE `price_ngn` END
+                      WHERE `id` = ?"
+                )->execute([$packPrice, $packPrice, (int)$existingId]);
+                return;
+            }
+
+            $money = static function (float $ngn): string {
+                return function_exists('price_ngn_fmt')
+                    ? price_ngn_fmt($ngn)
+                    : '₦' . number_format($ngn, 0);
+            };
+
+            $features = json_encode([
+                number_format($packCount) . ' verified business leads (' . $money($packPrice) . ' per ' . number_format($packCount) . ')',
+                'Name, business category, phone/WhatsApp and location columns',
+                'Delivered as a downloadable CSV from your Billing page',
+                'Sourced from the Adsbooster verified business directory',
+                'Fulfilled by the Adsbooster team — usually within 48 hours',
+                'Ads run on your budget: self-serve campaigns convert at ' . $money(3800.0) . ' per 1,000 leads, managed campaigns at ' . $money(4200.0),
+            ], JSON_UNESCAPED_SLASHES);
+
+            $pdo->prepare(
+                "INSERT INTO `pricing_plans`
+                    (`name`, `description`, `price`, `price_ngn`, `billing_cycle`,
+                     `ad_credits_included`, `ai_credits_included`, `features_json`,
+                     `is_featured`, `product_type`, `status`, `created_at`)
+                 VALUES (?, ?, ?, ?, 'pay_as_you_go', 0, 0, ?, 1, 'lead_pack', 'active', NOW())"
+            )->execute([
+                $packName,
+                'One thousand verified business leads from the Adsbooster directory, delivered as a ready-to-call list. Adsbooster fulfils every order manually.',
+                $packPrice,
+                $packPrice,
+                $features,
+            ]);
+            error_log("SchemaGuard: installed lead product '{$packName}' at " . $packPrice);
+        } catch (\Throwable $e) {
+            error_log('SchemaGuard: lead product install failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Naira per 1 USD (admin-tunable), formatted for safe SQL interpolation.
+     * Falls back to the published rate.
+     */
+    private static function ngnPerUsdRate(): string
+    {
+        $rate = 1550.0;
+        if (function_exists('exchange_rate_ngn_per_usd')) {
+            try {
+                $configured = exchange_rate_ngn_per_usd();
+                if ($configured > 0) {
+                    $rate = $configured;
+                }
+            } catch (\Throwable $e) {
+                // Settings not ready — the published default is used.
+            }
+        }
+        return number_format($rate, 4, '.', '');
     }
 
     private static function columnExists(\PDO $pdo, string $table, string $column): bool

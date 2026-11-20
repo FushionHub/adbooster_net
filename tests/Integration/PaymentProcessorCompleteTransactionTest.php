@@ -86,12 +86,15 @@ final class PaymentProcessorCompleteTransactionTest extends TestCase
 
     public function testAdCreditTopupCreditsUsdAmount(): void
     {
+        // A legacy USD-denominated charge ($25.50) keeps its dollar meaning:
+        // the wallet is naira-denominated, so the dollar value is converted
+        // once at the wallet boundary — $25.50 is worth ₦39,525 of budget.
         $txnId = $this->makeTransaction('ad_credit_topup', 25.50, 'USD');
 
         $this->assertTrue(PaymentProcessor::completeTransaction($txnId));
 
         $user = db()->fetchOne("SELECT ad_credits FROM users WHERE id = ?", [$this->userId]);
-        $this->assertSame(25.50, (float)$user['ad_credits']);
+        $this->assertSame(credit_units_to_ngn(25.50), (float)$user['ad_credits']);
 
         $txn = db()->fetchOne("SELECT status FROM transactions WHERE id = ?", [$txnId]);
         $this->assertSame('successful', $txn['status']);
@@ -107,15 +110,30 @@ final class PaymentProcessorCompleteTransactionTest extends TestCase
         $this->assertSame(1000, (int)$user['ai_credits'], '100 AI credits per $1');
     }
 
-    public function testNgnChargeConvertsToUsdUsingPinnedRate(): void
+    public function testNgnChargeCreditsWalletOneToOneInNaira(): void
     {
-        // Merchant initiated 15,500 NGN; pinned USD equivalent: 10.00
+        // Merchant initiated 15,500 NGN. The ad-credit wallet is naira-
+        // denominated (₦1 credit = ₦1 of ad budget), so the wallet receives
+        // the full charged naira — the pinned USD value is the ledger twin,
+        // NOT the wallet amount.
         $txnId = $this->makeTransaction('ad_credit_topup', 15500.0, 'NGN', ['amount_usd' => 10.00]);
 
         $this->assertTrue(PaymentProcessor::completeTransaction($txnId));
 
         $user = db()->fetchOne("SELECT ad_credits FROM users WHERE id = ?", [$this->userId]);
-        $this->assertSame(10.00, (float)$user['ad_credits'], 'Pinned amount_usd wins over live rate');
+        $this->assertSame(15500.0, (float)$user['ad_credits'], 'NGN charge credits the naira wallet 1:1');
+    }
+
+    public function testNgnChargeUsesPinnedUsdForAiCreditMath(): void
+    {
+        // 15,500 NGN with a pinned USD twin of 10.00 → 1,000 AI credits
+        // (100 per $1). The pinned value wins over the live rate.
+        $txnId = $this->makeTransaction('ai_credit_topup', 15500.0, 'NGN', ['amount_usd' => 10.00]);
+
+        $this->assertTrue(PaymentProcessor::completeTransaction($txnId));
+
+        $user = db()->fetchOne("SELECT ai_credits FROM users WHERE id = ?", [$this->userId]);
+        $this->assertSame(1000, (int)$user['ai_credits'], 'Pinned amount_usd wins over the live rate');
     }
 
     public function testNgnChargeWithoutPinnedRateFallsBackToFallbackRate(): void

@@ -78,6 +78,60 @@ $platformBadges = [
     'snapchat'   => ['icon' => 'ghost', 'color' => '#FFFC00', 'name' => 'Snapchat'],
     'combo_pack' => ['icon' => 'sparkle', 'color' => 'var(--accent)', 'name' => 'All-in-One Combo'],
 ];
+
+// ── Real conversion lift ────────────────────────────────────────────────
+// The winner's conversion rate versus the average of the other variants,
+// averaged across the user's completed tests. This used to be a hardcoded
+// "+38.4%" — a number no measurement could ever back. With no completed
+// test there is no lift to report, so the KPI shows "No data yet".
+$completedTests = array_values(array_filter($tests, fn($t) => !empty($t['has_winner'])));
+$liftSamples = [];
+if (!empty($completedTests)) {
+    $campaignIds = array_map(fn($t) => (int)$t['id'], $completedTests);
+    $placeholders = implode(',', array_fill(0, count($campaignIds), '?'));
+
+    $variantRows = db()->fetchAll(
+        "SELECT v.campaign_id, v.id AS variant_id, v.is_winner,
+                CASE WHEN COALESCE(SUM(m.clicks), 0) > 0
+                     THEN (COALESCE(SUM(m.conversions), 0) / SUM(m.clicks)) * 100
+                     ELSE NULL END AS conversion_rate
+         FROM ad_campaign_variants v
+         LEFT JOIN campaign_metrics_daily m ON m.variant_id = v.id
+         WHERE v.campaign_id IN ({$placeholders})
+         GROUP BY v.id, v.campaign_id, v.is_winner",
+        $campaignIds
+    );
+
+    $byCampaign = [];
+    foreach ($variantRows as $row) {
+        $byCampaign[(int)$row['campaign_id']][] = $row;
+    }
+
+    foreach ($byCampaign as $variants) {
+        $winnerRate = null;
+        $loserRates = [];
+        foreach ($variants as $v) {
+            if ($v['conversion_rate'] === null) {
+                continue;
+            }
+            if ((int)$v['is_winner'] === 1) {
+                $winnerRate = (float)$v['conversion_rate'];
+            } else {
+                $loserRates[] = (float)$v['conversion_rate'];
+            }
+        }
+        // A lift needs a measured winner AND at least one measured rival.
+        if ($winnerRate === null || empty($loserRates)) {
+            continue;
+        }
+        $baseline = array_sum($loserRates) / count($loserRates);
+        if ($baseline > 0) {
+            $liftSamples[] = (($winnerRate - $baseline) / $baseline) * 100;
+        }
+    }
+}
+
+$avgLift = !empty($liftSamples) ? array_sum($liftSamples) / count($liftSamples) : null;
 ?>
 
 <div class="w-100">
@@ -129,8 +183,8 @@ $platformBadges = [
                         <i class="ph ph-trend-up" style="font-size:18px;"></i>
                     </div>
                 </div>
-                <div style="font-size:26px;font-weight:800;color:var(--fg);">+38.4%</div>
-                <div style="font-size:12px;color:var(--fg2);margin-top:4px;">Estimated CTR enhancement</div>
+                <div style="font-size:26px;font-weight:800;color:var(--fg);"><?= $avgLift === null ? '—' : sprintf('%+.1f%%', $avgLift) ?></div>
+                <div style="font-size:12px;color:var(--fg2);margin-top:4px;"><?= $avgLift === null ? 'No completed test data yet' : 'Winner vs. losing variants, ' . count($liftSamples) . ' test(s) measured' ?></div>
             </div>
         </div>
         <div class="col-sm-6 col-xl-3">
@@ -298,7 +352,7 @@ $platformBadges = [
                             <option value="">Select a live or paused campaign...</option>
                             <?php foreach ($campaigns as $c): ?>
                                 <option value="<?= $c['id'] ?>">
-                                    <?= htmlspecialchars($c['campaign_name']) ?> — <?= ucfirst($c['campaign_type']) ?> (<?= price_fmt((float)$c['budget_amount']) ?> Budget)
+                                    <?= htmlspecialchars($c['campaign_name']) ?> — <?= ucfirst($c['campaign_type']) ?> (<?= price_ngn_fmt((float)$c['budget_amount']) ?> Budget)
                                 </option>
                             <?php endforeach; ?>
                         </select>

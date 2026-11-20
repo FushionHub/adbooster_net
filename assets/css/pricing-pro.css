@@ -135,6 +135,46 @@
     border-color: rgba(245, 185, 66, 0.28);
 }
 
+/* ---------- ads rate sheet strip ---------- */
+.rate-rate-sheet {
+    margin-bottom: 26px;
+}
+.rate-rate-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 14px 16px;
+    background: var(--pf-panel);
+    border: 1px solid var(--pf-border);
+    border-left: 2px solid var(--pf-accent);
+    border-radius: var(--pf-radius-panel);
+}
+.rate-rate-k {
+    font-family: var(--pf-mono);
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--pf-faint);
+}
+.rate-rate-v {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--pf-money);
+    line-height: 1.2;
+}
+.rate-rate-s {
+    font-size: 12px;
+    color: var(--pf-muted);
+}
+
+/* ---------- lead product ---------- */
+.rate-card.rate-lead-pack {
+    border-color: rgba(200, 255, 0, 0.42);
+}
+.rate-card.rate-lead-pack .rate-tab {
+    color: var(--pf-accent-ink);
+}
+
 /* plan tab — a mono label, not a floating badge */
 .rate-tab {
     display: inline-flex;
@@ -379,4 +419,191 @@
     .rate-head h1 { font-size: 1.3rem; }
     .rate-toggle button { padding: 8px 16px; font-size: 11px; }
     .rate-price { font-size: 1.6rem; }
+}
+
+/* ---------- budget & timeline estimator ---------- */
+.rate-estimator {
+    margin: 34px 0 20px;
+    padding: 22px 22px 20px;
+    background: var(--pf-panel);
+    border: 1px solid var(--pf-border);
+    border-radius: var(--pf-radius-panel);
+}
+.rate-estimator .rate-section-head { margin-bottom: 18px; }
+.rate-estimator-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+}
+.rate-field-label {
+    display: block;
+    font-family: var(--pf-mono);
+    font-size: 10.5px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--pf-faint);
+    margin-bottom: 7px;
+}
+.rate-field {
+    width: 100%;
+    background: var(--pf-bg, #070b12);
+    border: 1px solid var(--pf-border);
+    border-radius: var(--pf-radius);
+    color: var(--pf-text);
+    font-family: var(--pf-mono);
+    font-size: 18px;
+    font-weight: 600;
+    padding: 11px 14px;
+    outline: none;
+}
+.rate-field:focus { border-color: var(--pf-accent); }
+.rate-channel-toggle {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+}
+.rate-channel {
+    flex: 1 1 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    background: transparent;
+    border: 1px solid var(--pf-border);
+    border-radius: var(--pf-radius);
+    color: var(--pf-muted);
+    font-family: var(--pf-mono);
+    font-size: 11.5px;
+    letter-spacing: .03em;
+    padding: 9px 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color .15s, color .15s;
+}
+.rate-channel span { color: var(--pf-faint); font-size: 10.5px; }
+.rate-channel:hover { border-color: var(--pf-accent); }
+.rate-channel.is-active {
+    border-color: var(--pf-accent);
+    color: var(--pf-text);
+    background: rgba(200, 255, 0, .06);
+}
+.rate-duration {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.rate-day {
+    background: transparent;
+    border: 1px solid var(--pf-border);
+    border-radius: 999px;
+    color: var(--pf-muted);
+    font-family: var(--pf-mono);
+    font-size: 11px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: border-color .15s, color .15s, background .15s;
+}
+.rate-day:hover { border-color: var(--pf-accent); color: var(--pf-text); }
+.rate-day.is-active {
+    border-color: var(--pf-accent);
+    background: var(--pf-accent);
+    color: #0a0f18;
+    font-weight: 600;
+}
+.rate-estimator-readout {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--pf-border);
+    border: 1px solid var(--pf-border);
+    border-radius: var(--pf-radius);
+    overflow: hidden;
+}
+.rate-readout-cell {
+    background: var(--pf-panel);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.rate-readout-cell span {
+    font-family: var(--pf-mono);
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--pf-faint);
+}
+.rate-readout-cell strong {
+    color: var(--pf-text);
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -.01em;
+}
+.rate-estimator-hint {
+    grid-column: 1 / -1;
+    margin: 0;
+    background: var(--pf-panel);
+    padding: 11px 16px;
+    font-family: var(--pf-mono);
+    font-size: 11px;
+    line-height: 1.55;
+    color: var(--pf-faint);
+    border-top: 1px solid var(--pf-border);
+}
+
+/* ---------- pricing transparency ---------- */
+.rate-transparency {
+    margin: 26px 0 6px;
+    padding: 22px;
+    border: 1px solid var(--pf-border);
+    border-radius: var(--pf-radius-panel);
+    background: var(--pf-panel);
+}
+.rate-transparency h2 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--pf-text);
+    margin: 0 0 4px;
+}
+.rate-transparency-lede {
+    font-family: var(--pf-mono);
+    font-size: 11.5px;
+    color: var(--pf-faint);
+    margin: 0 0 16px;
+    line-height: 1.6;
+}
+.rate-transparency-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+}
+.rate-transparency-list li {
+    display: grid;
+    grid-template-columns: 22px 1fr;
+    gap: 12px;
+    align-items: start;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--pf-border);
+}
+.rate-transparency-list li:last-child { border-bottom: 0; padding-bottom: 0; }
+.rate-transparency-list i { color: var(--pf-accent); font-size: 16px; margin-top: 1px; }
+.rate-transparency-list strong { color: var(--pf-text); font-weight: 600; }
+.rate-transparency-list div {
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--pf-muted);
+}
+
+@media (max-width: 767.98px) {
+    .rate-estimator-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    .rate-estimator-readout { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 400px) {
+    .rate-estimator { padding: 16px; }
+    .rate-transparency { padding: 16px; }
+    .rate-channel { flex-basis: 100%; }
 }

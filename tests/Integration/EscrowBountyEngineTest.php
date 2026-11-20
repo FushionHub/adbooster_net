@@ -165,9 +165,10 @@ final class EscrowBountyEngineTest extends TestCase
         $this->assertSame(20.00, $payout['platform_fee'], '10% platform fee on 200');
         $this->assertSame(180.00, $payout['payout_to_creator'], '90% creator payout on 200');
 
-        // Wallet credit must match the payout exactly
+        // Wallet credit must match the payout exactly — the wallet is
+        // naira-denominated, so the payout lands as its naira value.
         $creator = db()->fetchOne("SELECT ad_credits FROM users WHERE id = ?", [$this->creatorUserId]);
-        $this->assertSame(180.00, (float)$creator['ad_credits']);
+        $this->assertSame(credit_units_to_ngn(180.00), (float)$creator['ad_credits']);
 
         // Statuses must be finalised
         $bounty = db()->fetchOne("SELECT status, escrow_status FROM creator_bounties WHERE id = ?", [$bountyId]);

@@ -92,10 +92,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 ]);
 
                 if ($creditType === 'ad_credits') {
-                    // 10% bonus on ad credits conversion
+                    // 10% bonus on ad credits conversion. The commission
+                    // ledger is USD-canonical; the wallet is naira-denominated,
+                    // so the credit is converted once, at the wallet boundary.
                     $adBonus = round($amount * 1.10, 2);
-                    db()->query("UPDATE users SET ad_credits = COALESCE(ad_credits, 0) + ? WHERE id = ?", [$adBonus, $userId]);
-                    $msg = 'Successfully converted ' . price_fmt($amount) . ' into ' . price_fmt($adBonus) . ' in Ad Credits (including 10% bonus)!';
+                    $amountNgn = credit_units_to_ngn($amount);
+                    $bonusNgn = credit_units_to_ngn($adBonus);
+                    db()->query("UPDATE users SET ad_credits = COALESCE(ad_credits, 0) + ? WHERE id = ?", [$bonusNgn, $userId]);
+                    $msg = 'Successfully converted ' . price_ngn_fmt($amountNgn) . ' into ' . price_ngn_fmt($bonusNgn) . ' in Ad Credits (including 10% bonus)!';
                 } else {
                     // Convert into AI credits: 1 USD = 20 AI Credits
                     $aiCount = (int)($amount * 20);
@@ -147,7 +151,7 @@ require_once __DIR__ . '/includes/app_header.php';
     <div class="page-header" style="margin-bottom:28px">
         <div>
             <h1 class="page-title">Referral Partner Program</h1>
-            <p class="page-subtitle">Earn 10 ad credits for every business or creator you refer who subscribes or tops up. Withdraw to bank or convert to ad credits with a bonus.</p>
+            <p class="page-subtitle">Earn ad-credit commission for every business or creator you refer who subscribes or tops up. Withdraw to bank or convert to ad credits with a bonus.</p>
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
             <button class="btn-accent btn-sm" data-bs-toggle="modal" data-bs-target="#convertCreditsModal" style="display:inline-flex;align-items:center;gap:6px;">
@@ -191,14 +195,14 @@ require_once __DIR__ . '/includes/app_header.php';
         <div class="col-sm-6 col-xl-3">
             <div class="card-dark" style="padding:18px 20px;">
                 <div style="font-size:12px;font-weight:600;color:var(--fg3);text-transform:uppercase;">Pending Rewards</div>
-                <div style="font-size:26px;font-weight:800;color:var(--orange);margin-top:4px;"><?= number_format((float)$pendingRewards['total']) ?> credits</div>
+                <div style="font-size:26px;font-weight:800;color:var(--orange);margin-top:4px;"><?= price_ngn_fmt(credit_units_to_ngn((float)$pendingRewards['total'])) ?></div>
                 <div style="font-size:12px;color:var(--fg2);margin-top:2px;">Awaiting first checkout</div>
             </div>
         </div>
         <div class="col-sm-6 col-xl-3">
             <div class="card-dark" style="padding:18px 20px;">
                 <div style="font-size:12px;font-weight:600;color:var(--fg3);text-transform:uppercase;">Total Lifetime Earned</div>
-                <div style="font-size:26px;font-weight:800;color:var(--blue);margin-top:4px;"><?= number_format((float)$earnedRewards['total']) ?> credits</div>
+                <div style="font-size:26px;font-weight:800;color:var(--blue);margin-top:4px;"><?= price_ngn_fmt(credit_units_to_ngn((float)$earnedRewards['total'])) ?></div>
                 <div style="font-size:12px;color:var(--fg2);margin-top:2px;">All-time affiliate earnings</div>
             </div>
         </div>
@@ -218,7 +222,7 @@ require_once __DIR__ . '/includes/app_header.php';
 
         <div style="font-size:13px;font-weight:600;color:var(--fg);margin-bottom:10px;">Share Instantly Across Social Networks</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <a href="https://wa.me/?text=<?= urlencode('Scale your business with Adsbooster multi-network advertising! Use my invite link to get 5 ad credits: ' . $referralLink) ?>" target="_blank" rel="noopener" class="btn-outline-dark btn-sm" style="color:#25D366;border-color:rgba(37,211,102,0.3);">
+            <a href="https://wa.me/?text=<?= urlencode('Scale your business with Adsbooster multi-network advertising! Use my invite link to get bonus ad credits: ' . $referralLink) ?>" target="_blank" rel="noopener" class="btn-outline-dark btn-sm" style="color:#25D366;border-color:rgba(37,211,102,0.3);">
                 <i class="ph ph-whatsapp-logo"></i> WhatsApp
             </a>
             <a href="https://twitter.com/intent/tweet?url=<?= urlencode($referralLink) ?>&text=<?= urlencode('Launch Meta, TikTok, Google and Snapchat ads from one dashboard with Adsbooster! Sign up with my link for bonus ad credits:') ?>" target="_blank" rel="noopener" class="btn-outline-dark btn-sm">
@@ -249,7 +253,7 @@ require_once __DIR__ . '/includes/app_header.php';
             <div style="padding:36px;text-align:center;border:1px dashed var(--border);border-radius:12px;">
                 <i class="ph ph-user-plus" style="font-size:36px;color:var(--fg3);margin-bottom:8px;display:block;"></i>
                 <div style="color:#fff;font-weight:600;margin-bottom:4px;">No referrals yet</div>
-                <p style="color:var(--fg2);font-size:13px;margin:0 0 16px;">Share your personal link to earn 10 ad credits for every account that makes a payment.</p>
+                <p style="color:var(--fg2);font-size:13px;margin:0 0 16px;">Share your personal link to earn ad-credit commission for every account that makes a payment.</p>
                 <button type="button" class="btn-accent btn-sm" onclick="copyReferralLink()">Copy Your Referral Link</button>
             </div>
         <?php else: ?>
@@ -285,7 +289,7 @@ require_once __DIR__ . '/includes/app_header.php';
                                     <?php endif; ?>
                                 </td>
                                 <td style="font-weight:700;color:<?= $ref['status'] === 'rewarded' ? 'var(--green)' : 'var(--orange)' ?>;font-size:13px;">
-                                    <?= number_format((float)($ref['reward_credits'] ?? 10.00)) ?> credits
+                                    <?= price_ngn_fmt(credit_units_to_ngn((float)($ref['reward_credits'] ?? 10.00))) ?>
                                 </td>
                                 <td style="color:var(--fg2);font-size:13px;">
                                     <?= dt($ref['created_at'], 'M d, Y') ?>
